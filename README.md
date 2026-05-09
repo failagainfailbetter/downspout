@@ -17,7 +17,7 @@ copy the `.vst3` bundles into `~/.vst3`:
 
 ```bash
 mkdir -p ~/.vst3
-cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 rift.vst3 drumgen.vst3 cadence.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 ~/.vst3/
+cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 rift.vst3 drumgen.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 ~/.vst3/
 ```
 
 Then restart your DAW or trigger a plugin rescan.
@@ -30,6 +30,7 @@ The immediate targets are:
 - `rift`: an original transport-aware buffer damage effect
 - `drumgen`: a transport-aware MIDI drum generator
 - `cadence`: a transport-aware MIDI harmonizer and comping generator
+- `counterpointer`: a transport-aware MIDI counter-melody generator
 - `gremlin`: a chaotic glitch instrument with live performance gestures
 - `gremlin-driver`: a MIDI modulation and action sequencer for `gremlin`
 - `ground`: an original long-form MIDI bass form generator
@@ -70,12 +71,13 @@ This repository now contains:
 - a portable `drumgen` core library with a host-neutral MIDI engine, serialization helpers, tests, and a first DPF-backed VST3 wrapper target with UI;
 - explicit `Auto` / `Straight` / `Reel` / `Waltz` / `Jig` / `Slip Jig` style modes in `drumgen`;
 - a portable `cadence` core library with tests and a first DPF-backed `cadence.vst3` wrapper target with UI;
+- a portable `counterpointer` core library with tests and a first DPF-backed `counterpointer.vst3` wrapper target with UI;
 - a portable `gremlin` core library with tests and a first DPF-backed `gremlin.vst3` wrapper target with UI;
 - a portable `gremlin-driver` MIDI control core with tests and a first DPF-backed `gremlin_driver.vst3` wrapper target with UI;
 - an original `ground` core library with tests and a first DPF-backed `ground.vst3` wrapper target with UI;
 - an `install.sh` entrypoint for local VST3 installs.
 
-`bassgen`, `p_mix`, `e_mix`, `rift`, `drumgen`, `cadence`, `gremlin`, `gremlin_driver`, and `ground` can now be built and installed as `.vst3` bundles.
+`bassgen`, `p_mix`, `e_mix`, `rift`, `drumgen`, `cadence`, `counterpointer`, `gremlin`, `gremlin_driver`, and `ground` can now be built and installed as `.vst3` bundles.
 
 ## Build & Install
 
@@ -107,6 +109,7 @@ Current installable plugin:
 - `rift.vst3`
 - `drumgen.vst3`
 - `cadence.vst3`
+- `counterpointer.vst3`
 - `gremlin.vst3`
 - `gremlin_driver.vst3`
 - `ground.vst3`
@@ -167,6 +170,13 @@ buttons. The per-plugin plan lives under `plugins/drumgen/docs/`.
 variation, and transport core. It has a first custom DPF UI and is ready for
 host-side validation in a DAW.
 
+## Counterpointer
+
+`counterpointer` now builds as `counterpointer.vst3` on top of a portable
+transport-synced MIDI engine. It learns the incoming MIDI pattern and emits a
+monophonic counter-melody with controls for following, contrary motion,
+rhythmic answering, randomness, freeze, and MIDI routing.
+
 ## Gremlin
 
 `gremlin` now builds as `gremlin.vst3` on top of a portable chaotic synth core
@@ -196,9 +206,10 @@ pedals, cadences, and releases rather than only mutating a short loop.
 4. Validate `rift.vst3` in Reaper, especially whether the macro panel and block preview make the effect learnable in practice.
 5. Tighten any remaining host-specific `p-mix` UI or interaction issues beyond the first layout polish pass.
 6. Validate `cadence.vst3` in Reaper, especially learning, restart/rewind behavior, and state restore.
-7. Validate `gremlin.vst3` in Reaper, especially controller-style MIDI gestures, scene changes, and output level.
-8. Validate `gremlin_driver.vst3` in Reaper, especially MIDI pass-through, transport sync, and chaining into `gremlin.vst3`.
-9. Validate `drumgen.vst3` in Reaper, especially the new action-button UI, transport sync, and state restore.
-10. Validate `ground.vst3` in Reaper, especially long-form phrase behavior, action triggers, and state restore.
-11. Push folk-oriented style vocabulary into the remaining generators so the compound-meter work extends beyond `bassgen` and `drumgen`.
-12. Publish the first public `v*` tag and verify the GitHub Actions release assets on GitHub.
+7. Validate `counterpointer.vst3` in Reaper, especially routing after `bassgen`, learning, freeze, state restore, and note-off cleanup.
+8. Validate `gremlin.vst3` in Reaper, especially controller-style MIDI gestures, scene changes, and output level.
+9. Validate `gremlin_driver.vst3` in Reaper, especially MIDI pass-through, transport sync, and chaining into `gremlin.vst3`.
+10. Validate `drumgen.vst3` in Reaper, especially the new action-button UI, transport sync, and state restore.
+11. Validate `ground.vst3` in Reaper, especially long-form phrase behavior, action triggers, and state restore.
+12. Push folk-oriented style vocabulary into the remaining generators so the compound-meter work extends beyond `bassgen` and `drumgen`.
+13. Publish the first public `v*` tag and verify the GitHub Actions release assets on GitHub.

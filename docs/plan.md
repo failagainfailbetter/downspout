@@ -147,9 +147,8 @@ Progress as of 2026-04-24:
 - `rift` now exists as an original `downspout` transport-aware buffer effect with a portable core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `drumgen` now has a portable core library, a host-neutral MIDI engine, text serialization helpers, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `cadence` now has a portable core library, a host-neutral learning/playback engine, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
-- `counterpointer` now has an initial portable core and deterministic tests for
-  transport-synced MIDI capture and counter-melody generation; it intentionally
-  has no DPF wrapper yet;
+- `counterpointer` now has a portable core, deterministic tests, text state
+  serialization, and a first DPF/VST3 wrapper with custom UI;
 - `gremlin` now has a portable core library, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `gremlin-driver` now has a portable MIDI modulation core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `ground` now exists as an original long-form MIDI bass generator with a portable form-planning core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
@@ -158,9 +157,9 @@ Progress as of 2026-04-24:
 Current main gap:
 
 - DPF is now vendored and all current wrapper targets build successfully.
-- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `rift.vst3`, `drumgen.vst3`, `cadence.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, and `ground.vst3` bundles.
+- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `rift.vst3`, `drumgen.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, and `ground.vst3` bundles.
 - both `install.sh` and `scripts/package-release.sh` now pass clean full-tree smoke runs for all nine bundles.
-- the main remaining gaps are host validation of `bassgen`, host validation of `p-mix`, host validation of `e-mix`, host validation of `rift`, host validation of `drumgen`, host validation of `cadence`, host validation of `gremlin`, host validation of `gremlin-driver`, host validation of `ground`, validating the first tagged GitHub Actions release, and pushing the new shared meter model further up the musical stack so the generators adopt real style vocabulary rather than only pulse-aware bar shapes.
+- the main remaining gaps are host validation of `bassgen`, host validation of `p-mix`, host validation of `e-mix`, host validation of `rift`, host validation of `drumgen`, host validation of `cadence`, host validation of `counterpointer`, host validation of `gremlin`, host validation of `gremlin-driver`, host validation of `ground`, validating the first tagged GitHub Actions release, and pushing the new shared meter model further up the musical stack so the generators adopt real style vocabulary rather than only pulse-aware bar shapes.
 
 ## Meter direction
 

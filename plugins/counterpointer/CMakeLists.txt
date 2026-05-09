@@ -1,5 +1,6 @@
 add_library(downspout_counterpointer_core STATIC
     src/counterpointer_engine.cpp
+    src/counterpointer_serialization.cpp
     src/counterpointer_transport.cpp
 )
 target_link_libraries(downspout_counterpointer_core PUBLIC downspout-project-options)
@@ -12,6 +13,31 @@ target_link_libraries(downspout_counterpointer_port INTERFACE
     downspout-project-options
     downspout_counterpointer_core
 )
+
+if(DOWNSPOUT_ENABLE_DPF AND DOWNSPOUT_DPF_DIR)
+    dpf_add_plugin(counterpointer
+        TARGETS vst3
+        FILES_DSP
+            src/dpf/CounterpointerPlugin.cpp
+        FILES_UI
+            src/dpf/CounterpointerUI.cpp
+    )
+    target_link_libraries(counterpointer-dsp PUBLIC downspout_counterpointer_core)
+    target_link_libraries(counterpointer-ui PUBLIC downspout-project-options)
+    target_include_directories(counterpointer PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/dpf"
+    )
+    target_include_directories(counterpointer-ui PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/dpf"
+    )
+
+    install(DIRECTORY "${PROJECT_BINARY_DIR}/bin/counterpointer.vst3"
+        DESTINATION "."
+        OPTIONAL
+    )
+endif()
 
 if(BUILD_TESTING)
     add_executable(downspout_counterpointer_core_tests

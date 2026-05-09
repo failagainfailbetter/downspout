@@ -46,8 +46,7 @@ and variation state.
 
 ## Implementation staging
 
-The current implementation intentionally stops at the portable core and tests.
-The DPF/VST3 wrapper should be added only after the capture/generation behavior
-has more test coverage around loop boundaries, rewinds, meter changes, and saved
-state.
-
+The current implementation includes a first DPF/VST3 wrapper and UI, but the
+portable core remains the main source of behavior. Host validation should focus
+on MIDI routing, saved-state restore, rewind behavior, and whether the current
+monophonic phrase generation feels responsive enough when driven by `bassgen`.

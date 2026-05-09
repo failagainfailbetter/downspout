@@ -1,4 +1,5 @@
 #include "counterpointer_engine.hpp"
+#include "counterpointer_serialization.hpp"
 #include "counterpointer_transport.hpp"
 
 #include <array>
@@ -85,6 +86,69 @@ void testStoppedTransportPassThrough()
     assert(result.eventCount == 1);
     assert(result.events[0].data[0] == 0x90);
     assert(result.events[0].data[1] == 60);
+}
+
+void testSerializationRoundTrip()
+{
+    Controls controls = defaultControls();
+    controls.key = 9;
+    controls.scale = SCALE_DORIAN;
+    controls.cycle_bars = 3;
+    controls.granularity = GRANULARITY_HALF_BAR;
+    controls.follow = 0.24f;
+    controls.counter = 0.81f;
+    controls.short_random = 0.33f;
+    controls.long_random = 0.44f;
+    controls.density = 0.72f;
+    controls.rhythm_follow = 0.61f;
+    controls.syncopation = 0.35f;
+    controls.consonance = 0.93f;
+    controls.reg = REGISTER_HIGH;
+    controls.span = 0.42f;
+    controls.gate = 0.58f;
+    controls.velocity_follow = 0.25f;
+    controls.pass_input = false;
+    controls.output_channel = 5;
+    controls.action_learn = 7;
+    controls.freeze = true;
+
+    const auto controlsRoundTrip = deserializeControls(serializeControls(controls));
+    assert(controlsRoundTrip.has_value());
+    assert(controlsRoundTrip->key == 9);
+    assert(controlsRoundTrip->scale == SCALE_DORIAN);
+    assert(controlsRoundTrip->cycle_bars == 3);
+    assert(controlsRoundTrip->reg == REGISTER_HIGH);
+    assert(!controlsRoundTrip->pass_input);
+    assert(controlsRoundTrip->output_channel == 5);
+    assert(controlsRoundTrip->freeze);
+
+    PhraseState phrase;
+    phrase.segmentCount = 2;
+    phrase.ready = true;
+    phrase.steps[0].active = true;
+    phrase.steps[0].note = 72;
+    phrase.steps[0].velocity = 100;
+    phrase.steps[0].onset = 0.25;
+    phrase.steps[0].gate = 0.50;
+    phrase.steps[1].active = false;
+    phrase.steps[1].note = 74;
+
+    const auto phraseRoundTrip = deserializePhraseState(serializePhraseState(phrase));
+    assert(phraseRoundTrip.has_value());
+    assert(phraseRoundTrip->ready);
+    assert(phraseRoundTrip->segmentCount == 2);
+    assert(phraseRoundTrip->steps[0].active);
+    assert(phraseRoundTrip->steps[0].note == 72);
+    assert(phraseRoundTrip->steps[1].note == 74);
+
+    VariationState variation = defaultVariationState();
+    variation.completed_cycles = 10;
+    variation.last_mutation_cycle = 8;
+    variation.mutation_serial = 4;
+    const auto variationRoundTrip = deserializeVariationState(serializeVariationState(variation));
+    assert(variationRoundTrip.has_value());
+    assert(variationRoundTrip->completed_cycles == 10);
+    assert(variationRoundTrip->mutation_serial == 4);
 }
 
 void testLearnsIncomingPatternAndEmitsCounterMelody()
@@ -213,6 +277,7 @@ int main()
 {
     testTransportHelpers();
     testStoppedTransportPassThrough();
+    testSerializationRoundTrip();
     testLearnsIncomingPatternAndEmitsCounterMelody();
     testDeterministicForSameInput();
     testFreezeKeepsLearnedPhrase();

@@ -19,5 +19,4 @@ Current status:
 
 - portable core types, transport helpers, and engine exist;
 - deterministic core tests exist;
-- no DPF wrapper or UI has been added yet.
-
+- a first DPF-backed `counterpointer.vst3` wrapper and custom UI exist.
