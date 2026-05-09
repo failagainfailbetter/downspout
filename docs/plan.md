@@ -19,6 +19,11 @@ The first ports will be based on:
 - `~/github/flues/lv2/bassgen`
 - `~/github/flues/lv2/p-mix`
 
+Original follow-on plugin idea:
+
+- `counterpointer`: transport-aware MIDI processor that learns the incoming MIDI
+  pattern, like `cadence`, and emits a complementary monophonic counter-melody.
+
 These two plugins were chosen deliberately because together they cover the main migration risks:
 
 - `bassgen` exercises MIDI generation, transport sync, state persistence, and control/UI messaging.
@@ -142,6 +147,9 @@ Progress as of 2026-04-24:
 - `rift` now exists as an original `downspout` transport-aware buffer effect with a portable core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `drumgen` now has a portable core library, a host-neutral MIDI engine, text serialization helpers, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `cadence` now has a portable core library, a host-neutral learning/playback engine, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
+- `counterpointer` now has an initial portable core and deterministic tests for
+  transport-synced MIDI capture and counter-melody generation; it intentionally
+  has no DPF wrapper yet;
 - `gremlin` now has a portable core library, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `gremlin-driver` now has a portable MIDI modulation core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `ground` now exists as an original long-form MIDI bass generator with a portable form-planning core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;

@@ -17,6 +17,7 @@ option(DOWNSPOUT_BUILD_EMIX "Configure the e-mix port target" ON)
 option(DOWNSPOUT_BUILD_RIFT "Configure the rift original effect target" ON)
 option(DOWNSPOUT_BUILD_DRUMGEN "Configure the drumgen port target" ON)
 option(DOWNSPOUT_BUILD_CADENCE "Configure the cadence port target" ON)
+option(DOWNSPOUT_BUILD_COUNTERPOINTER "Configure the counterpointer MIDI target" ON)
 option(DOWNSPOUT_BUILD_GREMLIN "Configure the gremlin port target" ON)
 option(DOWNSPOUT_BUILD_GREMLIN_DRIVER "Configure the gremlin-driver port target" ON)
 option(DOWNSPOUT_BUILD_GROUND "Configure the ground original MIDI target" ON)
@@ -64,6 +65,10 @@ endif()
 
 if(DOWNSPOUT_BUILD_CADENCE)
     add_subdirectory(plugins/cadence)
+endif()
+
+if(DOWNSPOUT_BUILD_COUNTERPOINTER)
+    add_subdirectory(plugins/counterpointer)
 endif()
 
 if(DOWNSPOUT_BUILD_GREMLIN)
