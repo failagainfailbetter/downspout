@@ -47,6 +47,18 @@ bool hasNoteOn(const BlockResult& result)
     return false;
 }
 
+int countNoteOns(const BlockResult& result)
+{
+    int count = 0;
+    for (int i = 0; i < result.eventCount; ++i)
+    {
+        const ScheduledMidiEvent& event = result.events[static_cast<std::size_t>(i)];
+        if (event.size >= 3 && (event.data[0] & 0xf0) == 0x90 && event.data[2] > 0)
+            ++count;
+    }
+    return count;
+}
+
 int firstNoteOnPitch(const BlockResult& result)
 {
     for (int i = 0; i < result.eventCount; ++i)
@@ -103,6 +115,8 @@ void testSerializationRoundTrip()
     controls.rhythm_follow = 0.61f;
     controls.syncopation = 0.35f;
     controls.consonance = 0.93f;
+    controls.embellish = 0.84f;
+    controls.regularity = 0.91f;
     controls.reg = REGISTER_HIGH;
     controls.span = 0.42f;
     controls.gate = 0.58f;
@@ -118,6 +132,8 @@ void testSerializationRoundTrip()
     assert(controlsRoundTrip->scale == SCALE_DORIAN);
     assert(controlsRoundTrip->cycle_bars == 3);
     assert(controlsRoundTrip->reg == REGISTER_HIGH);
+    assert(controlsRoundTrip->embellish > 0.83f && controlsRoundTrip->embellish < 0.85f);
+    assert(controlsRoundTrip->regularity > 0.90f && controlsRoundTrip->regularity < 0.92f);
     assert(!controlsRoundTrip->pass_input);
     assert(controlsRoundTrip->output_channel == 5);
     assert(controlsRoundTrip->freeze);
@@ -130,6 +146,17 @@ void testSerializationRoundTrip()
     phrase.steps[0].velocity = 100;
     phrase.steps[0].onset = 0.25;
     phrase.steps[0].gate = 0.50;
+    phrase.steps[0].hitCount = 2;
+    phrase.steps[0].hits[0].active = true;
+    phrase.steps[0].hits[0].note = 72;
+    phrase.steps[0].hits[0].velocity = 100;
+    phrase.steps[0].hits[0].onset = 0.25;
+    phrase.steps[0].hits[0].gate = 0.50;
+    phrase.steps[0].hits[1].active = true;
+    phrase.steps[0].hits[1].note = 76;
+    phrase.steps[0].hits[1].velocity = 88;
+    phrase.steps[0].hits[1].onset = 0.72;
+    phrase.steps[0].hits[1].gate = 0.30;
     phrase.steps[1].active = false;
     phrase.steps[1].note = 74;
 
@@ -139,6 +166,8 @@ void testSerializationRoundTrip()
     assert(phraseRoundTrip->segmentCount == 2);
     assert(phraseRoundTrip->steps[0].active);
     assert(phraseRoundTrip->steps[0].note == 72);
+    assert(phraseRoundTrip->steps[0].hitCount == 2);
+    assert(phraseRoundTrip->steps[0].hits[1].note == 76);
     assert(phraseRoundTrip->steps[1].note == 74);
 
     VariationState variation = defaultVariationState();
@@ -239,6 +268,40 @@ void testDeterministicForSameInput()
     }
 }
 
+void testEmbellishCanOutnumberInputNotes()
+{
+    EngineState state;
+    activate(state);
+
+    Controls controls = defaultControls();
+    controls.cycle_bars = 1;
+    controls.granularity = GRANULARITY_BAR;
+    controls.pass_input = false;
+    controls.density = 1.0f;
+    controls.embellish = 1.0f;
+    controls.regularity = 1.0f;
+
+    constexpr std::uint32_t frameCount = 96000;
+    const std::array<InputMidiEvent, 2> firstCycle = {{
+        makeEvent(0, 0x90, 48, 100),
+        makeEvent(95999, 0x80, 48, 0),
+    }};
+
+    const BlockResult learned =
+        processBlock(state, controls, runningTransport(0.0), frameCount, 48000.0, firstCycle.data(), firstCycle.size());
+    assert(learned.ready);
+
+    const BlockResult playback = processBlock(state,
+                                              controls,
+                                              runningTransport(1.0),
+                                              frameCount,
+                                              48000.0,
+                                              nullptr,
+                                              0);
+    assert(playback.ready);
+    assert(countNoteOns(playback) > 1);
+}
+
 void testFreezeKeepsLearnedPhrase()
 {
     EngineState state;
@@ -280,6 +343,7 @@ int main()
     testSerializationRoundTrip();
     testLearnsIncomingPatternAndEmitsCounterMelody();
     testDeterministicForSameInput();
+    testEmbellishCanOutnumberInputNotes();
     testFreezeKeepsLearnedPhrase();
     return 0;
 }

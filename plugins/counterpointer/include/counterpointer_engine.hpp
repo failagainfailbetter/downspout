@@ -30,6 +30,9 @@ struct EngineState {
     bool noteOnPending = false;
     double pendingNoteOnBeat = 0.0;
     PhraseStep pendingStep {};
+    std::array<bool, kMaxHitsPerSegment> pendingHitActive {};
+    std::array<double, kMaxHitsPerSegment> pendingHitBeat {};
+    std::array<PhraseHit, kMaxHitsPerSegment> pendingHits {};
 };
 
 struct BlockResult {

@@ -24,6 +24,8 @@ enum ParameterIndex : uint32_t {
     kParamRhythmFollow,
     kParamSyncopation,
     kParamConsonance,
+    kParamEmbellish,
+    kParamRegularity,
     kParamRegister,
     kParamSpan,
     kParamGate,
@@ -200,6 +202,8 @@ protected:
         case kParamRhythmFollow: initPercentParameter(parameter, "Rhythm Follow", "rhythm_follow", 0.65f); break;
         case kParamSyncopation: initPercentParameter(parameter, "Syncopation", "syncopation", 0.25f); break;
         case kParamConsonance: initPercentParameter(parameter, "Consonance", "consonance", 0.75f); break;
+        case kParamEmbellish: initPercentParameter(parameter, "Embellish", "embellish", 0.25f); break;
+        case kParamRegularity: initPercentParameter(parameter, "Regularity", "regularity", 0.65f); break;
         case kParamRegister:
             parameter.name = "Register";
             parameter.symbol = "register";
@@ -298,6 +302,8 @@ protected:
         case kParamRhythmFollow: return controls_.rhythm_follow;
         case kParamSyncopation: return controls_.syncopation;
         case kParamConsonance: return controls_.consonance;
+        case kParamEmbellish: return controls_.embellish;
+        case kParamRegularity: return controls_.regularity;
         case kParamRegister: return static_cast<float>(controls_.reg);
         case kParamSpan: return controls_.span;
         case kParamGate: return controls_.gate;
@@ -328,6 +334,8 @@ protected:
         case kParamRhythmFollow: controls_.rhythm_follow = value; break;
         case kParamSyncopation: controls_.syncopation = value; break;
         case kParamConsonance: controls_.consonance = value; break;
+        case kParamEmbellish: controls_.embellish = value; break;
+        case kParamRegularity: controls_.regularity = value; break;
         case kParamRegister: controls_.reg = static_cast<int>(value); break;
         case kParamSpan: controls_.span = value; break;
         case kParamGate: controls_.gate = value; break;

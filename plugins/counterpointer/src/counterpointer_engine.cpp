@@ -91,7 +91,22 @@ std::uint32_t controls_seed(const Controls& controls)
     seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.short_random * 1000.0f)) << 2);
     seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.long_random * 1000.0f)) << 3);
     seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.density * 1000.0f)) << 4);
+    seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.embellish * 1000.0f)) << 5);
+    seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.regularity * 1000.0f)) << 6);
     return seed;
+}
+
+Controls effective_controls_for_generation(const Controls& controls)
+{
+    Controls out = controls;
+    const float irregularity = 1.0f - clampf(controls.regularity, 0.0f, 1.0f);
+
+    out.short_random = clampf(controls.short_random * (0.18f + irregularity * 1.25f) + irregularity * 0.28f, 0.0f, 1.0f);
+    out.long_random = clampf(controls.long_random * (0.10f + irregularity * 1.15f), 0.0f, 1.0f);
+    out.syncopation = clampf(controls.syncopation * (0.35f + irregularity * 0.95f) + irregularity * 0.18f, 0.0f, 1.0f);
+    out.rhythm_follow = clampf(controls.rhythm_follow * (0.55f + controls.regularity * 0.45f), 0.0f, 1.0f);
+    out.consonance = clampf(controls.consonance * (0.65f + controls.regularity * 0.35f), 0.0f, 1.0f);
+    return out;
 }
 
 bool scale_contains_pc(const int scaleIndex, const int key, const int notePc)
@@ -160,6 +175,15 @@ double answer_position(const double inputOnset, const Controls& controls)
 {
     const double shifted = inputOnset + 0.5 + static_cast<double>(controls.syncopation) * 0.18;
     return clampd(shifted - std::floor(shifted), 0.0, 0.94);
+}
+
+double embellish_position(const double inputOnset, const int hitIndex, const Controls& controls)
+{
+    const double base = hitIndex == 1 ? 0.25 : 0.75;
+    const double pull = static_cast<double>(controls.regularity) * 0.22;
+    const double answer = answer_position(inputOnset, controls);
+    const double pos = base * (0.65 + pull) + answer * (0.35 - pull);
+    return clampd(pos, 0.04, 0.92);
 }
 
 int interval_class(const int a, const int b)
@@ -248,6 +272,7 @@ void silence_output(EngineState& state, BlockResult& result, const std::uint32_t
     state.activeOutput = false;
     state.noteOffPending = false;
     state.noteOnPending = false;
+    state.pendingHitActive.fill(false);
 }
 
 void clear_capture(std::array<SegmentCapture, kMaxSegments>& capture)
@@ -419,15 +444,66 @@ int choose_output_note(const Controls& controls,
     return bestNote;
 }
 
+void sync_primary_from_hits(PhraseStep& step)
+{
+    step.active = false;
+    step.hitCount = clampi(step.hitCount, 0, kMaxHitsPerSegment);
+
+    for (int i = 0; i < step.hitCount; ++i)
+    {
+        const PhraseHit& hit = step.hits[static_cast<std::size_t>(i)];
+        if (!hit.active)
+            continue;
+
+        step.active = true;
+        step.note = hit.note;
+        step.velocity = hit.velocity;
+        step.onset = hit.onset;
+        step.gate = hit.gate;
+        return;
+    }
+}
+
+PhraseHit make_hit(const Controls& controls,
+                   const int source,
+                   const int previousSource,
+                   const int previousOutput,
+                   const int segmentIndex,
+                   const int hitIndex,
+                   const int velocity,
+                   const double onset,
+                   Rng& rng)
+{
+    PhraseHit hit {};
+    hit.active = true;
+    const int bias = hitIndex == 0 ? 0 : (hitIndex == 1 ? 2 : -2);
+    hit.note = static_cast<std::uint8_t>(
+        choose_output_note(controls, source + bias, previousSource, previousOutput, segmentIndex + hitIndex, rng));
+    hit.velocity = static_cast<std::uint8_t>(clampi(static_cast<int>(std::lround(84.0 +
+                                                                                  static_cast<double>(velocity - 84) *
+                                                                                      static_cast<double>(controls.velocity_follow))) -
+                                                        hitIndex * 8,
+                                                    1,
+                                                    127));
+    hit.onset = onset;
+    hit.gate = clampd(static_cast<double>(controls.gate) *
+                          (hitIndex == 0 ? 1.0 : 0.58) *
+                          (0.92 - static_cast<double>(controls.syncopation) * 0.20),
+                      0.08,
+                      1.0);
+    return hit;
+}
+
 bool build_phrase_from_capture(const std::array<SegmentCapture, kMaxSegments>& capture,
                                const int segmentCount,
-                               const Controls& controls,
+                               const Controls& rawControls,
                                VariationState& variation,
                                PhraseState& out)
 {
     if (segmentCount <= 0 || !capture_has_material(capture, segmentCount))
         return false;
 
+    const Controls controls = effective_controls_for_generation(rawControls);
     clear_phrase(out);
     out.version = kPhraseStateVersion;
     out.segmentCount = segmentCount;
@@ -459,22 +535,67 @@ bool build_phrase_from_capture(const std::array<SegmentCapture, kMaxSegments>& c
                                          1.0);
 
         PhraseStep step {};
-        step.active = rng.nextFloat() <= noteChance;
-        step.note = static_cast<std::uint8_t>(choose_output_note(controls, source, previousSource, previousOutput, i, rng));
-        step.velocity = static_cast<std::uint8_t>(clampi(static_cast<int>(std::lround(84.0 +
-                                                                                       static_cast<double>(velocity - 84) *
-                                                                                           static_cast<double>(controls.velocity_follow))),
-                                                         1,
-                                                         127));
-        step.onset = onset;
-        step.gate = clampd(static_cast<double>(controls.gate) * (0.92 - static_cast<double>(controls.syncopation) * 0.20),
-                           0.08,
-                           1.0);
+        step.hitCount = 0;
+        if (rng.nextFloat() <= noteChance)
+            step.hits[static_cast<std::size_t>(step.hitCount++)] =
+                make_hit(controls, source, previousSource, previousOutput, i, 0, velocity, onset, rng);
+
+        const double firstExtraChance =
+            controls.embellish >= 0.999f
+                ? 1.0
+                : clampd(static_cast<double>(controls.embellish) *
+                             (0.45 + static_cast<double>(controls.density) * 0.50),
+                         0.0,
+                         1.0);
+        const double secondExtraChance = clampd(static_cast<double>(controls.embellish) *
+                                                   static_cast<double>(controls.embellish) *
+                                                   (0.18 + (1.0 - static_cast<double>(controls.regularity)) * 0.24),
+                                               0.0,
+                                               1.0);
+        if (rng.nextFloat() <= firstExtraChance)
+        {
+            step.hits[static_cast<std::size_t>(step.hitCount++)] =
+                make_hit(controls,
+                         source,
+                         previousSource,
+                         previousOutput,
+                         i,
+                         1,
+                         velocity,
+                         embellish_position(inputOnset, 1, controls),
+                         rng);
+        }
+        if (step.hitCount < kMaxHitsPerSegment && rng.nextFloat() <= secondExtraChance)
+        {
+            step.hits[static_cast<std::size_t>(step.hitCount++)] =
+                make_hit(controls,
+                         source,
+                         previousSource,
+                         previousOutput,
+                         i,
+                         2,
+                         velocity,
+                         embellish_position(inputOnset, 2, controls),
+                         rng);
+        }
 
         if (controls.long_random > 0.0001f && rng.nextFloat() < controls.long_random * 0.18f)
         {
-            step.active = !step.active;
+            if (step.hitCount <= 0)
+            {
+                step.hits[0] = make_hit(controls, source, previousSource, previousOutput, i, 0, velocity, onset, rng);
+                step.hitCount = 1;
+            }
+            else
+            {
+                step.hits[0].active = !step.hits[0].active;
+            }
         }
+
+        std::sort(step.hits.begin(), step.hits.begin() + step.hitCount, [](const PhraseHit& a, const PhraseHit& b) {
+            return a.onset < b.onset;
+        });
+        sync_primary_from_hits(step);
 
         out.steps[static_cast<std::size_t>(i)] = step;
         previousSource = source;
@@ -492,7 +613,8 @@ int cycles_between_mutations(const float longRandom)
 
 void maybe_vary_phrase(EngineState& state)
 {
-    const float amount = clampf(state.controls.long_random, 0.0f, 1.0f);
+    const Controls controls = effective_controls_for_generation(state.controls);
+    const float amount = clampf(controls.long_random, 0.0f, 1.0f);
     if (amount <= 0.0001f || !state.playbackPhrase.ready)
         return;
 
@@ -512,16 +634,27 @@ void maybe_vary_phrase(EngineState& state)
     for (int i = 0; i < state.playbackPhrase.segmentCount; ++i)
     {
         PhraseStep& step = state.playbackPhrase.steps[static_cast<std::size_t>(i)];
+        if (step.hitCount <= 0)
+            continue;
+
         if (rng.nextFloat() < amount * 0.25f)
-            step.active = !step.active;
-        if (step.active && rng.nextFloat() < amount * 0.40f)
+            step.hits[0].active = !step.hits[0].active;
+        for (int hitIndex = 0; hitIndex < step.hitCount; ++hitIndex)
         {
-            const int direction = rng.nextFloat() < 0.5f ? -1 : 1;
-            step.note = static_cast<std::uint8_t>(
-                nearest_scale_note(state.controls, static_cast<int>(step.note) + direction * 2, 0, 127));
+            PhraseHit& hit = step.hits[static_cast<std::size_t>(hitIndex)];
+            if (hit.active && rng.nextFloat() < amount * 0.40f)
+            {
+                const int direction = rng.nextFloat() < 0.5f ? -1 : 1;
+                hit.note = static_cast<std::uint8_t>(
+                    nearest_scale_note(controls, static_cast<int>(hit.note) + direction * 2, 0, 127));
+            }
+            if (hit.active && rng.nextFloat() < amount * 0.25f)
+                hit.onset = clampd(hit.onset + (static_cast<double>(rng.nextFloat()) - 0.5) * 0.18, 0.0, 0.94);
         }
-        if (step.active && rng.nextFloat() < amount * 0.25f)
-            step.onset = clampd(step.onset + (static_cast<double>(rng.nextFloat()) - 0.5) * 0.18, 0.0, 0.94);
+        std::sort(step.hits.begin(), step.hits.begin() + step.hitCount, [](const PhraseHit& a, const PhraseHit& b) {
+            return a.onset < b.onset;
+        });
+        sync_primary_from_hits(step);
     }
 }
 
@@ -540,8 +673,20 @@ void schedule_segment(EngineState& state, const double segmentStartBeat, const d
         return;
 
     state.pendingStep = step;
-    state.pendingNoteOnBeat = segmentStartBeat + step.onset * segmentBeats;
-    state.noteOnPending = true;
+    state.pendingHitActive.fill(false);
+    state.noteOnPending = false;
+    for (int i = 0; i < step.hitCount && i < kMaxHitsPerSegment; ++i)
+    {
+        const PhraseHit& hit = step.hits[static_cast<std::size_t>(i)];
+        if (!hit.active)
+            continue;
+
+        state.pendingHits[static_cast<std::size_t>(i)] = hit;
+        state.pendingHitBeat[static_cast<std::size_t>(i)] = segmentStartBeat + hit.onset * segmentBeats;
+        state.pendingHitActive[static_cast<std::size_t>(i)] = true;
+        state.pendingNoteOnBeat = state.pendingHitBeat[static_cast<std::size_t>(i)];
+        state.noteOnPending = true;
+    }
 }
 
 void handle_boundary(EngineState& state,
@@ -626,7 +771,22 @@ void process_timeline_until(EngineState& state,
     while (true)
     {
         const bool boundaryDue = nextBoundary <= targetBeat + kBeatEpsilon;
-        const bool noteOnDue = state.noteOnPending && state.pendingNoteOnBeat <= targetBeat + kBeatEpsilon;
+        bool noteOnDue = false;
+        int noteOnIndex = -1;
+        double noteOnBeat = targetBeat;
+        for (int i = 0; i < kMaxHitsPerSegment; ++i)
+        {
+            if (!state.pendingHitActive[static_cast<std::size_t>(i)])
+                continue;
+            const double hitBeat = state.pendingHitBeat[static_cast<std::size_t>(i)];
+            if (hitBeat <= targetBeat + kBeatEpsilon && (!noteOnDue || hitBeat < noteOnBeat))
+            {
+                noteOnDue = true;
+                noteOnIndex = i;
+                noteOnBeat = hitBeat;
+            }
+        }
+        state.noteOnPending = noteOnDue;
         const bool noteOffDue = state.noteOffPending && state.pendingNoteOffBeat <= targetBeat + kBeatEpsilon;
         if (!boundaryDue && !noteOnDue && !noteOffDue)
             break;
@@ -634,15 +794,15 @@ void process_timeline_until(EngineState& state,
         double markerBeat = targetBeat;
         enum class Marker { Boundary, NoteOn, NoteOff } marker = Marker::Boundary;
         if (boundaryDue &&
-            (!noteOnDue || nextBoundary <= state.pendingNoteOnBeat + kBeatEpsilon) &&
+            (!noteOnDue || nextBoundary <= noteOnBeat + kBeatEpsilon) &&
             (!noteOffDue || nextBoundary <= state.pendingNoteOffBeat + kBeatEpsilon))
         {
             markerBeat = nextBoundary;
             marker = Marker::Boundary;
         }
-        else if (noteOnDue && (!noteOffDue || state.pendingNoteOnBeat <= state.pendingNoteOffBeat + kBeatEpsilon))
+        else if (noteOnDue && (!noteOffDue || noteOnBeat <= state.pendingNoteOffBeat + kBeatEpsilon))
         {
-            markerBeat = state.pendingNoteOnBeat;
+            markerBeat = noteOnBeat;
             marker = Marker::NoteOn;
         }
         else
@@ -666,12 +826,16 @@ void process_timeline_until(EngineState& state,
             if (state.activeOutput)
                 emit_note_off(result, frame, state.activeOutputNote, state.activeOutputChannel);
             const int channel = resolve_output_channel(state, state.controls.output_channel);
-            emit_note_on(result, frame, state.pendingStep.note, state.pendingStep.velocity, channel);
+            const PhraseHit& hit = state.pendingHits[static_cast<std::size_t>(noteOnIndex)];
+            emit_note_on(result, frame, hit.note, hit.velocity, channel);
             state.activeOutput = true;
-            state.activeOutputNote = state.pendingStep.note;
+            state.activeOutputNote = hit.note;
             state.activeOutputChannel = channel;
+            state.pendingHitActive[static_cast<std::size_t>(noteOnIndex)] = false;
             state.noteOnPending = false;
-            state.pendingNoteOffBeat = markerBeat + state.pendingStep.gate * segmentBeats;
+            for (bool active : state.pendingHitActive)
+                state.noteOnPending = state.noteOnPending || active;
+            state.pendingNoteOffBeat = markerBeat + hit.gate * segmentBeats;
             state.noteOffPending = true;
         }
         else
@@ -710,6 +874,7 @@ void activate(EngineState& state)
     state.activeOutputChannel = 1;
     state.noteOffPending = false;
     state.noteOnPending = false;
+    state.pendingHitActive.fill(false);
     state.controlsInitialized = false;
 }
 
@@ -720,6 +885,7 @@ void deactivate(EngineState& state)
     state.activeOutput = false;
     state.noteOffPending = false;
     state.noteOnPending = false;
+    state.pendingHitActive.fill(false);
 }
 
 BlockResult processBlock(EngineState& state,

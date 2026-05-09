@@ -11,6 +11,7 @@ inline constexpr int kMaxSegments = 32;
 inline constexpr int kTimingBins = 8;
 inline constexpr int kMaxMidiMessageData = 4;
 inline constexpr int kMaxScheduledMidiEvents = 2048;
+inline constexpr int kMaxHitsPerSegment = 3;
 inline constexpr int kPhraseStateVersion = 1;
 inline constexpr int kVariationStateVersion = 1;
 inline constexpr double kBeatEpsilon = 1e-6;
@@ -53,6 +54,8 @@ struct Controls {
     float rhythm_follow = 0.65f;
     float syncopation = 0.25f;
     float consonance = 0.75f;
+    float embellish = 0.25f;
+    float regularity = 0.65f;
     int reg = REGISTER_MID;
     float span = 0.55f;
     float gate = 0.72f;
@@ -71,12 +74,22 @@ struct SegmentCapture {
     std::array<double, kTimingBins> timing_bins {};
 };
 
+struct PhraseHit {
+    bool active = false;
+    std::uint8_t note = 60;
+    std::uint8_t velocity = 96;
+    double onset = 0.0;
+    double gate = 0.7;
+};
+
 struct PhraseStep {
     bool active = false;
     std::uint8_t note = 60;
     std::uint8_t velocity = 96;
     double onset = 0.0;
     double gate = 0.7;
+    int hitCount = 0;
+    std::array<PhraseHit, kMaxHitsPerSegment> hits {};
 };
 
 struct PhraseState {
@@ -153,6 +166,8 @@ using ScheduledMidiEvent = MidiMessage;
     controls.rhythm_follow = clampf(controls.rhythm_follow, 0.0f, 1.0f);
     controls.syncopation = clampf(controls.syncopation, 0.0f, 1.0f);
     controls.consonance = clampf(controls.consonance, 0.0f, 1.0f);
+    controls.embellish = clampf(controls.embellish, 0.0f, 1.0f);
+    controls.regularity = clampf(controls.regularity, 0.0f, 1.0f);
     controls.reg = clampi(controls.reg, 0, 2);
     controls.span = clampf(controls.span, 0.0f, 1.0f);
     controls.gate = clampf(controls.gate, 0.10f, 1.0f);
@@ -176,6 +191,8 @@ using ScheduledMidiEvent = MidiMessage;
            (a.rhythm_follow - b.rhythm_follow < 0.0001f && a.rhythm_follow - b.rhythm_follow > -0.0001f) &&
            (a.syncopation - b.syncopation < 0.0001f && a.syncopation - b.syncopation > -0.0001f) &&
            (a.consonance - b.consonance < 0.0001f && a.consonance - b.consonance > -0.0001f) &&
+           (a.embellish - b.embellish < 0.0001f && a.embellish - b.embellish > -0.0001f) &&
+           (a.regularity - b.regularity < 0.0001f && a.regularity - b.regularity > -0.0001f) &&
            (a.span - b.span < 0.0001f && a.span - b.span > -0.0001f) &&
            (a.gate - b.gate < 0.0001f && a.gate - b.gate > -0.0001f) &&
            (a.velocity_follow - b.velocity_follow < 0.0001f && a.velocity_follow - b.velocity_follow > -0.0001f);

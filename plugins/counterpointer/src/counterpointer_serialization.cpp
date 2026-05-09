@@ -71,6 +71,8 @@ std::string serializeControls(const Controls& controls)
            "rhythm_follow=" + std::to_string(controls.rhythm_follow) + "\n"
            "syncopation=" + std::to_string(controls.syncopation) + "\n"
            "consonance=" + std::to_string(controls.consonance) + "\n"
+           "embellish=" + std::to_string(controls.embellish) + "\n"
+           "regularity=" + std::to_string(controls.regularity) + "\n"
            "reg=" + std::to_string(controls.reg) + "\n"
            "span=" + std::to_string(controls.span) + "\n"
            "gate=" + std::to_string(controls.gate) + "\n"
@@ -125,6 +127,10 @@ std::optional<Controls> deserializeControls(const std::string& text)
             controls.syncopation = floatValue;
         else if (key == "consonance" && parseFloat(value, floatValue))
             controls.consonance = floatValue;
+        else if (key == "embellish" && parseFloat(value, floatValue))
+            controls.embellish = floatValue;
+        else if (key == "regularity" && parseFloat(value, floatValue))
+            controls.regularity = floatValue;
         else if (key == "reg" && parseInteger(value, intValue))
             controls.reg = intValue;
         else if (key == "span" && parseFloat(value, floatValue))
@@ -165,6 +171,17 @@ std::string serializePhraseState(const PhraseState& state)
         text += prefix + "velocity=" + std::to_string(step.velocity) + "\n";
         text += prefix + "onset=" + std::to_string(step.onset) + "\n";
         text += prefix + "gate=" + std::to_string(step.gate) + "\n";
+        text += prefix + "hit_count=" + std::to_string(clampi(step.hitCount, 0, kMaxHitsPerSegment)) + "\n";
+        for (int hitIndex = 0; hitIndex < clampi(step.hitCount, 0, kMaxHitsPerSegment); ++hitIndex)
+        {
+            const PhraseHit& hit = step.hits[static_cast<std::size_t>(hitIndex)];
+            const std::string hitPrefix = prefix + "hit" + std::to_string(hitIndex) + ".";
+            text += hitPrefix + "active=" + std::to_string(hit.active ? 1 : 0) + "\n";
+            text += hitPrefix + "note=" + std::to_string(hit.note) + "\n";
+            text += hitPrefix + "velocity=" + std::to_string(hit.velocity) + "\n";
+            text += hitPrefix + "onset=" + std::to_string(hit.onset) + "\n";
+            text += hitPrefix + "gate=" + std::to_string(hit.gate) + "\n";
+        }
     }
 
     return text;
@@ -250,6 +267,61 @@ std::optional<PhraseState> deserializePhraseState(const std::string& text)
                     return std::nullopt;
                 step.gate = clampd(doubleValue, 0.08, 1.0);
             }
+            else if (field == "hit_count")
+            {
+                if (!parseInteger(value, intValue))
+                    return std::nullopt;
+                step.hitCount = clampi(intValue, 0, kMaxHitsPerSegment);
+            }
+            else if (field.rfind("hit", 0) == 0)
+            {
+                const std::size_t hitDot = field.find('.');
+                if (hitDot == std::string_view::npos)
+                    return std::nullopt;
+
+                int hitIndex = 0;
+                if (!parseInteger(field.substr(3, hitDot - 3), hitIndex))
+                    return std::nullopt;
+                if (hitIndex < 0 || hitIndex >= kMaxHitsPerSegment)
+                    return std::nullopt;
+
+                PhraseHit& hit = step.hits[static_cast<std::size_t>(hitIndex)];
+                const std::string_view hitField = field.substr(hitDot + 1);
+                if (hitField == "active")
+                {
+                    if (!parseInteger(value, intValue))
+                        return std::nullopt;
+                    hit.active = intValue != 0;
+                }
+                else if (hitField == "note")
+                {
+                    if (!parseInteger(value, intValue))
+                        return std::nullopt;
+                    hit.note = static_cast<std::uint8_t>(clampi(intValue, 0, 127));
+                }
+                else if (hitField == "velocity")
+                {
+                    if (!parseInteger(value, intValue))
+                        return std::nullopt;
+                    hit.velocity = static_cast<std::uint8_t>(clampi(intValue, 1, 127));
+                }
+                else if (hitField == "onset")
+                {
+                    if (!parseDouble(value, doubleValue))
+                        return std::nullopt;
+                    hit.onset = clampd(doubleValue, 0.0, 0.94);
+                }
+                else if (hitField == "gate")
+                {
+                    if (!parseDouble(value, doubleValue))
+                        return std::nullopt;
+                    hit.gate = clampd(doubleValue, 0.08, 1.0);
+                }
+                else
+                {
+                    return std::nullopt;
+                }
+            }
             else
             {
                 return std::nullopt;
@@ -264,6 +336,20 @@ std::optional<PhraseState> deserializePhraseState(const std::string& text)
     state.segmentCount = clampi(state.segmentCount, 0, kMaxSegments);
     state.ready = state.ready && state.segmentCount > 0;
     state.version = kPhraseStateVersion;
+    for (int i = 0; i < state.segmentCount; ++i)
+    {
+        PhraseStep& step = state.steps[static_cast<std::size_t>(i)];
+        if (step.hitCount == 0 && step.active)
+        {
+            step.hitCount = 1;
+            step.hits[0].active = step.active;
+            step.hits[0].note = step.note;
+            step.hits[0].velocity = step.velocity;
+            step.hits[0].onset = step.onset;
+            step.hits[0].gate = step.gate;
+        }
+        step.hitCount = clampi(step.hitCount, 0, kMaxHitsPerSegment);
+    }
     return state;
 }
 

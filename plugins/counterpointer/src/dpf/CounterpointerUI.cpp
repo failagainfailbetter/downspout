@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <cstdint>
 #include <string>
 
 START_NAMESPACE_DISTRHO
@@ -23,6 +24,8 @@ enum ParameterIndex : uint32_t {
     kParamRhythmFollow,
     kParamSyncopation,
     kParamConsonance,
+    kParamEmbellish,
+    kParamRegularity,
     kParamRegister,
     kParamSpan,
     kParamGate,
@@ -55,17 +58,19 @@ struct SliderDef {
     bool integer;
 };
 
-constexpr std::array<SliderDef, 19> kSliders = {{
+constexpr std::array<SliderDef, 21> kSliders = {{
     {kParamKey, "KEY", 0.0f, 11.0f, true},
     {kParamScale, "SCALE", 0.0f, 8.0f, true},
     {kParamCycleBars, "BARS", 1.0f, 8.0f, true},
     {kParamGranularity, "GRID", 0.0f, 2.0f, true},
     {kParamFollow, "FOLLOW", 0.0f, 1.0f, false},
     {kParamCounter, "COUNTER", 0.0f, 1.0f, false},
+    {kParamEmbellish, "EMBELL", 0.0f, 1.0f, false},
     {kParamDensity, "DENSITY", 0.0f, 1.0f, false},
     {kParamRhythmFollow, "RHYTHM", 0.0f, 1.0f, false},
     {kParamSyncopation, "SYNCOP", 0.0f, 1.0f, false},
     {kParamConsonance, "CONSON", 0.0f, 1.0f, false},
+    {kParamRegularity, "REGULAR", 0.0f, 1.0f, false},
     {kParamShortRandom, "SHORT RND", 0.0f, 1.0f, false},
     {kParamLongRandom, "LONG RND", 0.0f, 1.0f, false},
     {kParamRegister, "REG", 0.0f, 2.0f, true},
@@ -172,6 +177,8 @@ public:
         values_[kParamRhythmFollow] = 0.65f;
         values_[kParamSyncopation] = 0.25f;
         values_[kParamConsonance] = 0.75f;
+        values_[kParamEmbellish] = 0.25f;
+        values_[kParamRegularity] = 0.65f;
         values_[kParamRegister] = 1.0f;
         values_[kParamSpan] = 0.55f;
         values_[kParamGate] = 0.72f;
@@ -234,6 +241,10 @@ protected:
             triggerLearn();
             return true;
         }
+        if (randomizeButtonRect_.contains(x, y)) {
+            randomizeSliders();
+            return true;
+        }
 
         for (std::size_t i = 0; i < sliderRects_.size(); ++i) {
             if (sliderRects_[i].contains(x, y)) {
@@ -274,8 +285,10 @@ private:
     std::array<float, kParameterCount> values_ {};
     std::array<Rect, kSliders.size()> sliderRects_ {};
     Rect learnButtonRect_ {};
+    Rect randomizeButtonRect_ {};
     int activeSlider_ = -1;
     int learnPulse_ = 0;
+    std::uint32_t randomState_ = 0x51f2a8d3u;
 
     void drawBackground(const float width, const float height)
     {
@@ -432,13 +445,15 @@ private:
         const float buttonH = 38.0f;
         learnButtonRect_ = {x + 20.0f, y + 6.0f, buttonW, buttonH};
         drawLearnButton(learnButtonRect_);
+        randomizeButtonRect_ = {x + buttonW + 36.0f, y + 6.0f, buttonW, buttonH};
+        drawRandomizeButton(randomizeButtonRect_);
 
         fontSize(12.0f);
         textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
         fillColor(145, 162, 158, 255);
-        text(x + buttonW + 42.0f,
+        text(x + buttonW * 2.0f + 76.0f,
              y + buttonH * 0.5f + 6.0f,
-             "Route MIDI into Counterpointer, run host transport for one cycle, then use Freeze to hold the learned phrase.",
+             "Embellish adds extra notes per segment. Regularity pushes behavior from irregular to predictable.",
              nullptr);
     }
 
@@ -463,6 +478,23 @@ private:
         text(rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f + 1.0f, "Relearn", nullptr);
     }
 
+    void drawRandomizeButton(const Rect& rect)
+    {
+        beginPath();
+        roundedRect(rect.x, rect.y, rect.w, rect.h, 9.0f);
+        fillColor(75, 61, 35, 255);
+        fill();
+        strokeColor(236, 189, 87, 255);
+        strokeWidth(1.5f);
+        stroke();
+        closePath();
+
+        fontSize(13.0f);
+        textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
+        fillColor(252, 234, 190, 255);
+        text(rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f + 1.0f, "Randomise", nullptr);
+    }
+
     void triggerLearn()
     {
         editParameter(kParamActionLearn, true);
@@ -470,6 +502,32 @@ private:
         editParameter(kParamActionLearn, false);
         values_[kParamStatusReady] = 0.0f;
         learnPulse_ = 10;
+        repaint();
+    }
+
+    std::uint32_t nextRandom()
+    {
+        std::uint32_t x = randomState_;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        randomState_ = x == 0 ? 0x51f2a8d3u : x;
+        return randomState_;
+    }
+
+    float nextRandomFloat()
+    {
+        return static_cast<float>(nextRandom() & 0x00ffffffu) / static_cast<float>(0x01000000u);
+    }
+
+    void randomizeSliders()
+    {
+        for (const SliderDef& def : kSliders) {
+            float value = def.min + nextRandomFloat() * (def.max - def.min);
+            if (def.integer)
+                value = std::round(value);
+            setParameter(def.index, value);
+        }
         repaint();
     }
 
