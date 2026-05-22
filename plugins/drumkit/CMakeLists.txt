@@ -1,0 +1,41 @@
+add_library(downspout_drumkit_core STATIC
+    src/drumkit_engine.cpp
+)
+target_link_libraries(downspout_drumkit_core PUBLIC downspout-project-options)
+target_include_directories(downspout_drumkit_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+
+add_library(downspout_drumkit_port INTERFACE)
+target_link_libraries(downspout_drumkit_port INTERFACE
+    downspout-project-options
+    downspout_drumkit_core
+)
+
+if(DOWNSPOUT_ENABLE_DPF AND DOWNSPOUT_DPF_DIR)
+    dpf_add_plugin(drumkit
+        TARGETS vst3
+        FILES_DSP
+            src/dpf/DrumkitPlugin.cpp
+        FILES_UI
+            src/dpf/DrumkitUI.cpp
+    )
+    target_link_libraries(drumkit-dsp PUBLIC downspout_drumkit_core)
+    target_include_directories(drumkit PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/dpf"
+    )
+
+    install(DIRECTORY "${PROJECT_BINARY_DIR}/bin/drumkit.vst3"
+        DESTINATION "."
+        OPTIONAL
+    )
+endif()
+
+if(BUILD_TESTING)
+    add_executable(downspout_drumkit_core_tests
+        tests/drumkit_core_tests.cpp
+    )
+    target_link_libraries(downspout_drumkit_core_tests PRIVATE downspout_drumkit_core)
+    add_test(NAME downspout_drumkit_core_tests COMMAND downspout_drumkit_core_tests)
+endif()
