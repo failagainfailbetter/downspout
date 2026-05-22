@@ -157,7 +157,7 @@ Progress as of 2026-04-24:
 Current main gap:
 
 - DPF is now vendored and all current wrapper targets build successfully.
-- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `rift.vst3`, `drumgen.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, and `ground.vst3` bundles.
+- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, and `ground.vst3` bundles.
 - both `install.sh` and `scripts/package-release.sh` now pass clean full-tree smoke runs for all nine bundles.
 - the main remaining gaps are host validation of `bassgen`, host validation of `p-mix`, host validation of `e-mix`, host validation of `rift`, host validation of `drumgen`, host validation of `cadence`, host validation of `counterpointer`, host validation of `gremlin`, host validation of `gremlin-driver`, host validation of `ground`, validating the first tagged GitHub Actions release, and pushing the new shared meter model further up the musical stack so the generators adopt real style vocabulary rather than only pulse-aware bar shapes.
 

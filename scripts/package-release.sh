@@ -52,10 +52,12 @@ cmake_args=(
   -B "$build_dir"
   -DCMAKE_BUILD_TYPE="$build_type"
   -DDOWNSPOUT_BUILD_EMIX=ON
+  -DDOWNSPOUT_BUILD_MELGEN=ON
   -DDOWNSPOUT_BUILD_RIFT=ON
   -DDOWNSPOUT_BUILD_CADENCE=ON
   -DDOWNSPOUT_BUILD_COUNTERPOINTER=ON
   -DDOWNSPOUT_BUILD_DRUMGEN=ON
+  -DDOWNSPOUT_BUILD_DRUMKIT=ON
   -DDOWNSPOUT_BUILD_GREMLIN=ON
   -DDOWNSPOUT_BUILD_GREMLIN_DRIVER=ON
   -DDOWNSPOUT_BUILD_GROUND=ON
@@ -87,7 +89,7 @@ fi
 echo "Installing release payload to $staging_dir"
 cmake --install "$build_dir" --config "$build_type" --prefix "$staging_dir"
 
-required_bundles=(bassgen.vst3 p_mix.vst3 e_mix.vst3 rift.vst3 drumgen.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3)
+required_bundles=(bassgen.vst3 p_mix.vst3 e_mix.vst3 melgen.vst3 rift.vst3 drumgen.vst3 drumkit.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3)
 for bundle in "${required_bundles[@]}"; do
   if [[ ! -d "$staging_dir/$bundle" ]]; then
     echo "Missing expected VST3 bundle: $staging_dir/$bundle" >&2

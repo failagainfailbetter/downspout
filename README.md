@@ -17,7 +17,7 @@ copy the `.vst3` bundles into `~/.vst3`:
 
 ```bash
 mkdir -p ~/.vst3
-cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 rift.vst3 drumgen.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 ~/.vst3/
+cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 melgen.vst3 rift.vst3 drumgen.vst3 drumkit.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 ~/.vst3/
 ```
 
 Then restart your DAW or trigger a plugin rescan.
@@ -67,8 +67,10 @@ This repository now contains:
 - a first DPF-backed `p-mix` VST3 wrapper target with UI;
 - a portable `e-mix` core library with tests;
 - a first DPF-backed `e_mix.vst3` wrapper target with a redesigned UI;
+- a phrase-aware `melgen` MIDI melody generator with tests and a first DPF-backed `melgen.vst3` wrapper target with UI;
 - an original `rift` core library with tests and a first DPF-backed `rift.vst3` wrapper target with UI;
 - a portable `drumgen` core library with a host-neutral MIDI engine, serialization helpers, tests, and a first DPF-backed VST3 wrapper target with UI;
+- a portable `drumkit` synth core with tests and a first DPF-backed `drumkit.vst3` wrapper target with UI;
 - explicit `Auto` / `Straight` / `Reel` / `Waltz` / `Jig` / `Slip Jig` style modes in `drumgen`;
 - a portable `cadence` core library with tests and a first DPF-backed `cadence.vst3` wrapper target with UI;
 - a portable `counterpointer` core library with tests and a first DPF-backed `counterpointer.vst3` wrapper target with UI;
@@ -77,7 +79,7 @@ This repository now contains:
 - an original `ground` core library with tests and a first DPF-backed `ground.vst3` wrapper target with UI;
 - an `install.sh` entrypoint for local VST3 installs.
 
-`bassgen`, `p_mix`, `e_mix`, `rift`, `drumgen`, `cadence`, `counterpointer`, `gremlin`, `gremlin_driver`, and `ground` can now be built and installed as `.vst3` bundles.
+`bassgen`, `p_mix`, `e_mix`, `melgen`, `rift`, `drumgen`, `drumkit`, `cadence`, `counterpointer`, `gremlin`, `gremlin_driver`, and `ground` can now be built and installed as `.vst3` bundles.
 
 ## Build & Install
 
@@ -106,8 +108,10 @@ Current installable plugin:
 - `bassgen.vst3`
 - `p_mix.vst3`
 - `e_mix.vst3`
+- `melgen.vst3`
 - `rift.vst3`
 - `drumgen.vst3`
+- `drumkit.vst3`
 - `cadence.vst3`
 - `counterpointer.vst3`
 - `gremlin.vst3`
@@ -197,6 +201,12 @@ randomisation bursts while passing note input through.
 generator that works above the riff level: it plans bass movement across
 phrases and sections, then emits monophonic lines that aim toward climbs,
 pedals, cadences, and releases rather than only mutating a short loop.
+
+## MelGen
+
+`melgen` now builds as `melgen.vst3`. It reuses the `bassgen` transport and
+state architecture but has a new phrase-aware melody core with period, contour,
+answer, structure, range, leap, rest, and cadence controls.
 
 ## Next steps
 

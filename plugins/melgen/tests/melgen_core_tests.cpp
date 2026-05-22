@@ -1,0 +1,201 @@
+#include "melgen_engine.hpp"
+#include "melgen_pattern.hpp"
+#include "melgen_serialization.hpp"
+#include "melgen_transport.hpp"
+#include "melgen_variation.hpp"
+
+#include <cassert>
+#include <cmath>
+
+using namespace downspout::melgen;
+
+namespace {
+
+bool patternsEqual(const PatternState& a, const PatternState& b)
+{
+    if (a.eventCount != b.eventCount ||
+        a.phraseCount != b.phraseCount ||
+        a.patternSteps != b.patternSteps ||
+        a.stepsPerBar != b.stepsPerBar) {
+        return false;
+    }
+    for (int i = 0; i < a.eventCount; ++i) {
+        if (a.events[i].startStep != b.events[i].startStep ||
+            a.events[i].durationSteps != b.events[i].durationSteps ||
+            a.events[i].note != b.events[i].note ||
+            a.events[i].velocity != b.events[i].velocity) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int phraseEndNote(const PatternState& pattern, int phraseIndex)
+{
+    const PhraseInfo& phrase = pattern.phrases[phraseIndex];
+    const int end = phrase.startStep + phrase.lengthSteps;
+    int note = -1;
+    int latest = -1;
+    for (int i = 0; i < pattern.eventCount; ++i) {
+        const NoteEvent& event = pattern.events[i];
+        if (event.startStep >= phrase.startStep && event.startStep < end && event.startStep >= latest) {
+            latest = event.startStep;
+            note = event.note;
+        }
+    }
+    return note;
+}
+
+void testDeterministicGeneration()
+{
+    Controls controls;
+    controls.seed = 1234u;
+    controls.period = PeriodId::callAnswer;
+    controls.structure = 0.85f;
+
+    PatternState first;
+    PatternState second;
+    regeneratePattern(first, controls, ::downspout::Meter {}, true, true);
+    regeneratePattern(second, controls, ::downspout::Meter {}, true, true);
+
+    assert(patternsEqual(first, second));
+    assert(first.phraseCount > 1);
+}
+
+void testCallAnswerPhraseMetadata()
+{
+    Controls controls;
+    controls.lengthBeats = 16;
+    controls.phraseLengthBars = 2;
+    controls.period = PeriodId::callAnswer;
+    controls.structure = 0.95f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    assert(pattern.phraseCount == 2);
+    assert(pattern.phrases[0].role == PhraseRole::call);
+    assert(pattern.phrases[1].role == PhraseRole::answer);
+    assert(pattern.phrases[1].sourcePhrase == 0);
+    assert(pattern.events[0].startStep < pattern.phrases[1].startStep);
+}
+
+void testStructureChangesPhraseRelationship()
+{
+    Controls structured;
+    structured.seed = 77u;
+    structured.period = PeriodId::aa;
+    structured.structure = 1.0f;
+    structured.range = 0.2f;
+    structured.leap = 0.0f;
+
+    PatternState high;
+    regeneratePattern(high, structured, ::downspout::Meter {}, true, true);
+
+    Controls loose = structured;
+    loose.structure = 0.0f;
+    loose.period = PeriodId::free;
+    PatternState low;
+    regeneratePattern(low, loose, ::downspout::Meter {}, true, true);
+
+    assert(high.phraseCount >= 2);
+    assert(low.phraseCount >= 2);
+    assert(!patternsEqual(high, low));
+}
+
+void testCadenceTargetsRoot()
+{
+    Controls controls;
+    controls.rootNote = 60;
+    controls.scale = ScaleId::major;
+    controls.period = PeriodId::callAnswer;
+    controls.cadence = 1.0f;
+    controls.structure = 1.0f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    const int answerEnd = phraseEndNote(pattern, 1);
+    assert(answerEnd >= 0);
+    assert((answerEnd - controls.rootNote) % 12 == 0);
+}
+
+void testEngineSchedulesMidi()
+{
+    Controls controls;
+    controls.lengthBeats = 8;
+    controls.subdivision = SubdivisionId::sixteenth;
+
+    EngineState engine;
+    activate(engine, controls);
+    engine.patternValid = true;
+    engine.pattern.patternSteps = 32;
+    engine.pattern.stepsPerBeat = 4;
+    engine.pattern.stepsPerBar = 16;
+    engine.pattern.meter = ::downspout::Meter {};
+    engine.pattern.eventCount = 1;
+    engine.pattern.events[0] = NoteEvent{0, 4, 64, 101};
+
+    TransportSnapshot transport;
+    transport.valid = true;
+    transport.playing = true;
+    transport.beatsPerBar = 4.0;
+    transport.beatType = 4.0;
+    transport.bpm = 120.0;
+    transport.bar = 0.0;
+    transport.barBeat = 1.0;
+    transport.meter = ::downspout::Meter {};
+
+    const BlockResult result = processBlock(engine, controls, transport, 64, 48000.0);
+    assert(result.eventCount == 1);
+    assert(result.events[0].type == MidiEventType::noteOn);
+    assert(result.events[0].data1 == 64);
+}
+
+void testSerializationRoundTrip()
+{
+    Controls controls;
+    controls.rootNote = 62;
+    controls.period = PeriodId::aba;
+    controls.contour = ContourId::rising;
+    controls.answer = AnswerId::invert;
+    controls.structure = 0.73f;
+    controls.actionNotes = 4;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::makeMeter(6, 8), true, true);
+
+    VariationState variation;
+    variation.completedLoops = 3;
+    variation.lastMutationLoop = 2;
+
+    const auto controlsRoundTrip = deserializeControls(serializeControls(controls));
+    const auto patternRoundTrip = deserializePatternState(serializePatternState(pattern));
+    const auto variationRoundTrip = deserializeVariationState(serializeVariationState(variation));
+
+    assert(controlsRoundTrip.has_value());
+    assert(patternRoundTrip.has_value());
+    assert(variationRoundTrip.has_value());
+    assert(controlsRoundTrip->rootNote == controls.rootNote);
+    assert(controlsRoundTrip->period == controls.period);
+    assert(controlsRoundTrip->contour == controls.contour);
+    assert(controlsRoundTrip->answer == controls.answer);
+    assert(patternRoundTrip->eventCount == pattern.eventCount);
+    assert(patternRoundTrip->phraseCount == pattern.phraseCount);
+    assert(patternRoundTrip->meter.numerator == 6);
+    assert(patternRoundTrip->meter.denominator == 8);
+    assert(variationRoundTrip->completedLoops == 3);
+}
+
+}  // namespace
+
+int main()
+{
+    testDeterministicGeneration();
+    testCallAnswerPhraseMetadata();
+    testStructureChangesPhraseRelationship();
+    testCadenceTargetsRoot();
+    testEngineSchedulesMidi();
+    testSerializationRoundTrip();
+    return 0;
+}

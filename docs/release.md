@@ -12,8 +12,10 @@ downspout-<version>-linux-x86_64-vst3.zip
 ├── bassgen.vst3/
 ├── p_mix.vst3/
 ├── e_mix.vst3/
+├── melgen.vst3/
 ├── rift.vst3/
 ├── drumgen.vst3/
+├── drumkit.vst3/
 ├── cadence.vst3/
 ├── counterpointer.vst3/
 ├── gremlin.vst3/
