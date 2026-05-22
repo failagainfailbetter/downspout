@@ -208,6 +208,20 @@ pedals, cadences, and releases rather than only mutating a short loop.
 state architecture but has a new phrase-aware melody core with period, contour,
 answer, structure, range, leap, rest, and cadence controls.
 
+Its custom UI separates `Line Shape` sliders from `Phrase Structure` selectors
+so random-to-structured behavior and call/answer period settings are visible at
+the same time.
+
+## DrumKit
+
+`drumkit` now builds as `drumkit.vst3`. It ports the `flues` LV2 drum synth to
+a DPF instrument wrapper with stereo output, one MIDI input, the inherited
+synthesis/master controls, and added per-instrument mute parameters.
+
+The UI is a new mixer-style surface rather than a port of the LV2 X11 UI:
+instrument strips handle select, level, note reference, and mute state, while
+the focused editor shows detailed controls for the selected voice.
+
 ## Next steps
 
 1. Finish host-side validation of `bassgen.vst3` in Reaper and fix any remaining wrapper/UI issues.

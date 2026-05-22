@@ -18,5 +18,15 @@ Current status:
 - portable core exists;
 - deterministic core tests exist;
 - DPF/VST3 MIDI-output wrapper exists;
-- custom NanoVG UI exists;
+- custom NanoVG UI exists, with `Line Shape` controls separated from
+  `Phrase Structure` selectors and action buttons;
 - install script enables `melgen` by default.
+
+UI notes:
+
+- `Line Shape` contains root, length, phrase length, density, structure,
+  range, leap, rest, cadence, hold, accent, register, and seed sliders.
+- `Phrase Structure` contains scale, period, contour, answer, grid, and MIDI
+  channel selectors plus `New`, `Notes`, and `Rhythm` action buttons.
+- The default UI height is intentionally taller than `bassgen` because the
+  melody surface has more shaping controls.

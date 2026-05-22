@@ -190,8 +190,8 @@ protected:
         const float pad = 22.0f;
         drawBackground(width, height);
         drawHeader(pad, pad, width - pad * 2.0f, 78.0f);
-        drawSliders(pad, 124.0f, width * 0.62f - pad * 1.5f, height - 146.0f);
-        drawStructurePanel(width * 0.62f + pad * 0.5f, 124.0f, width * 0.38f - pad * 1.5f, height - 146.0f);
+        drawSliders(pad, 118.0f, width * 0.62f - pad * 1.5f, height - 140.0f);
+        drawStructurePanel(width * 0.62f + pad * 0.5f, 118.0f, width * 0.38f - pad * 1.5f, height - 140.0f);
         if (openSelector_ >= 0) {
             drawSelectorMenu(openSelector_);
         }
@@ -314,9 +314,9 @@ private:
         fillColor(230, 235, 231, 255);
         text(x + 18.0f, y + 16.0f, "Line Shape", nullptr);
 
-        const float rowH = 34.0f;
-        const float gap = 9.0f;
-        float rowY = y + 56.0f;
+        const float rowH = 32.0f;
+        const float gap = 8.0f;
+        float rowY = y + 54.0f;
         for (std::size_t i = 0; i < kSliders.size(); ++i) {
             const Rect rect {x + 18.0f, rowY, w - 36.0f, rowH};
             sliderRects_[i] = rect;
@@ -333,12 +333,12 @@ private:
         fillColor(230, 235, 231, 255);
         text(x + 18.0f, y + 16.0f, "Phrase Structure", nullptr);
 
-        float rowY = y + 58.0f;
+        float rowY = y + 62.0f;
         for (std::size_t i = 0; i < kSelectors.size(); ++i) {
-            const Rect rect {x + 18.0f, rowY, w - 36.0f, 42.0f};
+            const Rect rect {x + 18.0f, rowY, w - 36.0f, 40.0f};
             selectorRects_[i] = rect;
             drawSelector(kSelectors[i], rect);
-            rowY += 52.0f;
+            rowY += 56.0f;
         }
 
         rowY += 18.0f;
@@ -389,9 +389,9 @@ private:
     {
         const int item = std::max(0, std::min(static_cast<int>(std::lround(values_[def.index])), def.count - 1));
         fontSize(11.0f);
-        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
         fillColor(139, 152, 153, 255);
-        text(rect.x, rect.y - 14.0f, def.label, nullptr);
+        text(rect.x + 12.0f, rect.y + rect.h * 0.5f + 1.0f, def.label, nullptr);
 
         beginPath();
         roundedRect(rect.x, rect.y, rect.w, rect.h, 6.0f);
@@ -405,7 +405,7 @@ private:
         fontSize(13.0f);
         textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
         fillColor(229, 234, 231, 255);
-        text(rect.x + 12.0f, rect.y + rect.h * 0.5f + 1.0f, def.items[item], nullptr);
+        text(rect.x + 112.0f, rect.y + rect.h * 0.5f + 1.0f, def.items[item], nullptr);
     }
 
     void drawButton(const ButtonDef& def, const Rect& rect)

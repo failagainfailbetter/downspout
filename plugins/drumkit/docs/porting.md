@@ -12,6 +12,18 @@ Mapping decisions:
 - Added mute parameters are appended after the inherited controls to keep the original parameter block traceable.
 - The LV2 X11 UI was not ported. The DPF UI is new and intentionally separates mixer actions from voice editing.
 
+UI decisions:
+
+- The LV2 X11 UI was discarded because it did not match the control density or
+  workflow expected for the VST3 port.
+- The replacement UI uses mixer-style instrument strips for fast selection,
+  level balancing, MIDI-note reference, and mute toggles.
+- Only the selected voice exposes its detailed synthesis controls at once,
+  which keeps the interface usable despite the large inherited parameter set.
+- Master crush, drive, reverb, and gain live in a separate panel because they
+  affect the shared bus and remain active even when individual voices are
+  muted.
+
 Resource behavior:
 
 - Each mute parameter is owned by the portable engine, not the UI.

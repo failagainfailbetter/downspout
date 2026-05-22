@@ -10,6 +10,13 @@ The port keeps the LV2 synth behavior in a portable core and exposes it through 
 - 11 added per-instrument mute parameters;
 - a new custom NanoVG UI built around instrument strips, focused voice editing, and master bus controls.
 
+UI notes:
+
+- instrument strips provide selection, level, note reference, and mute state;
+- the selected instrument is edited in a focused voice panel rather than a
+  large all-parameters grid;
+- master bus controls are grouped separately from per-voice controls.
+
 Mute behavior:
 
 - muted instruments ignore incoming note-ons;
