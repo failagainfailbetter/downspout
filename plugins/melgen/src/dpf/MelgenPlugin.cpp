@@ -320,7 +320,8 @@ protected:
     void run(const float**, float**, uint32_t frames, const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
         std::array<CoreInputMidiEvent, downspout::melgen::kMaxInputMidiEvents> inputEvents {};
-        const uint32_t inputCount = midiEvents != nullptr
+        const bool followEnabled = controls_.follow > 0.001f;
+        const uint32_t inputCount = followEnabled && midiEvents != nullptr
             ? std::min<uint32_t>(midiEventCount, static_cast<uint32_t>(inputEvents.size()))
             : 0u;
         for (uint32_t i = 0; i < inputCount; ++i) {
