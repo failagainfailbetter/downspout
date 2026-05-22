@@ -66,6 +66,8 @@ It is supposed to help users think in sections rather than in parameter soup.
 - text state serialization;
 - deterministic core tests;
 - a first DPF-backed `ground.vst3` wrapper target with a custom UI.
+- scale choices now include Lydian, Melodic Minor, and Whole Tone, appended
+  after the original scale IDs so saved-state scale values remain stable.
 
 Reference docs:
 

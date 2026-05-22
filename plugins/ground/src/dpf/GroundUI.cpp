@@ -81,7 +81,8 @@ constexpr SliderDef kSliders[] = {
 
 constexpr const char* kScaleNames[] = {
     "Minor", "Major", "Dorian", "Phrygian", "Pent Minor", "Blues",
-    "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom"
+    "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom",
+    "Lydian", "Mel Minor", "Whole Tone"
 };
 
 constexpr const char* kStyleNames[] = {
@@ -131,7 +132,7 @@ constexpr std::array<float, 16> kChannelValues = {
 };
 
 constexpr SelectorDef kSelectors[] = {
-    {kParamScale, "Scale", kScaleNames, 11, nullptr},
+    {kParamScale, "Scale", kScaleNames, 14, nullptr},
     {kParamStyle, "Style", kStyleNames, 6, nullptr},
     {kParamFormBars, "Form", kFormNames, 4, kFormValues},
     {kParamPhraseBars, "Phrase", kPhraseNames, 3, kPhraseValues},

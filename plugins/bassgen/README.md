@@ -20,6 +20,9 @@ Implementation status:
   changes;
 - the core now has explicit style controls for simple, reel, waltz, jig, and
   slip-jig phrasing on top of the shared meter model.
+- scale choices now include Lydian, Melodic Minor, and Whole Tone in addition
+  to the original minor/major/modal/pentatonic/blues options. These were
+  appended to the scale enum to preserve existing saved-state values.
 
 Reference docs:
 

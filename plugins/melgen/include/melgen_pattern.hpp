@@ -8,6 +8,7 @@ namespace downspout::melgen {
 [[nodiscard]] bool structuralControlsChanged(const Controls& a, const Controls& b);
 [[nodiscard]] int stepsPerBeatForSubdivision(SubdivisionId subdivision);
 [[nodiscard]] int registerOffset(int reg);
+[[nodiscard]] int nearestScaleNote(const Controls& controls, int targetNote, int minNote, int maxNote);
 
 void regeneratePattern(PatternState& pattern,
                        const Controls& controls,

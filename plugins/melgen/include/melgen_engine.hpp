@@ -14,6 +14,7 @@ struct EngineState {
     VariationState variation {};
     bool patternValid = false;
     int activeNote = -1;
+    int followNote = -1;
     std::int64_t lastTransportStep = -1;
     bool wasPlaying = false;
 };
@@ -30,5 +31,12 @@ void deactivate(EngineState& state);
                                        const TransportSnapshot& transport,
                                        std::uint32_t nframes,
                                        double sampleRate);
+[[nodiscard]] BlockResult processBlock(EngineState& state,
+                                       const Controls& controls,
+                                       const TransportSnapshot& transport,
+                                       std::uint32_t nframes,
+                                       double sampleRate,
+                                       const InputMidiEvent* midiEvents,
+                                       std::uint32_t midiEventCount);
 
 }  // namespace downspout::melgen

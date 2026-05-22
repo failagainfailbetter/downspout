@@ -48,6 +48,9 @@ static const int kScalePentMinor[] = {0, 3, 5, 7, 10};
 static const int kScaleBlues[] = {0, 3, 5, 6, 7, 10};
 static const int kScaleDorian[] = {0, 2, 3, 5, 7, 9, 10};
 static const int kScaleMixolydian[] = {0, 2, 4, 5, 7, 9, 10};
+static const int kScaleLydian[] = {0, 2, 4, 6, 7, 9, 11};
+static const int kScaleMelodicMinor[] = {0, 2, 3, 5, 7, 9, 11};
+static const int kScaleWholeTone[] = {0, 2, 4, 6, 8, 10};
 
 static const ScaleDef kScales[SCALE_COUNT] = {
     {kScaleChromatic, 12},
@@ -58,7 +61,10 @@ static const ScaleDef kScales[SCALE_COUNT] = {
     {kScalePentMinor, 5},
     {kScaleBlues, 6},
     {kScaleDorian, 7},
-    {kScaleMixolydian, 7}
+    {kScaleMixolydian, 7},
+    {kScaleLydian, 7},
+    {kScaleMelodicMinor, 7},
+    {kScaleWholeTone, 6}
 };
 
 int wrap12(const int value)

@@ -12,6 +12,8 @@ inline constexpr int kMaxLengthBeats = 64;
 inline constexpr int kMaxPatternSteps = 384;
 inline constexpr int kMaxEvents = 256;
 inline constexpr int kMaxPhrases = 16;
+inline constexpr int kMaxMidiMessageData = 4;
+inline constexpr int kMaxInputMidiEvents = 512;
 inline constexpr int kSafetyGapSamples = 1;
 inline constexpr int kMaxScheduledMidiEvents = (kMaxEvents * 2) + 16;
 inline constexpr std::int32_t kPatternStateVersion = 1;
@@ -29,6 +31,9 @@ enum class ScaleId : std::int32_t {
     pentMajor,
     locrian,
     phrygianDominant,
+    lydian,
+    melodicMinor,
+    wholeTone,
     count
 };
 
@@ -99,6 +104,7 @@ struct Controls {
     float rest = 0.24f;
     float cadence = 0.55f;
     float vary = 0.0f;
+    float follow = 0.0f;
     std::uint32_t seed = 1u;
     int actionNew = 0;
     int actionNotes = 0;
@@ -147,6 +153,12 @@ struct TransportSnapshot {
     double beatType = 4.0;
     double bpm = 120.0;
     ::downspout::Meter meter {};
+};
+
+struct InputMidiEvent {
+    std::uint32_t frame = 0;
+    std::uint8_t size = 0;
+    std::array<std::uint8_t, kMaxMidiMessageData> data {};
 };
 
 enum class MidiEventType : std::uint8_t {

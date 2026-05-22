@@ -207,10 +207,17 @@ pedals, cadences, and releases rather than only mutating a short loop.
 `melgen` now builds as `melgen.vst3`. It reuses the `bassgen` transport and
 state architecture but has a new phrase-aware melody core with period, contour,
 answer, structure, range, leap, rest, and cadence controls.
+The `Follow` slider lets incoming MIDI notes pull the generated melody toward
+another part without cloning it exactly.
 
 Its custom UI separates `Line Shape` sliders from `Phrase Structure` selectors
 so random-to-structured behavior and call/answer period settings are visible at
 the same time.
+
+The scale-aware MIDI generators now include Lydian, Melodic Minor, and Whole
+Tone choices alongside the existing minor, major, modal, pentatonic, and blues
+sets. New scale IDs were appended so existing saved projects keep their scale
+mapping.
 
 ## DrumKit
 

@@ -34,6 +34,9 @@ constexpr int kScaleHarmonicMinor[] = {0, 2, 3, 5, 7, 8, 11};
 constexpr int kScalePentMajor[] = {0, 2, 4, 7, 9};
 constexpr int kScaleLocrian[] = {0, 1, 3, 5, 6, 8, 10};
 constexpr int kScalePhrygianDominant[] = {0, 1, 4, 5, 7, 8, 10};
+constexpr int kScaleLydian[] = {0, 2, 4, 6, 7, 9, 11};
+constexpr int kScaleMelodicMinor[] = {0, 2, 3, 5, 7, 9, 11};
+constexpr int kScaleWholeTone[] = {0, 2, 4, 6, 8, 10};
 
 constexpr ScaleDef kScales[] = {
     {kScaleMinor, 7},
@@ -47,6 +50,9 @@ constexpr ScaleDef kScales[] = {
     {kScalePentMajor, 5},
     {kScaleLocrian, 7},
     {kScalePhrygianDominant, 7},
+    {kScaleLydian, 7},
+    {kScaleMelodicMinor, 7},
+    {kScaleWholeTone, 6},
 };
 
 [[nodiscard]] float clampf(float value, float minValue, float maxValue) {

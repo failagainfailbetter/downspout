@@ -46,6 +46,17 @@ int phraseEndNote(const PatternState& pattern, int phraseIndex)
     return note;
 }
 
+InputMidiEvent noteOn(std::uint32_t frame, std::uint8_t note, std::uint8_t velocity = 100)
+{
+    InputMidiEvent event {};
+    event.frame = frame;
+    event.size = 3;
+    event.data[0] = 0x90;
+    event.data[1] = note;
+    event.data[2] = velocity;
+    return event;
+}
+
 void testDeterministicGeneration()
 {
     Controls controls;
@@ -152,6 +163,46 @@ void testEngineSchedulesMidi()
     assert(result.events[0].data1 == 64);
 }
 
+void testFollowInfluencesGeneratedNoteWithoutCopyingInput()
+{
+    Controls controls;
+    controls.lengthBeats = 8;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.rootNote = 60;
+    controls.scale = ScaleId::major;
+    controls.follow = 1.0f;
+
+    EngineState engine;
+    activate(engine, controls);
+    engine.patternValid = true;
+    engine.pattern.patternSteps = 32;
+    engine.pattern.stepsPerBeat = 4;
+    engine.pattern.stepsPerBar = 16;
+    engine.pattern.meter = ::downspout::Meter {};
+    engine.pattern.eventCount = 1;
+    engine.pattern.events[0] = NoteEvent{0, 4, 72, 101};
+
+    TransportSnapshot transport;
+    transport.valid = true;
+    transport.playing = true;
+    transport.beatsPerBar = 4.0;
+    transport.beatType = 4.0;
+    transport.bpm = 120.0;
+    transport.bar = 0.0;
+    transport.barBeat = 0.0;
+    transport.meter = ::downspout::Meter {};
+
+    const InputMidiEvent input = noteOn(0, 62);
+    const BlockResult result = processBlock(engine, controls, transport, 64, 48000.0, &input, 1);
+
+    assert(result.eventCount == 1);
+    assert(result.events[0].type == MidiEventType::noteOn);
+    assert(result.events[0].data1 != 72);
+    assert(result.events[0].data1 != 62);
+    assert(result.events[0].data1 >= 60);
+    assert(result.events[0].data1 <= 72);
+}
+
 void testSerializationRoundTrip()
 {
     Controls controls;
@@ -160,6 +211,7 @@ void testSerializationRoundTrip()
     controls.contour = ContourId::rising;
     controls.answer = AnswerId::invert;
     controls.structure = 0.73f;
+    controls.follow = 0.37f;
     controls.actionNotes = 4;
 
     PatternState pattern;
@@ -180,6 +232,7 @@ void testSerializationRoundTrip()
     assert(controlsRoundTrip->period == controls.period);
     assert(controlsRoundTrip->contour == controls.contour);
     assert(controlsRoundTrip->answer == controls.answer);
+    assert(std::fabs(controlsRoundTrip->follow - controls.follow) < 0.0001f);
     assert(patternRoundTrip->eventCount == pattern.eventCount);
     assert(patternRoundTrip->phraseCount == pattern.phraseCount);
     assert(patternRoundTrip->meter.numerator == 6);
@@ -196,6 +249,7 @@ int main()
     testStructureChangesPhraseRelationship();
     testCadenceTargetsRoot();
     testEngineSchedulesMidi();
+    testFollowInfluencesGeneratedNoteWithoutCopyingInput();
     testSerializationRoundTrip();
     return 0;
 }

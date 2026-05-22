@@ -40,6 +40,9 @@ constexpr int kScaleHarmonicMinor[] = {0, 2, 3, 5, 7, 8, 11};
 constexpr int kScalePentMajor[] = {0, 2, 4, 7, 9};
 constexpr int kScaleLocrian[] = {0, 1, 3, 5, 6, 8, 10};
 constexpr int kScalePhrygianDominant[] = {0, 1, 4, 5, 7, 8, 10};
+constexpr int kScaleLydian[] = {0, 2, 4, 6, 7, 9, 11};
+constexpr int kScaleMelodicMinor[] = {0, 2, 3, 5, 7, 9, 11};
+constexpr int kScaleWholeTone[] = {0, 2, 4, 6, 8, 10};
 
 constexpr ScaleDef kScales[] = {
     {kScaleMinor, 7},
@@ -53,6 +56,9 @@ constexpr ScaleDef kScales[] = {
     {kScalePentMajor, 5},
     {kScaleLocrian, 7},
     {kScalePhrygianDominant, 7},
+    {kScaleLydian, 7},
+    {kScaleMelodicMinor, 7},
+    {kScaleWholeTone, 6},
 };
 
 [[nodiscard]] float clampf(float value, float minValue, float maxValue)
@@ -369,6 +375,7 @@ Controls clampControls(const Controls& raw)
     controls.rest = clampf(controls.rest, 0.0f, 1.0f);
     controls.cadence = clampf(controls.cadence, 0.0f, 1.0f);
     controls.vary = clampf(controls.vary, 0.0f, 1.0f);
+    controls.follow = clampf(controls.follow, 0.0f, 1.0f);
     controls.seed = std::max<std::uint32_t>(1u, controls.seed);
     return controls;
 }
@@ -410,6 +417,40 @@ int stepsPerBeatForSubdivision(const SubdivisionId subdivision)
 int registerOffset(const int reg)
 {
     return (clampi(reg, 0, 4) - 1) * 12;
+}
+
+int nearestScaleNote(const Controls& rawControls, const int targetNote, const int minNote, const int maxNote)
+{
+    const Controls controls = clampControls(rawControls);
+    const int lo = clampi(std::min(minNote, maxNote), 0, 127);
+    const int hi = clampi(std::max(minNote, maxNote), 0, 127);
+    const int target = clampi(targetNote, lo, hi);
+    const ScaleDef& scale = kScales[static_cast<int>(controls.scale)];
+    const int rootPc = (controls.rootNote % 12 + 12) % 12;
+
+    int best = target;
+    int bestDistance = 128;
+    for (int note = lo; note <= hi; ++note) {
+        const int interval = ((note - rootPc) % 12 + 12) % 12;
+        bool inScale = false;
+        for (int i = 0; i < scale.count; ++i) {
+            if (scale.intervals[i] == interval) {
+                inScale = true;
+                break;
+            }
+        }
+        if (!inScale) {
+            continue;
+        }
+
+        const int distance = std::abs(note - target);
+        if (distance < bestDistance || (distance == bestDistance && std::abs(note - controls.rootNote) < std::abs(best - controls.rootNote))) {
+            best = note;
+            bestDistance = distance;
+        }
+    }
+
+    return best;
 }
 
 void regeneratePattern(PatternState& pattern,

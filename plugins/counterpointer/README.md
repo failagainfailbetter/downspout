@@ -21,3 +21,5 @@ Current status:
 - portable core types, transport helpers, and engine exist;
 - deterministic core tests exist;
 - a first DPF-backed `counterpointer.vst3` wrapper and custom UI exist.
+- scale choices now include Lydian, Melodic Minor, and Whole Tone, appended
+  after the original scale IDs so saved-state scale values remain stable.

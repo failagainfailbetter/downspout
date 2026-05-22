@@ -34,6 +34,7 @@ enum ParameterIndex : uint32_t {
     kParamActionNew,
     kParamActionNotes,
     kParamActionRhythm,
+    kParamFollow,
     kParameterCount
 };
 
@@ -71,7 +72,8 @@ struct ButtonDef {
 
 constexpr const char* kScaleNames[] = {
     "Minor", "Major", "Dorian", "Phrygian", "Pent Minor", "Blues",
-    "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom"
+    "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom",
+    "Lydian", "Mel Minor", "Whole Tone"
 };
 
 constexpr const char* kSubdivisionNames[] = {"1/8", "1/16", "1/16T"};
@@ -83,12 +85,13 @@ constexpr const char* kChannelNames[] = {
     "9", "10", "11", "12", "13", "14", "15", "16"
 };
 
-constexpr std::array<SliderDef, 13> kSliders = {{
+constexpr std::array<SliderDef, 14> kSliders = {{
     {kParamRootNote, "Root", 0.0f, 127.0f, true},
     {kParamLengthBeats, "Length", 4.0f, 64.0f, true},
     {kParamPhraseLength, "Phrase Bars", 1.0f, 8.0f, true},
     {kParamDensity, "Density", 0.0f, 1.0f, false},
     {kParamStructure, "Structure", 0.0f, 1.0f, false},
+    {kParamFollow, "Follow", 0.0f, 1.0f, false},
     {kParamRange, "Range", 0.0f, 1.0f, false},
     {kParamLeap, "Leap", 0.0f, 1.0f, false},
     {kParamRest, "Rest", 0.0f, 1.0f, false},
@@ -100,7 +103,7 @@ constexpr std::array<SliderDef, 13> kSliders = {{
 }};
 
 constexpr std::array<SelectorDef, 6> kSelectors = {{
-    {kParamScale, "Scale", kScaleNames, 11},
+    {kParamScale, "Scale", kScaleNames, 14},
     {kParamPeriod, "Period", kPeriodNames, 6},
     {kParamContour, "Contour", kContourNames, 6},
     {kParamAnswer, "Answer", kAnswerNames, 6},
@@ -161,6 +164,7 @@ public:
         values_[kParamHold] = 0.42f;
         values_[kParamAccent] = 0.45f;
         values_[kParamStructure] = 0.62f;
+        values_[kParamFollow] = 0.0f;
         values_[kParamRange] = 0.45f;
         values_[kParamLeap] = 0.28f;
         values_[kParamRest] = 0.24f;

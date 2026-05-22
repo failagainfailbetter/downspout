@@ -53,7 +53,7 @@ struct SliderDef {
 constexpr int kControlsPerRow = 7;
 constexpr std::array<SliderDef, 14> kSliders = {{
     {kParamKey, "KEY", 0.0f, 11.0f, true},
-    {kParamScale, "SCALE", 0.0f, 11.0f, true},
+    {kParamScale, "SCALE", 0.0f, 14.0f, true},
     {kParamCycleBars, "BARS", 1.0f, 8.0f, true},
     {kParamGranularity, "GRID", 0.0f, 2.0f, true},
     {kParamComplexity, "COMPLEXITY", 0.0f, 1.0f, false},
@@ -73,9 +73,10 @@ constexpr const char* kNoteNames[12] = {
     "F#", "G", "G#", "A", "A#", "B"
 };
 
-constexpr const char* kScaleNames[12] = {
+constexpr const char* kScaleNames[15] = {
     "Chrom", "Major", "Nat Min", "Harm Min", "Pent Maj", "Pent Min",
-    "Blues", "Dorian", "Mixolyd", "Phryg", "Locrian", "Phryg Dom"
+    "Blues", "Dorian", "Mixolyd", "Phryg", "Locrian", "Phryg Dom",
+    "Lydian", "Mel Min", "Whole"
 };
 
 constexpr const char* kGranularityNames[3] = {
@@ -122,7 +123,7 @@ constexpr const char* kToggleNames[2] = {
         std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kNoteNames, 12, static_cast<int>(std::lround(value))));
         break;
     case kParamScale:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kScaleNames, 12, static_cast<int>(std::lround(value))));
+        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kScaleNames, 15, static_cast<int>(std::lround(value))));
         break;
     case kParamCycleBars:
         std::snprintf(buffer, sizeof(buffer), "%d", static_cast<int>(std::lround(value)));

@@ -24,6 +24,8 @@ Implementation status:
 - a host-neutral cadence engine now exists;
 - deterministic cadence core tests now exist and pass;
 - a first DPF-backed `cadence.vst3` wrapper now builds with a custom control UI.
+- scale choices now include Lydian, Melodic Minor, and Whole Tone, appended
+  after the original scale IDs so saved-state scale values remain stable.
 
 Recommended next steps:
 

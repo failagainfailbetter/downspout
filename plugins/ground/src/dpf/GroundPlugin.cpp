@@ -59,6 +59,9 @@ ParameterEnumerationValue kScaleEnumValues[] = {
     {8.0f, "Pent Major"},
     {9.0f, "Locrian"},
     {10.0f, "Phryg Dom"},
+    {11.0f, "Lydian"},
+    {12.0f, "Mel Minor"},
+    {13.0f, "Whole Tone"},
 };
 
 ParameterEnumerationValue kStyleEnumValues[] = {

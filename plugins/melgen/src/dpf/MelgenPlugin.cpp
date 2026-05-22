@@ -4,6 +4,8 @@
 #include "melgen_pattern.hpp"
 #include "melgen_serialization.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cstring>
 #include <string>
 
@@ -35,6 +37,7 @@ enum ParameterIndex : uint32_t {
     kParamActionNew,
     kParamActionNotes,
     kParamActionRhythm,
+    kParamFollow,
     kParameterCount
 };
 
@@ -52,7 +55,8 @@ constexpr const char* kStateKeyVariation = "variation";
 using CoreControls = downspout::melgen::Controls;
 using CoreEngineState = downspout::melgen::EngineState;
 using CoreTransport = downspout::melgen::TransportSnapshot;
-using CoreMidiEvent = downspout::melgen::ScheduledMidiEvent;
+using CoreInputMidiEvent = downspout::melgen::InputMidiEvent;
+using CoreScheduledMidiEvent = downspout::melgen::ScheduledMidiEvent;
 using CoreMidiEventType = downspout::melgen::MidiEventType;
 
 CoreTransport toCoreTransport(const TimePosition& timePos)
@@ -74,7 +78,21 @@ CoreTransport toCoreTransport(const TimePosition& timePos)
     return transport;
 }
 
-MidiEvent toDpfMidiEvent(const CoreMidiEvent& event)
+CoreInputMidiEvent toCoreMidiEvent(const MidiEvent& event)
+{
+    CoreInputMidiEvent midi {};
+    midi.frame = event.frame;
+    midi.size = static_cast<std::uint8_t>(std::min<std::size_t>(event.size, downspout::melgen::kMaxMidiMessageData));
+
+    const uint8_t* const source = event.size > MidiEvent::kDataSize ? event.dataExt : event.data;
+    for (std::size_t i = 0; i < midi.size; ++i) {
+        midi.data[i] = source[i];
+    }
+
+    return midi;
+}
+
+MidiEvent toDpfMidiEvent(const CoreScheduledMidiEvent& event)
 {
     MidiEvent midiEvent {};
     midiEvent.frame = event.frame;
@@ -159,6 +177,7 @@ protected:
         case kParamCadence: initFloat(parameter, "Cadence", "cadence", 0.0f, 1.0f, 0.55f); break;
         case kParamSeed: initInteger(parameter, "Seed", "seed", 1.0f, 65535.0f, 1.0f); break;
         case kParamVary: initFloat(parameter, "Vary", "vary", 0.0f, 100.0f, 0.0f); break;
+        case kParamFollow: initFloat(parameter, "Follow", "follow", 0.0f, 1.0f, 0.0f); break;
         case kParamActionNew:
         case kParamActionNotes:
         case kParamActionRhythm:
@@ -211,6 +230,7 @@ protected:
         case kParamCadence: return controls_.cadence;
         case kParamSeed: return static_cast<float>(controls_.seed);
         case kParamVary: return controls_.vary * 100.0f;
+        case kParamFollow: return controls_.follow;
         case kParamActionNew:
         case kParamActionNotes:
         case kParamActionRhythm:
@@ -243,6 +263,7 @@ protected:
         case kParamCadence: controls_.cadence = value; break;
         case kParamSeed: controls_.seed = static_cast<uint32_t>(value); break;
         case kParamVary: controls_.vary = value / 100.0f; break;
+        case kParamFollow: controls_.follow = value; break;
         case kParamActionNew: if (value > 0.5f) ++controls_.actionNew; break;
         case kParamActionNotes: if (value > 0.5f) ++controls_.actionNotes; break;
         case kParamActionRhythm: if (value > 0.5f) ++controls_.actionRhythm; break;
@@ -296,10 +317,24 @@ protected:
     void activate() override { downspout::melgen::activate(engine_, controls_); }
     void deactivate() override { downspout::melgen::deactivate(engine_); }
 
-    void run(const float**, float**, uint32_t frames) override
+    void run(const float**, float**, uint32_t frames, const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
+        std::array<CoreInputMidiEvent, downspout::melgen::kMaxInputMidiEvents> inputEvents {};
+        const uint32_t inputCount = midiEvents != nullptr
+            ? std::min<uint32_t>(midiEventCount, static_cast<uint32_t>(inputEvents.size()))
+            : 0u;
+        for (uint32_t i = 0; i < inputCount; ++i) {
+            inputEvents[i] = toCoreMidiEvent(midiEvents[i]);
+        }
+
         const downspout::melgen::BlockResult result =
-            downspout::melgen::processBlock(engine_, controls_, toCoreTransport(getTimePosition()), frames, getSampleRate());
+            downspout::melgen::processBlock(engine_,
+                                            controls_,
+                                            toCoreTransport(getTimePosition()),
+                                            frames,
+                                            getSampleRate(),
+                                            inputEvents.data(),
+                                            inputCount);
 
         for (int index = 0; index < result.eventCount; ++index) {
             writeMidiEvent(toDpfMidiEvent(result.events[index]));

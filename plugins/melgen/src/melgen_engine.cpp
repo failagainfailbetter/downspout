@@ -49,6 +49,85 @@ void emitNoteOn(BlockResult& result, const EngineState& state, std::uint32_t fra
     appendMidi(result, MidiEventType::noteOn, frame, state.controls.channel, note, velocity);
 }
 
+[[nodiscard]] bool isNoteOn(const InputMidiEvent& event)
+{
+    return event.size >= 3 && (event.data[0] & 0xf0u) == 0x90u && event.data[2] > 0;
+}
+
+[[nodiscard]] bool isNoteOff(const InputMidiEvent& event)
+{
+    return event.size >= 3 &&
+           (((event.data[0] & 0xf0u) == 0x80u) || ((event.data[0] & 0xf0u) == 0x90u && event.data[2] == 0));
+}
+
+[[nodiscard]] bool isAllNotesOff(const InputMidiEvent& event)
+{
+    return event.size >= 3 && (event.data[0] & 0xf0u) == 0xb0u && (event.data[1] == 120 || event.data[1] == 123);
+}
+
+void consumeInputMidi(EngineState& state, const InputMidiEvent& event)
+{
+    if (isNoteOn(event)) {
+        state.followNote = clampi(event.data[1], 0, 127);
+    } else if (isNoteOff(event) && state.followNote == static_cast<int>(event.data[1])) {
+        state.followNote = -1;
+    } else if (isAllNotesOff(event)) {
+        state.followNote = -1;
+    }
+}
+
+void consumeInputUntil(EngineState& state,
+                       const InputMidiEvent* midiEvents,
+                       std::uint32_t midiEventCount,
+                       std::uint32_t& inputIndex,
+                       std::uint32_t frame)
+{
+    if (midiEvents == nullptr) {
+        return;
+    }
+    while (inputIndex < midiEventCount && midiEvents[inputIndex].frame <= frame) {
+        consumeInputMidi(state, midiEvents[inputIndex]);
+        ++inputIndex;
+    }
+}
+
+[[nodiscard]] std::uint32_t hashFollow(const EngineState& state, const int sourceNote, const int localStep)
+{
+    std::uint32_t value = state.controls.seed;
+    value ^= static_cast<std::uint32_t>(sourceNote + 129) * 2246822519u;
+    value ^= static_cast<std::uint32_t>(state.followNote + 257) * 3266489917u;
+    value ^= static_cast<std::uint32_t>(localStep + state.pattern.generationSerial * 17) * 668265263u;
+    value ^= value >> 15;
+    value *= 2246822519u;
+    value ^= value >> 13;
+    return value;
+}
+
+[[nodiscard]] int applyFollow(const EngineState& state, const int sourceNote, const int localStep)
+{
+    const float follow = state.controls.follow;
+    if (follow <= 0.001f || state.followNote < 0) {
+        return sourceNote;
+    }
+
+    int target = state.followNote;
+    while (target < sourceNote - 12) {
+        target += 12;
+    }
+    while (target > sourceNote + 12) {
+        target -= 12;
+    }
+
+    const float blend = follow * 0.72f;
+    int shaped = sourceNote + static_cast<int>(std::lround(static_cast<float>(target - sourceNote) * blend));
+    const std::uint32_t hash = hashFollow(state, sourceNote, localStep);
+    if (follow > 0.20f && (hash % 100u) < static_cast<std::uint32_t>(follow * 36.0f)) {
+        shaped += static_cast<int>((hash / 101u) % 3u) - 1;
+    }
+
+    return nearestScaleNote(state.controls, shaped, sourceNote - 12, sourceNote + 12);
+}
+
 void clearActiveNote(EngineState& state, BlockResult& result, std::uint32_t frame) {
     if (state.activeNote >= 0) {
         emitNoteOff(result, state, frame, state.activeNote);
@@ -58,7 +137,10 @@ void clearActiveNote(EngineState& state, BlockResult& result, std::uint32_t fram
 
 void syncNoteStateToPosition(EngineState& state, BlockResult& result, double localStepPos) {
     const NoteEvent* event = state.patternValid ? findActiveEvent(state.pattern, localStepPos) : nullptr;
-    const int shouldNote = event ? event->note : -1;
+    const int localStep = state.pattern.patternSteps > 0
+        ? clampi(static_cast<int>(std::floor(localStepPos)), 0, state.pattern.patternSteps - 1)
+        : 0;
+    const int shouldNote = event ? applyFollow(state, event->note, localStep) : -1;
     if (state.activeNote >= 0 && state.activeNote != shouldNote) {
         emitNoteOff(result, state, 0, state.activeNote);
         state.activeNote = -1;
@@ -147,9 +229,10 @@ void processBoundary(EngineState& state,
     if (startEvent) {
         const std::uint32_t onFrame = static_cast<std::uint32_t>(
             clampi(static_cast<int>(frame) + kSafetyGapSamples, 0, static_cast<int>(nframes) - 1));
+        const int note = applyFollow(state, startEvent->note, localStep);
         clearActiveNote(state, result, frame);
-        emitNoteOn(result, state, onFrame, startEvent->note, startEvent->velocity);
-        state.activeNote = startEvent->note;
+        emitNoteOn(result, state, onFrame, note, startEvent->velocity);
+        state.activeNote = note;
     }
 }
 
@@ -157,6 +240,7 @@ void processBoundary(EngineState& state,
 
 void activate(EngineState& state, const Controls& controls) {
     state.activeNote = -1;
+    state.followNote = -1;
     resetTransportState(state);
     state.controls = clampControls(controls);
     state.previousControls = state.controls;
@@ -169,6 +253,7 @@ void activate(EngineState& state, const Controls& controls) {
 
 void deactivate(EngineState& state) {
     state.activeNote = -1;
+    state.followNote = -1;
     resetTransportState(state);
 }
 
@@ -177,6 +262,16 @@ BlockResult processBlock(EngineState& state,
                          const TransportSnapshot& transport,
                          std::uint32_t nframes,
                          double sampleRate) {
+    return processBlock(state, controls, transport, nframes, sampleRate, nullptr, 0);
+}
+
+BlockResult processBlock(EngineState& state,
+                         const Controls& controls,
+                         const TransportSnapshot& transport,
+                         std::uint32_t nframes,
+                         double sampleRate,
+                         const InputMidiEvent* midiEvents,
+                         std::uint32_t midiEventCount) {
     BlockResult result;
     if (nframes == 0) {
         return result;
@@ -185,6 +280,11 @@ BlockResult processBlock(EngineState& state,
     const Controls freshControls = clampControls(controls);
     const ::downspout::Meter targetMeter = resolvedMeterFor(state, transport);
     updatePatternIfNeeded(state, freshControls, targetMeter);
+    if (state.controls.follow <= 0.001f) {
+        state.followNote = -1;
+        midiEvents = nullptr;
+        midiEventCount = 0;
+    }
 
     const bool playing = transport.valid && transport.playing && transport.bpm > 0.0 && transport.beatsPerBar > 0.0;
     if (!playing || !state.patternValid) {
@@ -198,8 +298,10 @@ BlockResult processBlock(EngineState& state,
     const double absStepsStart = absBeatsStart * static_cast<double>(stepsPerBeat);
     const double absStepsEnd = (absBeatsStart + absBeatsStep) * static_cast<double>(stepsPerBeat);
     const std::int64_t startStepFloor = static_cast<std::int64_t>(std::floor(absStepsStart + 1e-9));
+    std::uint32_t inputIndex = 0;
 
     if (transportRestartDetected(state.wasPlaying, state.lastTransportStep, startStepFloor)) {
+        consumeInputUntil(state, midiEvents, midiEventCount, inputIndex, 0);
         handleTransportRestart(state, result, absStepsStart);
     }
 
@@ -210,9 +312,12 @@ BlockResult processBlock(EngineState& state,
     const std::int64_t boundaryEnd = static_cast<std::int64_t>(std::floor(absStepsEnd + 1e-9));
 
     while (boundary <= boundaryEnd) {
+        const std::uint32_t frame = frameForBoundary(absStepsStart, absStepsEnd, nframes, boundary);
+        consumeInputUntil(state, midiEvents, midiEventCount, inputIndex, frame);
         processBoundary(state, result, nframes, absStepsStart, absStepsEnd, boundary, targetMeter, transport.beatsPerBar);
         boundary += 1;
     }
+    consumeInputUntil(state, midiEvents, midiEventCount, inputIndex, nframes - 1);
 
     return result;
 }

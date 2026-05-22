@@ -28,6 +28,9 @@ enum class ScaleId : std::int32_t {
     pentMajor,
     locrian,
     phrygianDominant,
+    lydian,
+    melodicMinor,
+    wholeTone,
     count
 };
 

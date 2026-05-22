@@ -17,6 +17,13 @@ The first implementation does not model chord progressions. Cadence behavior is
 scale-degree based, with strong endings gravitating toward root, fifth, or
 second depending the `Cadence` control and phrase role.
 
+`Follow` adds one MIDI input role to the generator. Incoming note-on events set
+an active influence note; generated notes are pulled toward the nearest octave
+of that note, capped below a full copy and quantized back to the selected scale.
+Note-off and all-notes-off messages clear the influence. The control is applied
+at playback/scheduling time, so changing it does not regenerate the saved
+pattern and the extra work is skipped when `Follow` is zero.
+
 UI decisions:
 
 - The UI is not a direct `bassgen` reskin. It is split into a left `Line Shape`
