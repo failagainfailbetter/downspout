@@ -14,7 +14,8 @@ target_link_libraries(downspout_gremlin_port INTERFACE
 
 if(DOWNSPOUT_ENABLE_DPF AND DOWNSPOUT_DPF_DIR)
     dpf_add_plugin(gremlin
-        TARGETS vst3
+        TARGETS ${DOWNSPOUT_DPF_PLUGIN_TARGETS}
+        ${DOWNSPOUT_DPF_PLUGIN_ARGS}
         FILES_DSP
             src/dpf/GremlinPlugin.cpp
         FILES_UI

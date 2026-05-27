@@ -19,7 +19,8 @@ target_link_libraries(downspout_drumgen_port INTERFACE
 
 if(DOWNSPOUT_ENABLE_DPF AND DOWNSPOUT_DPF_DIR)
     dpf_add_plugin(drumgen
-        TARGETS vst3
+        TARGETS ${DOWNSPOUT_DPF_PLUGIN_TARGETS}
+        ${DOWNSPOUT_DPF_PLUGIN_ARGS}
         FILES_DSP
             src/dpf/DrumgenPlugin.cpp
         FILES_UI

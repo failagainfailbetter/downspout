@@ -1,0 +1,30 @@
+---
+layout: default
+---
+
+<article class="plugin-page">
+  <a class="back-link" href="{{ '/' | relative_url }}">All plugins</a>
+
+  <header class="plugin-hero">
+    <div>
+      <p class="kicker">{{ page.kind }}</p>
+      <h1>{{ page.title }}</h1>
+      <p class="summary">{{ page.summary }}</p>
+      <dl class="plugin-meta">
+        <div>
+          <dt>Bundle</dt>
+          <dd>{{ page.bundle }}</dd>
+        </div>
+        <div>
+          <dt>Role</dt>
+          <dd>{{ page.role }}</dd>
+        </div>
+      </dl>
+    </div>
+    <img src="{{ page.screenshot | relative_url }}" alt="{{ page.title }} plugin interface">
+  </header>
+
+  <section class="content-block">
+    {{ content }}
+  </section>
+</article>

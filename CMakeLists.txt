@@ -25,6 +25,14 @@ option(DOWNSPOUT_BUILD_GREMLIN "Configure the gremlin port target" ON)
 option(DOWNSPOUT_BUILD_GREMLIN_DRIVER "Configure the gremlin-driver port target" ON)
 option(DOWNSPOUT_BUILD_GROUND "Configure the ground original MIDI target" ON)
 option(DOWNSPOUT_ENABLE_DPF "Enable DPF-based plugin wrapper targets" ON)
+option(DOWNSPOUT_BUILD_SCREENSHOT_APPS "Build DPF standalone apps for documentation screenshots" OFF)
+
+set(DOWNSPOUT_DPF_PLUGIN_TARGETS vst3)
+set(DOWNSPOUT_DPF_PLUGIN_ARGS)
+if(DOWNSPOUT_BUILD_SCREENSHOT_APPS)
+    list(APPEND DOWNSPOUT_DPF_PLUGIN_TARGETS jack)
+    list(APPEND DOWNSPOUT_DPF_PLUGIN_ARGS SKIP_NATIVE_AUDIO_FALLBACK)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 

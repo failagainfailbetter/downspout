@@ -85,6 +85,8 @@ while deeper pickup, phrase-ending, and folk-idiom behavior remains future work.
 - [docs/install.md](docs/install.md): local build and VST3 install behavior.
 - [docs/release.md](docs/release.md): release artifact shape and GitHub Actions
   workflow.
+- [docs/screenshots.md](docs/screenshots.md): automated UI screenshot capture
+  for GitHub Pages assets.
 - [docs/meter.md](docs/meter.md): shared meter model and current musical
   limitations.
 - [docs/requirements.md](docs/requirements.md): build and dependency

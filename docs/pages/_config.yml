@@ -1,0 +1,19 @@
+title: Downspout
+description: Native VST3 ports and original plugins from the Downspout project.
+url: "https://danja.github.io"
+baseurl: "/downspout"
+
+collections:
+  products:
+    output: true
+    permalink: /plugins/:name/
+
+defaults:
+  - scope:
+      path: ""
+      type: products
+    values:
+      layout: plugin
+
+exclude:
+  - README.md
