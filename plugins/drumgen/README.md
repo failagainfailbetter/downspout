@@ -1,13 +1,13 @@
 # drumgen port
 
-This directory will hold the `downspout` port of `~/github/flues/lv2/drumgen`.
+This directory holds the `downspout` port of `~/github/flues/lv2/drumgen`.
 
 Current focus:
 
-- keep the portable core aligned with the existing `bassgen` MIDI-generator split;
-- preserve exact pattern persistence and loop-boundary variation behavior;
+- keep the portable core aligned with the existing MIDI-generator split;
+- preserve pattern persistence and loop-boundary variation behavior;
 - validate the thin DPF/VST3 wrapper against real hosts;
-- keep UI scope behind correct transport, MIDI, and state behavior.
+- keep genre and style additions deterministic and state-compatible.
 
 Current reference docs:
 
@@ -24,19 +24,21 @@ Implementation status:
 - a host-neutral MIDI scheduling engine now exists;
 - text serialization for controls, pattern state, and variation state now exists;
 - deterministic core and engine tests now exist and pass;
-- a first DPF-backed `drumgen.vst3` wrapper now builds with a custom control UI.
+- a DPF-backed `drumgen.vst3` wrapper now builds with a custom control UI;
 - the core now follows shared meter input beyond bar length alone: compound and
   triple meters get dedicated pulse-aware anchor and fill behavior;
 - the wrapper now exposes explicit `Auto`, `Straight`, `Reel`, `Waltz`, `Jig`,
   and `Slip Jig` style modes so users can force rhythmic vocabulary instead of
-  relying only on meter-derived auto behavior.
+  relying only on meter-derived auto behavior;
+- genres now include Breakbeat, Amen, Jungle, and Hip Hop alongside the earlier
+  straight, rock, funk, techno, house, drum and bass, half-time, Latin, jazz,
+  and minimal options.
 
 Recommended next steps:
 
-1. validate `drumgen.vst3` in a host, especially the action buttons and saved-state restore path;
+1. validate `drumgen.vst3` in a host, especially action buttons, genre/style controls, and saved-state restore;
 2. broaden tests around earlier-state-format handling where it still applies to the current wrapper-facing state mapping;
-3. decide whether a preview grid is worth adding after host validation;
-4. keep release packaging aligned with the now-UI-backed wrapper target.
+3. decide whether a preview grid is worth adding after host validation.
 
 Current wrapper behavior note:
 

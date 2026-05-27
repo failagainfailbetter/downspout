@@ -1,100 +1,22 @@
 # downspout
 
-`downspout` is a from-scratch repository for native plugin ports of selected [flues](https://github.com/danja/flues) LV2 projects, with an initial focus on VST3-capable builds via DPF ([DISTRHO Plugin Framework](https://distrho.github.io/DPF/)).
+`downspout` ports selected [flues](https://github.com/danja/flues) LV2 plugins
+to native plugin formats, with DPF and VST3 as the current practical target.
 
-## Note on authorship
+The repository is organized around portable C++ cores, deterministic tests, thin
+DPF wrappers, and custom NanoVG UIs. VST3 metadata is normalized across the
+plugins with creator `danja`, group `Downspout`, and plugin-specific categories.
 
-Most of the plugin ideas in this repository came from Danny and the earlier
-`flues` work. `rift` is the exception: it is the one original plugin concept
-proposed and built in `downspout` by the coding agent rather than ported from
-an existing Danny plugin.
+## Build and Install
 
-## Install From Releases
-
-On a typical Linux system, download the latest
-`downspout-<version>-linux-x86_64-vst3.zip` from GitHub Releases, unpack it, and
-copy the `.vst3` bundles into `~/.vst3`:
-
-```bash
-mkdir -p ~/.vst3
-cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 melgen.vst3 rift.vst3 drumgen.vst3 drumkit.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 ~/.vst3/
-```
-
-Then restart your DAW or trigger a plugin rescan.
-
-The immediate targets are:
-
-- `bassgen`: a transport-aware MIDI generator
-- `p-mix`: a transport-aware probabilistic audio effect
-- `e-mix`: a transport-aware Euclidean audio gate
-- `rift`: an original transport-aware buffer damage effect
-- `drumgen`: a transport-aware MIDI drum generator
-- `cadence`: a transport-aware MIDI harmonizer and comping generator
-- `counterpointer`: a transport-aware MIDI counter-melody generator
-- `gremlin`: a chaotic glitch instrument with live performance gestures
-- `gremlin-driver`: a MIDI modulation and action sequencer for `gremlin`
-- `ground`: an original long-form MIDI bass form generator
-
-Current limitation:
-
-- the repository now has a shared meter model, but full musical meter-awareness
-  is still uneven across the generators, especially for
-  pickup handling, melody generation, and folk-specific accompaniment beyond
-  the new explicit style modes in `bassgen` and `drumgen`
-
-The repository is intentionally scaffolded around a shared-core pattern:
-
-- `plugins/<plugin>/`
-  Plugin-specific DSP wrapper, UI wrapper, metadata, and docs.
-- `src/common/`
-  Shared utilities that are safe to reuse across plugins.
-- `include/downspout/`
-  Shared public headers for reusable code.
-- `tests/`
-  Unit and host-facing regression tests.
-- `third_party/`
-  Vendored external dependencies once pinned and approved.
-
-## Status
-
-This repository now contains:
-
-- project planning and scaffolding;
-- a portable `bassgen` core library with tests and pulse-aware compound-meter support;
-- explicit `Auto` / `Straight` / `Reel` / `Waltz` / `Jig` / `Slip Jig` style modes in `bassgen`;
-- a first DPF-backed `bassgen` VST3 wrapper target with UI;
-- a portable `p-mix` core library with tests;
-- a first DPF-backed `p-mix` VST3 wrapper target with UI;
-- a portable `e-mix` core library with tests;
-- a first DPF-backed `e_mix.vst3` wrapper target with a redesigned UI;
-- a phrase-aware `melgen` MIDI melody generator with tests and a first DPF-backed `melgen.vst3` wrapper target with UI;
-- an original `rift` core library with tests and a first DPF-backed `rift.vst3` wrapper target with UI;
-- a portable `drumgen` core library with a host-neutral MIDI engine, serialization helpers, tests, and a first DPF-backed VST3 wrapper target with UI;
-- a portable `drumkit` synth core with tests and a first DPF-backed `drumkit.vst3` wrapper target with UI;
-- explicit `Auto` / `Straight` / `Reel` / `Waltz` / `Jig` / `Slip Jig` style modes in `drumgen`;
-- a portable `cadence` core library with tests and a first DPF-backed `cadence.vst3` wrapper target with UI;
-- a portable `counterpointer` core library with tests and a first DPF-backed `counterpointer.vst3` wrapper target with UI;
-- a portable `gremlin` core library with tests and a first DPF-backed `gremlin.vst3` wrapper target with UI;
-- a portable `gremlin-driver` MIDI control core with tests and a first DPF-backed `gremlin_driver.vst3` wrapper target with UI;
-- an original `ground` core library with tests and a first DPF-backed `ground.vst3` wrapper target with UI;
-- an `install.sh` entrypoint for local VST3 installs.
-
-`bassgen`, `p_mix`, `e_mix`, `melgen`, `rift`, `drumgen`, `drumkit`, `cadence`, `counterpointer`, `gremlin`, `gremlin_driver`, and `ground` can now be built and installed as `.vst3` bundles.
-
-## Build & Install
-
-To build and install the current VST3 output:
+For local development installs:
 
 ```bash
 ./install.sh
 ```
 
-This will:
-
-- configure the project in `./build`
-- build the project
-- run `ctest`
-- install VST3 bundles into `~/.vst3` by default
+This configures `./build`, builds the enabled plugins, runs `ctest`, and
+installs VST3 bundles into `~/.vst3` by default.
 
 Useful overrides:
 
@@ -103,144 +25,81 @@ DOWNSPOUT_VST3_DIR=/some/other/path ./install.sh
 DOWNSPOUT_RUN_TESTS=0 ./install.sh
 ```
 
-Current installable plugin:
+After reinstalling, restart your DAW or force a VST3 rescan. Some hosts cache
+plugin names, makers, categories, and homepage metadata independently of the
+installed bundle.
 
-- `bassgen.vst3`
-- `p_mix.vst3`
-- `e_mix.vst3`
-- `melgen.vst3`
-- `rift.vst3`
-- `drumgen.vst3`
-- `drumkit.vst3`
-- `cadence.vst3`
-- `counterpointer.vst3`
-- `gremlin.vst3`
-- `gremlin_driver.vst3`
-- `ground.vst3`
+## Install From Releases
 
-## Releases
+Download `downspout-<version>-linux-x86_64-vst3.zip` from GitHub Releases,
+unpack it, and copy the `.vst3` bundles into `~/.vst3`:
 
-Release packaging is handled by `scripts/package-release.sh` and automated on
-GitHub Actions for tags matching `v*`. The initial public artifact is a Linux
-x86_64 VST3 zip containing all current bundles.
+```bash
+mkdir -p ~/.vst3
+cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 m_mix.vst3 melgen.vst3 rift.vst3 drumgen.vst3 drumkit.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 ~/.vst3/
+```
 
-See [docs/release.md](docs/release.md) for the release artifact shape and
-workflow details.
+See [docs/install.md](docs/install.md) and [docs/release.md](docs/release.md)
+for the local install and release packaging details.
+
+## Plugins
+
+| Plugin | Bundle | Type | Notes |
+| --- | --- | --- | --- |
+| [bassgen](plugins/bassgen/README.md) | `bassgen.vst3` | MIDI generator | Transport-aware bass generator with persistent pattern state, style modes, and MIDI follow/dodge controls. |
+| [p-mix](plugins/p-mix/README.md) | `p_mix.vst3` | Audio effect | Transport-aware probabilistic stereo gate/mix effect. |
+| [e-mix](plugins/e-mix/README.md) | `e_mix.vst3` | Audio effect | Transport-aware Euclidean stereo gate with redesigned UI. |
+| [m-mix](plugins/m-mix/README.md) | `m_mix.vst3` | MIDI effect | Transport-aware MIDI gate combining `p-mix` transitions with `e-mix` Euclidean blocks. |
+| [melgen](plugins/melgen/README.md) | `melgen.vst3` | MIDI generator | Phrase-aware melody generator with contour, answer, structure, and follow controls. |
+| [rift](plugins/rift/README.md) | `rift.vst3` | Audio effect | Original transport-locked buffer disruptor with repeat, reverse, skip, smear, and pitch-slip actions. |
+| [drumgen](plugins/drumgen/README.md) | `drumgen.vst3` | MIDI drum generator | Pattern generator with meter-aware styles, fills, and Breakbeat/Amen/Jungle/Hip Hop genres. |
+| [drumkit](plugins/drumkit/README.md) | `drumkit.vst3` | Instrument | Port of the `flues` drum synth with stereo output, one MIDI input, and mixer-style UI. |
+| [cadence](plugins/cadence/README.md) | `cadence.vst3` | MIDI effect | Transport-aware MIDI harmonizer and comping generator. |
+| [counterpointer](plugins/counterpointer/README.md) | `counterpointer.vst3` | MIDI generator/effect | Learns incoming MIDI and emits a monophonic counter-melody. |
+| [gremlin](plugins/gremlin/README.md) | `gremlin.vst3` | Instrument | Chaotic glitch instrument with scenes, macros, actions, and performance controls. |
+| [gremlin-driver](plugins/gremlin-driver/README.md) | `gremlin_driver.vst3` | MIDI effect | MIDI modulation and action sequencer intended to drive `gremlin`. |
+| [ground](plugins/ground/README.md) | `ground.vst3` | MIDI generator | Long-form bass generator that plans movement across phrases and sections. |
+
+## Architecture
+
+The repeated implementation pattern is:
+
+1. keep DSP, MIDI, transport, and state behavior in a host-agnostic C++ core;
+2. cover deterministic core behavior with tests;
+3. translate host timing, parameters, MIDI, and state in a thin DPF wrapper;
+4. keep UI code plugin-specific and driven by wrapper parameters/status.
+
+The shared code lives under [include/downspout](include/downspout/) and
+[src/common](src/common/). Plugin-specific implementations live under
+[plugins](plugins/).
+
+The repository now has a shared meter model so transport-aware generators can
+distinguish simple, triple, compound, and odd groupings. Musical style behavior
+is still uneven by design: `bassgen` and `drumgen` have explicit style modes,
+while deeper pickup, phrase-ending, and folk-idiom behavior remains future work.
 
 ## Reference Docs
 
-- [docs/architecture.md](docs/architecture.md)
-  How the repository is wired together, including build graph, dependency
-  direction, core/wrapper/UI split, and install/release flow
-- [docs/meter.md](docs/meter.md)
-  Current meter-handling limitations, the shared meter model, and what
-  is still missing for use cases such as generative Irish folk music
-- [docs/install.md](docs/install.md)
-  Local build and installation notes
-- [docs/release.md](docs/release.md)
-  Release packaging and GitHub Release workflow
-- [docs/requirements.md](docs/requirements.md)
-  Build and dependency expectations
-- [docs/plan.md](docs/plan.md)
-  Current project direction and remaining work
+- [docs/architecture.md](docs/architecture.md): build graph, layering, state,
+  transport, UI, install, and release conventions.
+- [docs/install.md](docs/install.md): local build and VST3 install behavior.
+- [docs/release.md](docs/release.md): release artifact shape and GitHub Actions
+  workflow.
+- [docs/meter.md](docs/meter.md): shared meter model and current musical
+  limitations.
+- [docs/requirements.md](docs/requirements.md): build and dependency
+  expectations.
+- [docs/plan.md](docs/plan.md): project direction and remaining work.
 
-Each plugin also has its own `README.md` and `docs/` directory under
-`plugins/<plugin>/` for port-specific notes.
+## Current Work
 
-## EMix
+All current wrapper targets build as VST3 bundles. The main remaining work is
+host validation, release validation, and incremental DAW-facing fixes rather
+than large architecture changes.
 
-`e_mix` now builds as `e_mix.vst3` on top of a portable stereo-first transport
-gate core. Its custom UI is a deliberate redesign of the old LV2 panel: the
-cycle pattern, block length, density, and fade envelope are all visible
-directly.
+Near-term priorities:
 
-## Rift
-
-`rift` now builds as `rift.vst3`. It is an original `downspout` effect rather
-than a `flues` port, and it is the one plugin idea in this repository that did
-not originate with Danny: a transport-locked stereo buffer disruptor with
-repeat, reverse, skip, smear, and pitch-slip actions plus `Hold`, `Scatter`,
-and `Recover` performance controls.
-
-## Drumgen
-
-`drumgen` now builds as `drumgen.vst3` on top of the portable core and engine.
-It now has a first custom DPF UI with dedicated `New`, `Mutate`, and `Fill`
-buttons. The per-plugin plan lives under `plugins/drumgen/docs/`.
-
-## Cadence
-
-`cadence` now builds as `cadence.vst3` on top of a portable harmony, comping,
-variation, and transport core. It has a first custom DPF UI and is ready for
-host-side validation in a DAW.
-
-## Counterpointer
-
-`counterpointer` now builds as `counterpointer.vst3` on top of a portable
-transport-synced MIDI engine. It learns the incoming MIDI pattern and emits a
-monophonic counter-melody with controls for following, contrary motion,
-rhythmic answering, randomness, freeze, and MIDI routing.
-
-## Gremlin
-
-`gremlin` now builds as `gremlin.vst3` on top of a portable chaotic synth core
-and a DPF wrapper/UI that collapses the LV2 note and controller inputs into one
-VST3 MIDI input path. The custom UI exposes scenes, actions, macros, live
-damage controls, and momentary hold pads.
-
-## GremlinDriver
-
-`gremlin_driver` now builds as `gremlin_driver.vst3` on top of a portable MIDI
-modulation engine and a DPF wrapper/UI. It is intended to sit in front of
-`gremlin.vst3` in a MIDI chain and emit macro CCs, action notes, and patch
-randomisation bursts while passing note input through.
-
-## Ground
-
-`ground` now builds as `ground.vst3`. It is an original `downspout` MIDI
-generator that works above the riff level: it plans bass movement across
-phrases and sections, then emits monophonic lines that aim toward climbs,
-pedals, cadences, and releases rather than only mutating a short loop.
-
-## MelGen
-
-`melgen` now builds as `melgen.vst3`. It reuses the `bassgen` transport and
-state architecture but has a new phrase-aware melody core with period, contour,
-answer, structure, range, leap, rest, and cadence controls.
-The `Follow` slider lets incoming MIDI notes pull the generated melody toward
-another part without cloning it exactly.
-
-Its custom UI separates `Line Shape` sliders from `Phrase Structure` selectors
-so random-to-structured behavior and call/answer period settings are visible at
-the same time.
-
-The scale-aware MIDI generators now include Lydian, Melodic Minor, and Whole
-Tone choices alongside the existing minor, major, modal, pentatonic, and blues
-sets. New scale IDs were appended so existing saved projects keep their scale
-mapping.
-
-## DrumKit
-
-`drumkit` now builds as `drumkit.vst3`. It ports the `flues` LV2 drum synth to
-a DPF instrument wrapper with stereo output, one MIDI input, the inherited
-synthesis/master controls, and added per-instrument mute parameters.
-
-The UI is a new mixer-style surface rather than a port of the LV2 X11 UI:
-instrument strips handle select, level, note reference, and mute state, while
-the focused editor shows detailed controls for the selected voice.
-
-## Next steps
-
-1. Finish host-side validation of `bassgen.vst3` in Reaper and fix any remaining wrapper/UI issues.
-2. Continue validating the new stereo `p-mix.vst3` wrapper and its manual mute toggle in Reaper.
-3. Validate `e_mix.vst3` in Reaper, especially stopped transport behavior, restart handling, and UI readability.
-4. Validate `rift.vst3` in Reaper, especially whether the macro panel and block preview make the effect learnable in practice.
-5. Tighten any remaining host-specific `p-mix` UI or interaction issues beyond the first layout polish pass.
-6. Validate `cadence.vst3` in Reaper, especially learning, restart/rewind behavior, and state restore.
-7. Validate `counterpointer.vst3` in Reaper, especially routing after `bassgen`, learning, freeze, state restore, and note-off cleanup.
-8. Validate `gremlin.vst3` in Reaper, especially controller-style MIDI gestures, scene changes, and output level.
-9. Validate `gremlin_driver.vst3` in Reaper, especially MIDI pass-through, transport sync, and chaining into `gremlin.vst3`.
-10. Validate `drumgen.vst3` in Reaper, especially the new action-button UI, transport sync, and state restore.
-11. Validate `ground.vst3` in Reaper, especially long-form phrase behavior, action triggers, and state restore.
-12. Push folk-oriented style vocabulary into the remaining generators so the compound-meter work extends beyond `bassgen` and `drumgen`.
-13. Publish the first public `v*` tag and verify the GitHub Actions release assets on GitHub.
+1. validate all thirteen bundles in real hosts after clean installs and rescans;
+2. keep release packaging aligned with local installs;
+3. extend musical style vocabulary where it improves actual generator behavior;
+4. publish and verify the first public tagged release artifact.

@@ -14,7 +14,7 @@ not the architecture.
 
 ## Top-level build graph
 
-The root [CMakeLists.txt](/home/danny/github/downspout/CMakeLists.txt) does four things:
+The root [CMakeLists.txt](../CMakeLists.txt) does four things:
 
 - defines the project and common compiler settings;
 - creates `downspout-project-options`, an interface target for shared include
@@ -63,7 +63,7 @@ Each plugin directory generally follows this shape:
   Human-facing summary of behavior and current status
 
 The common build pattern, visible for example in
-[plugins/rift/CMakeLists.txt](/home/danny/github/downspout/plugins/rift/CMakeLists.txt), is:
+[plugins/rift/CMakeLists.txt](../plugins/rift/CMakeLists.txt), is:
 
 - a static core library such as `downspout_rift_core`
 - sometimes an interface port target such as `downspout_rift_port`
@@ -86,10 +86,10 @@ Typical contents:
 
 Examples:
 
-- [plugins/bassgen/src/bassgen_engine.cpp](/home/danny/github/downspout/plugins/bassgen/src/bassgen_engine.cpp)
-- [plugins/drumgen/src/drumgen_engine.cpp](/home/danny/github/downspout/plugins/drumgen/src/drumgen_engine.cpp)
-- [plugins/rift/src/rift_engine.cpp](/home/danny/github/downspout/plugins/rift/src/rift_engine.cpp)
-- [plugins/ground/src/ground_engine.cpp](/home/danny/github/downspout/plugins/ground/src/ground_engine.cpp)
+- [plugins/bassgen/src/bassgen_engine.cpp](../plugins/bassgen/src/bassgen_engine.cpp)
+- [plugins/drumgen/src/drumgen_engine.cpp](../plugins/drumgen/src/drumgen_engine.cpp)
+- [plugins/rift/src/rift_engine.cpp](../plugins/rift/src/rift_engine.cpp)
+- [plugins/ground/src/ground_engine.cpp](../plugins/ground/src/ground_engine.cpp)
 
 ### 2. Wrapper layer
 
@@ -103,8 +103,8 @@ The DPF plugin class translates host concepts into core concepts:
 
 Examples:
 
-- [plugins/p-mix/src/dpf/PMixPlugin.cpp](/home/danny/github/downspout/plugins/p-mix/src/dpf/PMixPlugin.cpp)
-- [plugins/cadence/src/dpf/CadencePlugin.cpp](/home/danny/github/downspout/plugins/cadence/src/dpf/CadencePlugin.cpp)
+- [plugins/p-mix/src/dpf/PMixPlugin.cpp](../plugins/p-mix/src/dpf/PMixPlugin.cpp)
+- [plugins/cadence/src/dpf/CadencePlugin.cpp](../plugins/cadence/src/dpf/CadencePlugin.cpp)
 
 ### 3. UI layer
 
@@ -120,8 +120,8 @@ Patterns used repeatedly:
 
 Examples:
 
-- [plugins/drumgen/src/dpf/DrumgenUI.cpp](/home/danny/github/downspout/plugins/drumgen/src/dpf/DrumgenUI.cpp)
-- [plugins/rift/src/dpf/RiftUI.cpp](/home/danny/github/downspout/plugins/rift/src/dpf/RiftUI.cpp)
+- [plugins/drumgen/src/dpf/DrumgenUI.cpp](../plugins/drumgen/src/dpf/DrumgenUI.cpp)
+- [plugins/rift/src/dpf/RiftUI.cpp](../plugins/rift/src/dpf/RiftUI.cpp)
 
 ## State and serialization pattern
 
@@ -185,15 +185,15 @@ testing and release/install smoke runs.
 
 Local install flow:
 
-- [install.sh](/home/danny/github/downspout/install.sh) configures, builds,
+- [install.sh](../install.sh) configures, builds,
   optionally runs `ctest`, and installs `.vst3` bundles into `~/.vst3` by
   default
 
 Release flow:
 
-- [scripts/package-release.sh](/home/danny/github/downspout/scripts/package-release.sh)
+- [scripts/package-release.sh](../scripts/package-release.sh)
   performs a release configure/build/test/install/package cycle
-- [.github/workflows/release.yml](/home/danny/github/downspout/.github/workflows/release.yml)
+- [.github/workflows/release.yml](../.github/workflows/release.yml)
   runs that script on `v*` tags and publishes the zip to GitHub Releases
 
 The release script currently expects these bundles:
@@ -201,6 +201,7 @@ The release script currently expects these bundles:
 - `bassgen.vst3`
 - `p_mix.vst3`
 - `e_mix.vst3`
+- `m_mix.vst3`
 - `melgen.vst3`
 - `rift.vst3`
 - `drumgen.vst3`
@@ -211,8 +212,9 @@ The release script currently expects these bundles:
 - `gremlin_driver.vst3`
 - `ground.vst3`
 
-So yes: current `rift` changes are part of the release packaging path as soon
-as you build and tag a release from updated code.
+This list should match the bundles installed by `install.sh`; if a plugin is
+added to the local install path, release packaging should be updated in the same
+change.
 
 ## Conventions followed in this repo
 

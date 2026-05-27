@@ -9,6 +9,10 @@ pickups, and longer pulse-spanning notes rather than assuming every bar is
 effectively `4/4`. It also now exposes explicit style modes:
 `Auto`, `Straight`, `Reel`, `Waltz`, `Jig`, and `Slip Jig`.
 
+The DPF wrapper accepts incoming MIDI as context. The `Follow/Dodge` control
+can make bass notes more likely on incoming drum/bass hits or suppress bass
+notes on those beats, with listen controls for MIDI channel and note focus.
+
 Implementation status:
 
 - portable core library exists and builds;
@@ -19,10 +23,12 @@ Implementation status:
 - the core now handles shared-meter transport input and regenerates on meter
   changes;
 - the core now has explicit style controls for simple, reel, waltz, jig, and
-  slip-jig phrasing on top of the shared meter model.
+  slip-jig phrasing on top of the shared meter model;
 - scale choices now include Lydian, Melodic Minor, and Whole Tone in addition
   to the original minor/major/modal/pentatonic/blues options. These were
-  appended to the scale enum to preserve existing saved-state values.
+  appended to the scale enum to preserve existing saved-state values;
+- incoming MIDI follow/dodge controls are wired through the wrapper, core, and
+  UI.
 
 Reference docs:
 

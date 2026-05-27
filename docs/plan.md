@@ -29,7 +29,9 @@ These two plugins were chosen deliberately because together they cover the main 
 - `bassgen` exercises MIDI generation, transport sync, state persistence, and control/UI messaging.
 - `p-mix` exercises audio processing, transport-driven behavior, state, and host channel-layout decisions.
 
-If these ports succeed, the repository will have a workable pattern for both MIDI-producing and audio-processing plugins.
+Those ports established the project pattern now used by the wider plugin set:
+portable core, deterministic tests, thin DPF wrapper, custom UI, and local VST3
+install packaging.
 
 ## Framework direction
 
@@ -126,17 +128,13 @@ DPF appears viable for this project, but a few implications need to guide implem
 - transport handling should be validated carefully because both target plugins depend on host timing;
 - DPF can support multiple output formats later, but the first milestone should target one format cleanly rather than many formats poorly.
 
-## Immediate tasks
+## Current status
 
-The first concrete tasks for `downspout` are:
+The initial scaffold and first-port work are complete enough that the project
+now has a stable implementation pattern: portable core, deterministic tests,
+thin DPF wrapper, custom UI, local install script, and release packaging.
 
-1. Maintain this plan as the canonical root project brief.
-2. Add `AGENTS.md` with repository-specific working rules.
-3. Create a multi-plugin scaffold that can grow without forcing immediate DPF integration.
-4. Write a requirements document that turns the plan into implementation constraints.
-5. Begin the `bassgen` audit and identify its reusable core modules.
-
-Progress as of 2026-04-24:
+Progress as of 2026-05-27:
 
 - root planning and requirements documents exist;
 - repository rules and scaffold exist;
@@ -144,8 +142,11 @@ Progress as of 2026-04-24:
 - `bassgen` now builds as a VST3 bundle with UI via vendored DPF;
 - `p-mix` now builds as a first VST3 wrapper with UI via vendored DPF;
 - `e-mix` now has a portable core library, deterministic tests, and a first VST3 wrapper target with a redesigned UI via vendored DPF;
+- `m-mix` now has a portable MIDI-gate core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
+- `melgen` now has a phrase-aware MIDI melody core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `rift` now exists as an original `downspout` transport-aware buffer effect with a portable core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `drumgen` now has a portable core library, a host-neutral MIDI engine, text serialization helpers, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
+- `drumkit` now ports the `flues` drum synth through a portable core and a first VST3 instrument wrapper with UI via vendored DPF;
 - `cadence` now has a portable core library, a host-neutral learning/playback engine, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `counterpointer` now has a portable core, deterministic tests, text state
   serialization, and a first DPF/VST3 wrapper with custom UI;
@@ -157,9 +158,9 @@ Progress as of 2026-04-24:
 Current main gap:
 
 - DPF is now vendored and all current wrapper targets build successfully.
-- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, and `ground.vst3` bundles.
-- both `install.sh` and `scripts/package-release.sh` now pass clean full-tree smoke runs for all nine bundles.
-- the main remaining gaps are host validation of `bassgen`, host validation of `p-mix`, host validation of `e-mix`, host validation of `rift`, host validation of `drumgen`, host validation of `cadence`, host validation of `counterpointer`, host validation of `gremlin`, host validation of `gremlin-driver`, host validation of `ground`, validating the first tagged GitHub Actions release, and pushing the new shared meter model further up the musical stack so the generators adopt real style vocabulary rather than only pulse-aware bar shapes.
+- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `m_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, and `ground.vst3` bundles.
+- both `install.sh` and `scripts/package-release.sh` are expected to cover the same thirteen-bundle set.
+- the main remaining gaps are host validation across the full plugin set, validating the first tagged GitHub Actions release, and pushing the shared meter/style model further up the musical stack where it improves generator behavior.
 
 ## Meter direction
 
@@ -188,16 +189,9 @@ The next work should proceed in this order:
 
 Reasoning:
 
-- `bassgen` is already far enough along that the remaining work is validation and incremental fixes, not architecture.
-- `p-mix` already has portable engine and test coverage, so wrapper integration is now the highest-value missing deliverable.
-- `e-mix` now follows the same portable-core-plus-wrapper pattern, so the next useful work is host feedback on the redesigned UI rather than more extraction.
-- `rift` follows the same pattern but as an original effect, so its main risk is not extraction fidelity but whether the UI actually makes the concept learnable in a DAW.
+- the current plugin set already follows the portable-core-plus-wrapper pattern, so the highest-value work has shifted to host behavior, routing validation, UI clarity, and release packaging.
 - release builds need to become a first-class workflow before the repository is ready for broader use beyond local iteration.
-- `drumgen` has now reached the same core-plus-wrapper milestone as `bassgen`, so the remaining work is validation, polish, and bug-fixing rather than architectural extraction.
-- `cadence` has now reached the same core-plus-wrapper milestone, so the next useful work is host validation and incremental fixes rather than more architectural churn.
-- `gremlin` and `gremlin-driver` now reach the same milestone, so the highest-value work has shifted to host behavior, routing validation, and release packaging rather than more extraction.
-- `ground` is already in the same portable-core-plus-wrapper state, so its next useful work is DAW validation of phrase behavior and UI clarity rather than more architectural work.
-- that DAW validation exposed a broader architectural gap: transport sync existed, but true meter support did not yet exist consistently across the generator plugins.
+- DAW validation exposed a broader architectural gap: transport sync existed, but true meter support did not exist consistently across the generator plugins.
 - the shared meter abstraction now exists and is wired into the transport layer plus the `bassgen`, `ground`, and `drumgen` generators.
 
 ## Non-goals for the first phase

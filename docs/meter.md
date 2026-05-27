@@ -12,7 +12,7 @@ transport sync is not enough.
 ## Current state
 
 `downspout` now has an initial shared meter layer in
-[include/downspout/meter.hpp](/home/danny/github/downspout/include/downspout/meter.hpp).
+[include/downspout/meter.hpp](../include/downspout/meter.hpp).
 That layer gives the repository one common representation for:
 
 - numerator
@@ -80,10 +80,9 @@ These were the main structural blockers. That first refactor is now done:
 
 - `ground` now derives form and phrase grids from the shared meter model rather
   than a fixed `16 steps per bar`
-- `drumgen` now derives `stepsPerBar` from `meter.numerator * stepsPerBeat`
-  rather than `stepsPerBeat * 4`, and now has dedicated compound/triple-meter
-  pulse accents for bar generation and fill targeting plus explicit
-  `Straight`/`Reel`/`Waltz`/`Jig`/`Slip Jig` modes
+- `drumgen` now derives `stepsPerBar` from the shared meter model and has
+  dedicated compound/triple-meter pulse accents for bar generation and fill
+  targeting plus explicit `Straight`/`Reel`/`Waltz`/`Jig`/`Slip Jig` modes
 
 That does not mean they are now idiomatic jig/hornpipe generators. It means
 they no longer silently force every bar back into `4/4` shape.
@@ -92,8 +91,7 @@ Examples of the old assumptions that were removed:
 
 - `ground` phrase planning currently assumes `4 steps per beat` and
   `16 steps per bar`
-- `drumgen` pattern setup currently derives `stepsPerBar` as
-  `stepsPerBeat * 4`
+- `drumgen` pattern setup used to derive `stepsPerBar` as `stepsPerBeat * 4`
 
 ## What Irish folk actually needs
 
