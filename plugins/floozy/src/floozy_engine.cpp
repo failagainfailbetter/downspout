@@ -46,6 +46,11 @@ float equalPowerRight(const float pan)
     return std::sin(std::clamp(pan, 0.0f, 1.0f) * kPi * 0.5f);
 }
 
+float outputGainFromParameter(const float value)
+{
+    return clampUnit(value) * 2.0f;
+}
+
 float expoMap(const float value, const float minimum, const float maximum)
 {
     return minimum * std::pow(maximum / minimum, clampUnit(value));
@@ -485,7 +490,7 @@ public:
         const auto body = body_.process(source, env, frequency_, velocityGain_);
         const float filtered = filter_.process(sanitizeAudio(body.mix));
         const float mono = sanitizeAudio(filtered * mod.am * velocityGain_ *
-                                         params.values[static_cast<std::size_t>(ParamId::masterGain)]);
+                                         outputGainFromParameter(params.values[static_cast<std::size_t>(ParamId::masterGain)]));
 
         prevDelay1_ = sanitizeAudio(body.tap1);
         prevDelay2_ = sanitizeAudio(body.tap2);

@@ -116,6 +116,21 @@ void velocityAffectsOutput()
     require(loudEnergy > softEnergy * 1.8f, "floozy velocity should scale output");
 }
 
+void masterGainCanBoost()
+{
+    FloozyEngine nominal {48000.0f};
+    nominal.setParameter(ParamId::masterGain, 0.50f);
+    nominal.noteOn(60, 90);
+    const float nominalEnergy = renderDcBlockedEnergy(nominal, 12000);
+
+    FloozyEngine boosted {48000.0f};
+    boosted.setParameter(ParamId::masterGain, 1.0f);
+    boosted.noteOn(60, 90);
+    const float boostedEnergy = renderDcBlockedEnergy(boosted, 12000);
+
+    require(boostedEnergy > nominalEnergy * 1.55f, "floozy master gain should boost above nominal level");
+}
+
 void allInterfacesRender()
 {
     for (int interfaceType = 0; interfaceType <= 11; ++interfaceType)
@@ -252,6 +267,7 @@ int main()
     defaultsAndClamping();
     allAlgorithmsRender();
     velocityAffectsOutput();
+    masterGainCanBoost();
     allInterfacesRender();
     allInterfacesHaveUsableLevel();
     sustainedInterfacesHaveAudibleAcEnergy();
