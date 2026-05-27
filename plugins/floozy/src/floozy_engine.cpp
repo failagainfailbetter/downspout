@@ -141,6 +141,8 @@ public:
         lowpass1_ = 0.0f;
         lowpass2_ = 0.0f;
         previousOutput_ = 0.0f;
+        dcBlockX_ = 0.0f;
+        dcBlockY_ = 0.0f;
         transient_ = 0.0f;
         bowState_ = 0.0f;
     }
@@ -197,7 +199,7 @@ public:
         write1_ = (write1_ + 1) % delay1_.size();
         write2_ = (write2_ + 1) % delay2_.size();
 
-        const float mix = sanitizeAudio((tap1 * profile.mix1 + tap2 * profile.mix2) * profile.outputGain);
+        const float mix = sanitizeAudio(dcBlock(tap1 * profile.mix1 + tap2 * profile.mix2) * profile.outputGain);
         previousOutput_ = mix;
         return {mix, tap1, tap2};
     }
@@ -229,17 +231,17 @@ private:
             profile.feedback1 = 0.88f;
             profile.feedback2 = 0.80f;
             profile.damping = 0.16f + (1.0f - intensity_) * 0.18f;
-            profile.transientDecay = 0.9965f;
-            profile.outputGain = 1.15f;
+            profile.transientDecay = 0.9980f;
+            profile.outputGain = 2.25f;
             break;
         case 1: // Struck bar/plate.
             profile.ratio2 = 1.51f + ratioSpread * 0.8f;
-            profile.feedback1 = 0.68f;
-            profile.feedback2 = 0.61f;
+            profile.feedback1 = 0.76f;
+            profile.feedback2 = 0.68f;
             profile.cross = 0.12f;
-            profile.damping = 0.30f + (1.0f - intensity_) * 0.20f;
-            profile.transientDecay = 0.935f;
-            profile.outputGain = 1.35f;
+            profile.damping = 0.24f + (1.0f - intensity_) * 0.18f;
+            profile.transientDecay = 0.990f;
+            profile.outputGain = 10.50f;
             break;
         case 2: // Reed, odd-harmonic leaning.
             profile.ratio2 = 3.0f + ratioSpread * 0.35f;
@@ -249,7 +251,7 @@ private:
             profile.damping = 0.08f + (1.0f - intensity_) * 0.14f;
             profile.mix1 = 0.78f;
             profile.mix2 = 0.22f;
-            profile.outputGain = 1.20f;
+            profile.outputGain = 3.60f;
             break;
         case 3: // Flute/jet.
             profile.ratio2 = 2.01f + ratioSpread * 0.25f;
@@ -257,7 +259,7 @@ private:
             profile.feedback2 = 0.76f;
             profile.cross = 0.03f;
             profile.damping = 0.05f + (1.0f - intensity_) * 0.18f;
-            profile.outputGain = 1.05f;
+            profile.outputGain = 3.40f;
             break;
         case 4: // Brass lip.
             profile.ratio2 = 2.0f + ratioSpread * 0.55f;
@@ -265,7 +267,7 @@ private:
             profile.feedback2 = 0.82f;
             profile.cross = 0.08f;
             profile.damping = 0.07f + (1.0f - intensity_) * 0.10f;
-            profile.outputGain = 1.15f;
+            profile.outputGain = 3.70f;
             break;
         case 5: // Bowed string.
             profile.ratio2 = 2.0f + ratioSpread * 0.3f;
@@ -273,7 +275,7 @@ private:
             profile.feedback2 = 0.86f;
             profile.cross = 0.07f;
             profile.damping = 0.10f + (1.0f - intensity_) * 0.18f;
-            profile.outputGain = 1.10f;
+            profile.outputGain = 2.80f;
             break;
         case 6: // Bell.
             profile.ratio2 = 2.72f + ratioSpread;
@@ -283,8 +285,8 @@ private:
             profile.damping = 0.14f;
             profile.mix1 = 0.45f;
             profile.mix2 = 0.55f;
-            profile.transientDecay = 0.986f;
-            profile.outputGain = 1.25f;
+            profile.transientDecay = 0.997f;
+            profile.outputGain = 7.50f;
             break;
         case 7: // Drum membrane.
             profile.ratio1 = 0.50f;
@@ -292,9 +294,9 @@ private:
             profile.feedback1 = 0.77f;
             profile.feedback2 = 0.70f;
             profile.cross = 0.20f;
-            profile.damping = 0.28f + (1.0f - intensity_) * 0.20f;
-            profile.transientDecay = 0.950f;
-            profile.outputGain = 1.45f;
+            profile.damping = 0.22f + (1.0f - intensity_) * 0.20f;
+            profile.transientDecay = 0.986f;
+            profile.outputGain = 10.00f;
             break;
         default: // Synthetic body variants keep more inharmonicity.
             profile.ratio2 = 1.25f + ratioControl_ * 2.75f;
@@ -302,7 +304,7 @@ private:
             profile.feedback2 = 0.78f + intensity_ * 0.11f;
             profile.cross = 0.10f + intensity_ * 0.12f;
             profile.damping = 0.09f + (1.0f - intensity_) * 0.22f;
-            profile.outputGain = 1.18f;
+            profile.outputGain = 2.50f;
             break;
         }
 
@@ -330,36 +332,36 @@ private:
         switch (interfaceType_)
         {
         case 0:
-            return sanitizeAudio(gatedSource * 0.18f + noise * transient * (0.40f + intensity_ * 0.35f));
+            return sanitizeAudio(gatedSource * 0.30f + noise * transient * (0.75f + intensity_ * 0.55f));
         case 1:
-            return sanitizeAudio((noise * 0.85f + gatedSource * 0.18f) * transient * (0.8f + intensity_ * 0.6f));
+            return sanitizeAudio((noise * 1.25f + gatedSource * 0.30f) * transient * (1.25f + intensity_ * 0.85f));
         case 2:
-            return sanitizeAudio(std::tanh((pressure + gatedSource * 0.12f - gatedFeedback * 0.65f) *
-                                           (2.5f + intensity_ * 6.5f)) * 0.32f);
+            return sanitizeAudio(std::tanh((pressure * 0.35f + gatedSource * 1.10f - gatedFeedback * 0.85f) *
+                                           (2.0f + intensity_ * 5.5f)) * 0.40f);
         case 3:
-            return sanitizeAudio((std::tanh((pressure * 0.8f + noise * (0.05f + intensity_ * 0.08f) -
-                                            gatedFeedback * 0.48f) *
+            return sanitizeAudio((std::tanh((pressure * 0.22f + gatedSource * 0.85f +
+                                            noise * (0.08f + intensity_ * 0.12f) - gatedFeedback * 0.72f) *
                                            (1.8f + intensity_ * 4.2f)) *
-                                  0.22f) +
-                                 noise * env * (0.006f + intensity_ * 0.018f));
+                                  0.36f) +
+                                 noise * env * (0.012f + intensity_ * 0.028f));
         case 4:
-            return sanitizeAudio(std::tanh((pressure + gatedSource * 0.20f - gatedFeedback * 0.40f) *
-                                           (3.0f + intensity_ * 7.0f)) *
-                                 (0.28f + intensity_ * 0.10f));
+            return sanitizeAudio(std::tanh((pressure * 0.45f + gatedSource * 1.00f - gatedFeedback * 0.55f) *
+                                           (2.5f + intensity_ * 6.0f)) *
+                                 (0.34f + intensity_ * 0.14f));
         case 5:
         {
-            const float slip = pressure + gatedSource * 0.10f - bowState_ - gatedFeedback * 0.55f;
+            const float slip = pressure * 0.35f + gatedSource * 0.70f - bowState_ - gatedFeedback * 0.70f;
             const float friction = std::tanh(slip * (5.0f + intensity_ * 12.0f));
             bowState_ = bowState_ * (0.985f - intensity_ * 0.08f) + (pressure + friction * 0.08f) * 0.05f;
-            return sanitizeAudio(friction * (0.18f + intensity_ * 0.14f) + noise * env * intensity_ * 0.006f);
+            return sanitizeAudio(friction * (0.25f + intensity_ * 0.20f) + noise * env * intensity_ * 0.010f);
         }
         case 6:
-            return sanitizeAudio((gatedSource * 0.20f + noise * 0.65f) * transient * (0.55f + intensity_ * 0.45f));
+            return sanitizeAudio((gatedSource * 0.30f + noise * 1.05f) * transient * (0.95f + intensity_ * 0.75f));
         case 7:
-            return sanitizeAudio((noise * 0.95f + gatedSource * 0.10f) * transient * (0.95f + intensity_ * 0.65f));
+            return sanitizeAudio((noise * 1.35f + gatedSource * 0.18f) * transient * (1.25f + intensity_ * 0.80f));
         default:
-            return sanitizeAudio(gatedSource * (0.18f + intensity_ * 0.22f) +
-                                 noise * transient * 0.20f -
+            return sanitizeAudio(gatedSource * (0.26f + intensity_ * 0.30f) +
+                                 noise * transient * 0.45f -
                                  gatedFeedback * crossFeedbackControl_ * 0.18f);
         }
     }
@@ -388,6 +390,14 @@ private:
         return state;
     }
 
+    float dcBlock(const float input)
+    {
+        const float output = input - dcBlockX_ + 0.995f * dcBlockY_;
+        dcBlockX_ = input;
+        dcBlockY_ = output;
+        return output;
+    }
+
     float sampleRate_;
     std::size_t maxDelay_;
     std::vector<float> delay1_;
@@ -397,6 +407,8 @@ private:
     float lowpass1_ = 0.0f;
     float lowpass2_ = 0.0f;
     float previousOutput_ = 0.0f;
+    float dcBlockX_ = 0.0f;
+    float dcBlockY_ = 0.0f;
     float transient_ = 0.0f;
     float bowState_ = 0.0f;
     int interfaceType_ = 2;

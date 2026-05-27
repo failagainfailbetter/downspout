@@ -46,6 +46,28 @@ float renderEnergy(FloozyEngine& engine, const int frames)
     return energy;
 }
 
+float renderDcBlockedEnergy(FloozyEngine& engine, const int frames)
+{
+    float energy = 0.0f;
+    float leftX = 0.0f;
+    float leftY = 0.0f;
+    float rightX = 0.0f;
+    float rightY = 0.0f;
+    for (int i = 0; i < frames; ++i)
+    {
+        const auto frame = engine.processStereo();
+        require(std::isfinite(frame.left) && std::isfinite(frame.right), "floozy rendered non-finite audio");
+        const float left = frame.left - leftX + 0.995f * leftY;
+        const float right = frame.right - rightX + 0.995f * rightY;
+        leftX = frame.left;
+        rightX = frame.right;
+        leftY = left;
+        rightY = right;
+        energy += std::fabs(left) + std::fabs(right);
+    }
+    return energy;
+}
+
 void defaultsAndClamping()
 {
     FloozyEngine engine {48000.0f};
@@ -106,6 +128,38 @@ void allInterfacesRender()
         engine.setParameter(ParamId::masterGain, 0.85f);
         engine.noteOn(55 + (interfaceType % 12), 112);
         require(renderPeak(engine, 8192) > 0.0002f, "floozy interface did not render audible output");
+    }
+}
+
+void allInterfacesHaveUsableLevel()
+{
+    for (int interfaceType = 0; interfaceType <= 11; ++interfaceType)
+    {
+        FloozyEngine engine {48000.0f};
+        engine.setParameter(ParamId::interfaceType, static_cast<float>(interfaceType));
+        engine.setParameter(ParamId::interfaceIntensity, 0.72f);
+        engine.setParameter(ParamId::sourceLevel, 0.70f);
+        engine.setParameter(ParamId::noiseLevel, 0.18f);
+        engine.setParameter(ParamId::masterGain, 0.85f);
+        engine.noteOn(55 + (interfaceType % 12), 112);
+        const float averageEnergy = renderEnergy(engine, 48000) / 48000.0f;
+        require(averageEnergy > 0.004f, "floozy interface output level is too low");
+    }
+}
+
+void sustainedInterfacesHaveAudibleAcEnergy()
+{
+    for (int interfaceType : {2, 3, 4, 5})
+    {
+        FloozyEngine engine {48000.0f};
+        engine.setParameter(ParamId::interfaceType, static_cast<float>(interfaceType));
+        engine.setParameter(ParamId::interfaceIntensity, 0.72f);
+        engine.setParameter(ParamId::sourceLevel, 0.70f);
+        engine.setParameter(ParamId::noiseLevel, 0.18f);
+        engine.setParameter(ParamId::masterGain, 0.85f);
+        engine.noteOn(60, 64);
+        const float averageAcEnergy = renderDcBlockedEnergy(engine, 48000) / 48000.0f;
+        require(averageAcEnergy > 0.015f, "floozy sustained interface has too little audible AC energy");
     }
 }
 
@@ -199,6 +253,8 @@ int main()
     allAlgorithmsRender();
     velocityAffectsOutput();
     allInterfacesRender();
+    allInterfacesHaveUsableLevel();
+    sustainedInterfacesHaveAudibleAcEnergy();
     midiVoiceLifecycle();
     noteOffEventuallyStopsAllInterfaces();
     polyphonyIsCapped();
