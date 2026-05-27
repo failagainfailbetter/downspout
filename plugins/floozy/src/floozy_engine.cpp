@@ -249,37 +249,43 @@ private:
             profile.outputGain = 10.50f;
             break;
         case 2: // Reed, odd-harmonic leaning.
-            profile.ratio2 = 3.0f + ratioSpread * 0.35f;
+            profile.ratio2 = 3.0f + ratioSpread * 0.20f;
             profile.feedback1 = 0.92f;
             profile.feedback2 = 0.72f;
             profile.cross = 0.05f;
             profile.damping = 0.08f + (1.0f - intensity_) * 0.14f;
-            profile.mix1 = 0.78f;
-            profile.mix2 = 0.22f;
+            profile.mix1 = 0.92f;
+            profile.mix2 = 0.08f;
             profile.outputGain = 3.60f;
             break;
         case 3: // Flute/jet.
-            profile.ratio2 = 2.01f + ratioSpread * 0.25f;
+            profile.ratio2 = 2.0f + ratioSpread * 0.15f;
             profile.feedback1 = 0.90f;
             profile.feedback2 = 0.76f;
             profile.cross = 0.03f;
             profile.damping = 0.05f + (1.0f - intensity_) * 0.18f;
+            profile.mix1 = 1.0f;
+            profile.mix2 = 0.0f;
             profile.outputGain = 3.40f;
             break;
         case 4: // Brass lip.
-            profile.ratio2 = 2.0f + ratioSpread * 0.55f;
+            profile.ratio2 = 2.0f + ratioSpread * 0.25f;
             profile.feedback1 = 0.94f;
             profile.feedback2 = 0.82f;
             profile.cross = 0.08f;
             profile.damping = 0.07f + (1.0f - intensity_) * 0.10f;
+            profile.mix1 = 0.88f;
+            profile.mix2 = 0.12f;
             profile.outputGain = 3.70f;
             break;
         case 5: // Bowed string.
-            profile.ratio2 = 2.0f + ratioSpread * 0.3f;
+            profile.ratio2 = 2.0f + ratioSpread * 0.15f;
             profile.feedback1 = 0.93f;
             profile.feedback2 = 0.86f;
             profile.cross = 0.07f;
             profile.damping = 0.10f + (1.0f - intensity_) * 0.18f;
+            profile.mix1 = 0.90f;
+            profile.mix2 = 0.10f;
             profile.outputGain = 2.80f;
             break;
         case 6: // Bell.
@@ -344,11 +350,11 @@ private:
             return sanitizeAudio(std::tanh((pressure * 0.35f + gatedSource * 1.10f - gatedFeedback * 0.85f) *
                                            (2.0f + intensity_ * 5.5f)) * 0.40f);
         case 3:
-            return sanitizeAudio((std::tanh((pressure * 0.22f + gatedSource * 0.85f +
-                                            noise * (0.08f + intensity_ * 0.12f) - gatedFeedback * 0.72f) *
-                                           (1.8f + intensity_ * 4.2f)) *
-                                  0.36f) +
-                                 noise * env * (0.012f + intensity_ * 0.028f));
+            return sanitizeAudio((std::tanh((pressure * 0.03f + gatedSource * 1.45f +
+                                            noise * (0.002f + intensity_ * 0.004f) - gatedFeedback * 0.45f) *
+                                           (1.2f + intensity_ * 2.5f)) *
+                                  0.42f) +
+                                 noise * env * (0.0005f + intensity_ * 0.0015f));
         case 4:
             return sanitizeAudio(std::tanh((pressure * 0.45f + gatedSource * 1.00f - gatedFeedback * 0.55f) *
                                            (2.5f + intensity_ * 6.0f)) *
@@ -358,7 +364,7 @@ private:
             const float slip = pressure * 0.35f + gatedSource * 0.70f - bowState_ - gatedFeedback * 0.70f;
             const float friction = std::tanh(slip * (5.0f + intensity_ * 12.0f));
             bowState_ = bowState_ * (0.985f - intensity_ * 0.08f) + (pressure + friction * 0.08f) * 0.05f;
-            return sanitizeAudio(friction * (0.25f + intensity_ * 0.20f) + noise * env * intensity_ * 0.010f);
+            return sanitizeAudio(friction * (0.25f + intensity_ * 0.20f) + noise * env * intensity_ * 0.004f);
         }
         case 6:
             return sanitizeAudio((gatedSource * 0.30f + noise * 1.05f) * transient * (0.95f + intensity_ * 0.75f));

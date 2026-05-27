@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <vector>
 
 namespace {
 
@@ -66,6 +67,43 @@ float renderDcBlockedEnergy(FloozyEngine& engine, const int frames)
         energy += std::fabs(left) + std::fabs(right);
     }
     return energy;
+}
+
+float estimateZeroCrossingPitch(const std::vector<float>& samples, const float sampleRate)
+{
+    int crossings = 0;
+    for (std::size_t i = 1; i < samples.size(); ++i)
+        if ((samples[i - 1] < 0.0f && samples[i] >= 0.0f) || (samples[i - 1] > 0.0f && samples[i] <= 0.0f))
+            ++crossings;
+
+    return (static_cast<float>(crossings) * 0.5f) * sampleRate / static_cast<float>(samples.size());
+}
+
+float estimateRenderedPitch(FloozyEngine& engine, const int warmupFrames, const int sampleFrames)
+{
+    std::vector<float> samples;
+    samples.reserve(static_cast<std::size_t>(sampleFrames));
+    float lastInput = 0.0f;
+    float lastOutput = 0.0f;
+
+    for (int i = 0; i < warmupFrames + sampleFrames; ++i)
+    {
+        const auto frame = engine.processStereo();
+        const float mono = (frame.left + frame.right) * 0.5f;
+        const float highPassed = mono - lastInput + 0.995f * lastOutput;
+        lastInput = mono;
+        lastOutput = highPassed;
+
+        if (i >= warmupFrames)
+            samples.push_back(highPassed);
+    }
+
+    return estimateZeroCrossingPitch(samples, 48000.0f);
+}
+
+float midiNoteToExpectedFrequency(const int midiNote)
+{
+    return 440.0f * std::pow(2.0f, (static_cast<float>(midiNote) - 69.0f) / 12.0f);
 }
 
 void defaultsAndClamping()
@@ -178,6 +216,31 @@ void sustainedInterfacesHaveAudibleAcEnergy()
     }
 }
 
+void sustainedInterfacesTrackMidiPitch()
+{
+    for (int interfaceType : {2, 3, 4, 5})
+    {
+        for (int note : {48, 60, 72})
+        {
+            FloozyEngine engine {48000.0f};
+            engine.setParameter(ParamId::interfaceType, static_cast<float>(interfaceType));
+            engine.setParameter(ParamId::sourceAlgorithm, 3.0f);
+            engine.setParameter(ParamId::sourceLevel, 0.70f);
+            engine.setParameter(ParamId::noiseLevel, 0.0f);
+            engine.setParameter(ParamId::reverbLevel, 0.0f);
+            engine.setParameter(ParamId::filterFrequency, 0.85f);
+            engine.setParameter(ParamId::filterQ, 0.10f);
+            engine.setParameter(ParamId::masterGain, 0.50f);
+            engine.noteOn(note, 100);
+
+            const float estimated = estimateRenderedPitch(engine, 24000, 24000);
+            const float expected = midiNoteToExpectedFrequency(note);
+            require(std::fabs(estimated - expected) / expected < 0.025f,
+                    "floozy sustained interface should track MIDI pitch");
+        }
+    }
+}
+
 void midiVoiceLifecycle()
 {
     FloozyEngine engine {48000.0f};
@@ -271,6 +334,7 @@ int main()
     allInterfacesRender();
     allInterfacesHaveUsableLevel();
     sustainedInterfacesHaveAudibleAcEnergy();
+    sustainedInterfacesTrackMidiPitch();
     midiVoiceLifecycle();
     noteOffEventuallyStopsAllInterfaces();
     polyphonyIsCapped();
