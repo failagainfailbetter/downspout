@@ -11,6 +11,8 @@ inline constexpr int kMinLengthBeats = 8;
 inline constexpr int kMaxLengthBeats = 32;
 inline constexpr int kMaxPatternSteps = 192;
 inline constexpr int kMaxEvents = 192;
+inline constexpr int kMaxInputMidiEvents = 512;
+inline constexpr int kMaxMidiMessageData = 4;
 inline constexpr int kSafetyGapSamples = 1;
 inline constexpr int kMaxScheduledMidiEvents = (kMaxEvents * 2) + 16;
 inline constexpr std::int32_t kPatternStateVersion = 2;
@@ -76,6 +78,9 @@ struct Controls {
     float hold = 0.35f;
     float accent = 0.45f;
     float vary = 0.0f;
+    float followDodge = 0.0f;
+    int listenChannel = 10;
+    int listenNote = 36;
     std::uint32_t seed = 1u;
     int actionNew = 0;
     int actionNotes = 0;
@@ -120,6 +125,12 @@ struct TransportSnapshot {
 enum class MidiEventType : std::uint8_t {
     noteOff = 0,
     noteOn
+};
+
+struct InputMidiEvent {
+    std::uint32_t frame = 0;
+    std::uint8_t size = 0;
+    std::array<std::uint8_t, kMaxMidiMessageData> data {};
 };
 
 struct ScheduledMidiEvent {

@@ -27,6 +27,9 @@ enum ParameterIndex : uint32_t {
     kParamActionNew,
     kParamActionNotes,
     kParamActionRhythm,
+    kParamFollowDodge,
+    kParamListenChannel,
+    kParamListenNote,
     kParameterCount
 };
 
@@ -71,6 +74,9 @@ constexpr SliderDef kSliders[] = {
     {kParamAccent, "Accent", 0.0f, 1.0f, false},
     {kParamSeed, "Seed", 1.0f, 65535.0f, true},
     {kParamVary, "Vary", 0.0f, 100.0f, true},
+    {kParamFollowDodge, "Follow/Dodge", -100.0f, 100.0f, true},
+    {kParamListenChannel, "Listen Ch", 1.0f, 16.0f, true},
+    {kParamListenNote, "Listen Note", 0.0f, 127.0f, true},
 };
 
 constexpr const char* kScaleNames[] = {
@@ -136,6 +142,19 @@ constexpr ButtonDef kButtons[] = {
         std::snprintf(buf, sizeof(buf), "%s%d (%d)", noteName(midi), octave, midi);
         return buf;
     }
+    case kParamListenNote: {
+        const int midi = static_cast<int>(std::lround(value));
+        const int octave = midi / 12 - 1;
+        std::snprintf(buf, sizeof(buf), "%s%d", noteName(midi), octave);
+        return buf;
+    }
+    case kParamFollowDodge:
+        if (std::fabs(value) < 0.5f) {
+            return "Off";
+        }
+        std::snprintf(buf, sizeof(buf), "%s %d", value > 0.0f ? "Follow" : "Dodge",
+                      static_cast<int>(std::lround(std::fabs(value))));
+        return buf;
     case kParamDensity:
     case kParamHold:
     case kParamAccent:
@@ -173,6 +192,9 @@ public:
         values_[kParamAccent] = 0.45f;
         values_[kParamSeed] = 1.0f;
         values_[kParamVary] = 0.0f;
+        values_[kParamFollowDodge] = 0.0f;
+        values_[kParamListenChannel] = 10.0f;
+        values_[kParamListenNote] = 36.0f;
     }
 
 protected:
@@ -190,8 +212,8 @@ protected:
         const float height = static_cast<float>(getHeight());
         const float pad = 20.0f;
         const float headerH = 72.0f;
-        const float selectorH = 56.0f;
-        const float buttonH = 54.0f;
+        const float selectorH = 50.0f;
+        const float buttonH = 44.0f;
 
         drawBackground(width, height);
 
@@ -298,7 +320,6 @@ private:
     std::array<Rect, std::size(kSliders)> sliderRects_ {};
     std::array<Rect, std::size(kSelectors)> selectorRects_ {};
     std::array<Rect, std::size(kButtons)> buttonRects_ {};
-    Rect footerRect_ {};
     int draggingSlider_ = -1;
     int openSelector_ = -1;
 
@@ -372,8 +393,8 @@ private:
         const float innerX = x + 20.0f;
         const float innerY = y + 52.0f;
         const float innerW = w - 40.0f;
-        const float rowGap = 18.0f;
-        const float rowH = 48.0f;
+        const float rowGap = 14.0f;
+        const float rowH = 44.0f;
         const float colGap = 16.0f;
         const float colW = (innerW - colGap) * 0.5f;
 
@@ -431,33 +452,22 @@ private:
         for (std::size_t i = 0; i < std::size(kSelectors); ++i) {
             selectorRects_[i] = {x + 20.0f, cy, w - 40.0f, selectorH};
             drawSelector(kSelectors[i], selectorRects_[i], static_cast<int>(std::lround(values_[kSelectors[i].index])));
-            cy += selectorH + 10.0f;
+            cy += selectorH + 8.0f;
         }
 
         fontSize(15.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
         fillColor(224, 228, 232, 255);
         text(x + 20.0f, cy + 4.0f, "Actions", nullptr);
-        cy += 30.0f;
+        cy += 28.0f;
 
-        const float buttonGap = 10.0f;
-        const float reservedFooter = 68.0f;
-        const float availableForButtons = panelBottom - reservedFooter - cy;
-        const float maxButtonH = (availableForButtons - buttonGap * (static_cast<float>(std::size(kButtons)) - 1.0f))
+        const float buttonGap = 8.0f;
+        const float buttonW = (w - 40.0f - buttonGap * (static_cast<float>(std::size(kButtons)) - 1.0f))
             / static_cast<float>(std::size(kButtons));
-        const float drawButtonH = std::min(buttonH, std::max(36.0f, maxButtonH));
-
+        const float drawButtonH = std::min(buttonH, std::max(34.0f, panelBottom - cy));
         for (std::size_t i = 0; i < std::size(kButtons); ++i) {
-            buttonRects_[i] = {x + 20.0f, cy, w - 40.0f, drawButtonH};
+            buttonRects_[i] = {x + 20.0f + static_cast<float>(i) * (buttonW + buttonGap), cy, buttonW, drawButtonH};
             drawButton(kButtons[i], buttonRects_[i]);
-            cy += drawButtonH + buttonGap;
-        }
-
-        const float footerY = cy + 6.0f;
-        const float footerH = std::max(0.0f, panelBottom - footerY);
-        footerRect_ = {x + 20.0f, footerY, w - 40.0f, footerH};
-        if (footerH >= 56.0f) {
-            drawFooter(footerRect_.x, footerRect_.y, footerRect_.w, footerRect_.h);
         }
     }
 
@@ -499,28 +509,10 @@ private:
         stroke();
         closePath();
 
-        fontSize(17.0f);
+        fontSize(rect.w < 76.0f ? 14.0f : 17.0f);
         textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
         fillColor(240, 244, 247, 255);
         text(rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f, def.label, nullptr);
-    }
-
-    void drawFooter(float x, float y, float w, float h)
-    {
-        beginPath();
-        roundedRect(x, y, w, h, 14.0f);
-        fillColor(19, 24, 31, 255);
-        fill();
-        closePath();
-
-        fontSize(12.0f);
-        textAlign(ALIGN_LEFT | ALIGN_TOP);
-        fillColor(149, 164, 179, 255);
-        text(x + 14.0f, y + 14.0f, "Use drag or wheel on sliders.", nullptr);
-        text(x + 14.0f, y + 32.0f, "Click selectors to open a menu.", nullptr);
-        if (h >= 72.0f) {
-            text(x + 14.0f, y + 50.0f, "Action buttons trigger immediate pattern changes.", nullptr);
-        }
     }
 
     void updateSliderFromPosition(int sliderIndex, float mouseX)

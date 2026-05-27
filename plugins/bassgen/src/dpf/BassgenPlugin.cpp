@@ -4,7 +4,9 @@
 #include "bassgen_pattern.hpp"
 #include "bassgen_serialization.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 
 START_NAMESPACE_DISTRHO
@@ -28,6 +30,9 @@ enum ParameterIndex : uint32_t {
     kParamActionNew,
     kParamActionNotes,
     kParamActionRhythm,
+    kParamFollowDodge,
+    kParamListenChannel,
+    kParamListenNote,
     kParameterCount
 };
 
@@ -44,6 +49,7 @@ constexpr const char* kStateKeyVariation = "variation";
 
 using CoreControls = downspout::bassgen::Controls;
 using CoreEngineState = downspout::bassgen::EngineState;
+using CoreInputMidiEvent = downspout::bassgen::InputMidiEvent;
 using CoreTransport = downspout::bassgen::TransportSnapshot;
 using CoreMidiEvent = downspout::bassgen::ScheduledMidiEvent;
 using CoreMidiEventType = downspout::bassgen::MidiEventType;
@@ -75,6 +81,20 @@ MidiEvent toDpfMidiEvent(const CoreMidiEvent& event) {
     midiEvent.data[2] = event.data2;
     midiEvent.dataExt = nullptr;
     return midiEvent;
+}
+
+CoreInputMidiEvent toCoreMidiEvent(const MidiEvent& event)
+{
+    CoreInputMidiEvent midi {};
+    midi.frame = event.frame;
+    midi.size = static_cast<std::uint8_t>(std::min<std::size_t>(event.size, downspout::bassgen::kMaxMidiMessageData));
+
+    const uint8_t* const source = event.size > MidiEvent::kDataSize ? event.dataExt : event.data;
+    for (std::size_t i = 0; i < midi.size; ++i) {
+        midi.data[i] = source[i];
+    }
+
+    return midi;
 }
 
 }  // namespace
@@ -231,6 +251,29 @@ protected:
             parameter.ranges.max = 100.0f;
             parameter.ranges.def = 0.0f;
             break;
+        case kParamFollowDodge:
+            parameter.name = "Follow/Dodge";
+            parameter.symbol = "follow_dodge";
+            parameter.ranges.min = -100.0f;
+            parameter.ranges.max = 100.0f;
+            parameter.ranges.def = 0.0f;
+            break;
+        case kParamListenChannel:
+            parameter.name = "Listen Channel";
+            parameter.symbol = "listen_channel";
+            parameter.hints |= kParameterIsInteger;
+            parameter.ranges.min = 1.0f;
+            parameter.ranges.max = 16.0f;
+            parameter.ranges.def = 10.0f;
+            break;
+        case kParamListenNote:
+            parameter.name = "Listen Note";
+            parameter.symbol = "listen_note";
+            parameter.hints |= kParameterIsInteger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 127.0f;
+            parameter.ranges.def = 36.0f;
+            break;
         case kParamActionNew:
             parameter.name = "New";
             parameter.symbol = "new";
@@ -295,6 +338,9 @@ protected:
         case kParamAccent: return controls_.accent;
         case kParamSeed: return static_cast<float>(controls_.seed);
         case kParamVary: return controls_.vary * 100.0f;
+        case kParamFollowDodge: return controls_.followDodge * 100.0f;
+        case kParamListenChannel: return static_cast<float>(controls_.listenChannel);
+        case kParamListenNote: return static_cast<float>(controls_.listenNote);
         case kParamActionNew:
         case kParamActionNotes:
         case kParamActionRhythm:
@@ -320,6 +366,9 @@ protected:
         case kParamAccent: controls_.accent = value; break;
         case kParamSeed: controls_.seed = static_cast<uint32_t>(value); break;
         case kParamVary: controls_.vary = value / 100.0f; break;
+        case kParamFollowDodge: controls_.followDodge = value / 100.0f; break;
+        case kParamListenChannel: controls_.listenChannel = static_cast<int>(value); break;
+        case kParamListenNote: controls_.listenNote = static_cast<int>(value); break;
         case kParamActionNew: if (value > 0.5f) ++controls_.actionNew; break;
         case kParamActionNotes: if (value > 0.5f) ++controls_.actionNotes; break;
         case kParamActionRhythm: if (value > 0.5f) ++controls_.actionRhythm; break;
@@ -380,14 +429,25 @@ protected:
         downspout::bassgen::deactivate(engine_);
     }
 
-    void run(const float**, float**, uint32_t frames) override
+    void run(const float**, float**, uint32_t frames, const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
+        std::array<CoreInputMidiEvent, downspout::bassgen::kMaxInputMidiEvents> inputEvents {};
+        const bool responseEnabled = std::fabs(controls_.followDodge) > 0.001f;
+        const uint32_t inputCount = responseEnabled && midiEvents != nullptr
+            ? std::min<uint32_t>(midiEventCount, static_cast<uint32_t>(inputEvents.size()))
+            : 0u;
+        for (uint32_t i = 0; i < inputCount; ++i) {
+            inputEvents[i] = toCoreMidiEvent(midiEvents[i]);
+        }
+
         const downspout::bassgen::BlockResult result =
             downspout::bassgen::processBlock(engine_,
                                              controls_,
                                              toCoreTransport(getTimePosition()),
                                              frames,
-                                             getSampleRate());
+                                             getSampleRate(),
+                                             inputEvents.data(),
+                                             inputCount);
 
         for (int index = 0; index < result.eventCount; ++index) {
             const MidiEvent midiEvent = toDpfMidiEvent(result.events[index]);

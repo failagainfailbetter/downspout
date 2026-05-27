@@ -18,7 +18,12 @@ Current `downspout`-specific port note:
   though its genre vocabulary is still broad rather than folk-specific;
 - the wrapper now exposes explicit `Style` modes for `Auto`, `Straight`,
   `Reel`, `Waltz`, `Jig`, and `Slip Jig`, and those modes are implemented in
-  the portable pattern generator rather than only as UI labels
+  the portable pattern generator rather than only as UI labels;
+- incoming MIDI influence is modeled in the portable engine. DPF only enables
+  MIDI input and adapts host `MidiEvent`s into core `InputMidiEvent`s. The
+  response controls listen to one MIDI channel/note, defaulting to channel 10
+  note 36, and use a bipolar follow/dodge amount to either suppress matching
+  bass onsets or inject a short bass note on matching input hits
 
 Likely reusable source modules:
 

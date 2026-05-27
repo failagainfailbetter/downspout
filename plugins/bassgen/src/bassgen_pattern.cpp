@@ -850,6 +850,9 @@ Controls clampControls(const Controls& raw) {
     controls.hold = clampf(controls.hold, 0.0f, 1.0f);
     controls.accent = clampf(controls.accent, 0.0f, 1.0f);
     controls.vary = clampf(controls.vary, 0.0f, 1.0f);
+    controls.followDodge = clampf(controls.followDodge, -1.0f, 1.0f);
+    controls.listenChannel = clampi(controls.listenChannel, 1, 16);
+    controls.listenNote = clampi(controls.listenNote, 0, 127);
     controls.actionNew = clampi(controls.actionNew, 0, 1048576);
     controls.actionNotes = clampi(controls.actionNotes, 0, 1048576);
     controls.actionRhythm = clampi(controls.actionRhythm, 0, 1048576);

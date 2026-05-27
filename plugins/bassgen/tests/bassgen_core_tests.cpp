@@ -40,6 +40,29 @@ bool patternsDiffer(const PatternState& left, const PatternState& right) {
     return false;
 }
 
+InputMidiEvent noteOn(std::uint32_t frame, int channel, int note, int velocity = 100) {
+    InputMidiEvent event;
+    event.frame = frame;
+    event.size = 3;
+    event.data[0] = static_cast<std::uint8_t>(0x90 | ((channel - 1) & 0x0f));
+    event.data[1] = static_cast<std::uint8_t>(note);
+    event.data[2] = static_cast<std::uint8_t>(velocity);
+    return event;
+}
+
+TransportSnapshot playingTransport(double barBeat) {
+    TransportSnapshot transport;
+    transport.valid = true;
+    transport.playing = true;
+    transport.beatsPerBar = 4.0;
+    transport.beatType = 4.0;
+    transport.bpm = 120.0;
+    transport.bar = 0.0;
+    transport.barBeat = barBeat;
+    transport.meter = ::downspout::Meter {};
+    return transport;
+}
+
 void testDeterministicGeneration() {
     Controls controls;
     controls.seed = 12345u;
@@ -267,6 +290,84 @@ void testEngineBoundaryEndThenStartScheduling() {
     assert(result.events[1].channel == 1);
 }
 
+void testIncomingMidiDodgeSuppressesMatchedStep() {
+    Controls controls;
+    controls.followDodge = -1.0f;
+    controls.listenChannel = 10;
+    controls.listenNote = 36;
+
+    EngineState engine;
+    activate(engine, controls);
+
+    engine.patternValid = true;
+    engine.pattern.patternSteps = 16;
+    engine.pattern.stepsPerBeat = 4;
+    engine.pattern.stepsPerBar = 16;
+    engine.pattern.meter = ::downspout::Meter {};
+    engine.pattern.eventCount = 1;
+    engine.pattern.events[0] = NoteEvent{1, 2, 43, 95};
+    engine.wasPlaying = true;
+    engine.lastTransportStep = 0;
+
+    const InputMidiEvent input = noteOn(0, 10, 36, 110);
+    const BlockResult result = processBlock(engine,
+                                            controls,
+                                            playingTransport(0.249),
+                                            1024,
+                                            48000.0,
+                                            &input,
+                                            1);
+
+    assert(result.eventCount == 0);
+    assert(engine.activeNote == -1);
+}
+
+void testIncomingMidiFollowInjectsMatchedStep() {
+    Controls controls;
+    controls.followDodge = 1.0f;
+    controls.listenChannel = 10;
+    controls.listenNote = 36;
+
+    EngineState engine;
+    activate(engine, controls);
+
+    engine.patternValid = true;
+    engine.pattern.patternSteps = 16;
+    engine.pattern.stepsPerBeat = 4;
+    engine.pattern.stepsPerBar = 16;
+    engine.pattern.meter = ::downspout::Meter {};
+    engine.pattern.eventCount = 1;
+    engine.pattern.events[0] = NoteEvent{4, 2, 48, 92};
+    engine.wasPlaying = true;
+    engine.lastTransportStep = 0;
+
+    const InputMidiEvent input = noteOn(0, 10, 36, 120);
+    BlockResult result = processBlock(engine,
+                                      controls,
+                                      playingTransport(0.249),
+                                      1024,
+                                      48000.0,
+                                      &input,
+                                      1);
+
+    assert(result.eventCount == 1);
+    assert(result.events[0].type == MidiEventType::noteOn);
+    assert(result.events[0].data1 == 48);
+    assert(engine.activeNote == 48);
+
+    result = processBlock(engine,
+                          controls,
+                          playingTransport(0.499),
+                          1024,
+                          48000.0,
+                          nullptr,
+                          0);
+    assert(result.eventCount == 1);
+    assert(result.events[0].type == MidiEventType::noteOff);
+    assert(result.events[0].data1 == 48);
+    assert(engine.activeNote == -1);
+}
+
 void testSerializationRoundTrip() {
     Controls controls;
     controls.rootNote = 41;
@@ -274,6 +375,9 @@ void testSerializationRoundTrip() {
     controls.genre = GenreId::funk;
     controls.styleMode = StyleModeId::reel;
     controls.vary = 0.65f;
+    controls.followDodge = -0.35f;
+    controls.listenChannel = 10;
+    controls.listenNote = 35;
     controls.seed = 999u;
     controls.actionNotes = 3;
 
@@ -296,6 +400,9 @@ void testSerializationRoundTrip() {
     assert(controlsRoundTrip->scale == controls.scale);
     assert(controlsRoundTrip->genre == controls.genre);
     assert(controlsRoundTrip->styleMode == controls.styleMode);
+    assert(std::fabs(controlsRoundTrip->followDodge - controls.followDodge) < 0.0001f);
+    assert(controlsRoundTrip->listenChannel == controls.listenChannel);
+    assert(controlsRoundTrip->listenNote == controls.listenNote);
     assert(controlsRoundTrip->actionNotes == controls.actionNotes);
     assert(patternRoundTrip->eventCount == pattern.eventCount);
     assert(patternRoundTrip->patternSteps == pattern.patternSteps);
@@ -408,6 +515,8 @@ int main() {
     testStateSanitization();
     testEngineRewindResyncAndStopNoteOff();
     testEngineBoundaryEndThenStartScheduling();
+    testIncomingMidiDodgeSuppressesMatchedStep();
+    testIncomingMidiFollowInjectsMatchedStep();
     testSerializationRoundTrip();
     testCompoundMeterGenerationTracksPulseGrid();
     testTripleMeterGenerationTracksSecondaryBeat();

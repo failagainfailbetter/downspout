@@ -59,6 +59,9 @@ std::string serializeControls(const Controls& controls) {
     out << "hold=" << controls.hold << '\n';
     out << "accent=" << controls.accent << '\n';
     out << "vary=" << controls.vary << '\n';
+    out << "followDodge=" << controls.followDodge << '\n';
+    out << "listenChannel=" << controls.listenChannel << '\n';
+    out << "listenNote=" << controls.listenNote << '\n';
     out << "seed=" << controls.seed << '\n';
     out << "actionNew=" << controls.actionNew << '\n';
     out << "actionNotes=" << controls.actionNotes << '\n';
@@ -137,6 +140,12 @@ std::optional<Controls> deserializeControls(const std::string& text) {
             controls.accent = floatValue;
         } else if (key == "vary" && parseFloat(value, floatValue)) {
             controls.vary = floatValue;
+        } else if (key == "followDodge" && parseFloat(value, floatValue)) {
+            controls.followDodge = floatValue;
+        } else if (key == "listenChannel" && parseInteger(value, intValue)) {
+            controls.listenChannel = intValue;
+        } else if (key == "listenNote" && parseInteger(value, intValue)) {
+            controls.listenNote = intValue;
         } else if (key == "seed" && parseInteger(value, uintValue)) {
             controls.seed = uintValue;
         } else if (key == "actionNew" && parseInteger(value, intValue)) {
