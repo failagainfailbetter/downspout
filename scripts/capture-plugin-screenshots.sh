@@ -30,6 +30,7 @@ plugins=(
   "gremlin:gremlin"
   "gremlin-driver:gremlin_driver"
   "ground:ground"
+  "floozy:floozy"
 )
 
 usage() {

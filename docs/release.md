@@ -22,6 +22,7 @@ downspout-<version>-linux-x86_64-vst3.zip
 ├── gremlin.vst3/
 ├── gremlin_driver.vst3/
 ├── ground.vst3/
+├── floozy.vst3/
 ├── LICENSE
 └── README.md
 ```

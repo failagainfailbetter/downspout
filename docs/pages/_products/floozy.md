@@ -1,0 +1,15 @@
+---
+title: Floozy
+order: 140
+bundle: floozy.vst3
+kind: Instrument
+role: Hybrid physical/modulation synth
+screenshot: /assets/plugins/floozy.png
+summary: Corrected 8-voice synthesizer combining distortion sources, physical-model-style excitation, feedback, filtering, modulation, and reverb.
+---
+
+## Functionality
+
+Floozy is a playable stereo instrument derived from `floozy-poly`. It exposes
+source algorithm, excitation, feedback, filter, modulation, reverb, and output
+controls while keeping the voice engine deterministic and bounded.

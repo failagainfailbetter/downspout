@@ -122,6 +122,7 @@ Examples:
 
 - [plugins/drumgen/src/dpf/DrumgenUI.cpp](../plugins/drumgen/src/dpf/DrumgenUI.cpp)
 - [plugins/rift/src/dpf/RiftUI.cpp](../plugins/rift/src/dpf/RiftUI.cpp)
+- [plugins/floozy/src/dpf/FloozyUI.cpp](../plugins/floozy/src/dpf/FloozyUI.cpp)
 
 ## State and serialization pattern
 
