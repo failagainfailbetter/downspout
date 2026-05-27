@@ -22,5 +22,10 @@ port deliberately moves to stereo output while keeping one primary MIDI input.
 - Clamp parameters at the core boundary and soft-limit audio output.
 - Preserve the 23 LV2-derived controls, with integer enum metadata for source
   algorithm and interface type.
+- Replace the weak original Body implementation with a local resonator that
+  gives Hit, Reed, Flute, Brass, Bow, Drum, and related interface modes distinct
+  excitation/body behavior.
+- Quantize the Body `Tune` interpretation to semitone offsets while keeping the
+  same host-facing parameter.
 - Treat the port as corrected behavior, not a strict clone, because the source
   was known to be unreliable.

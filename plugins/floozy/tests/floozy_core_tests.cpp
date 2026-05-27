@@ -94,6 +94,21 @@ void velocityAffectsOutput()
     require(loudEnergy > softEnergy * 1.8f, "floozy velocity should scale output");
 }
 
+void allInterfacesRender()
+{
+    for (int interfaceType = 0; interfaceType <= 11; ++interfaceType)
+    {
+        FloozyEngine engine {48000.0f};
+        engine.setParameter(ParamId::interfaceType, static_cast<float>(interfaceType));
+        engine.setParameter(ParamId::interfaceIntensity, 0.72f);
+        engine.setParameter(ParamId::sourceLevel, 0.70f);
+        engine.setParameter(ParamId::noiseLevel, 0.18f);
+        engine.setParameter(ParamId::masterGain, 0.85f);
+        engine.noteOn(55 + (interfaceType % 12), 112);
+        require(renderPeak(engine, 8192) > 0.0002f, "floozy interface did not render audible output");
+    }
+}
+
 void midiVoiceLifecycle()
 {
     FloozyEngine engine {48000.0f};
@@ -107,6 +122,27 @@ void midiVoiceLifecycle()
     require(engine.activeVoiceCount() == 1, "floozy note off should release rather than hard-stop");
     engine.handleMidi(panic, 3);
     require(engine.activeVoiceCount() == 0, "floozy all-notes-off should clear voices");
+}
+
+void noteOffEventuallyStopsAllInterfaces()
+{
+    for (int interfaceType = 0; interfaceType <= 11; ++interfaceType)
+    {
+        FloozyEngine engine {48000.0f};
+        engine.setParameter(ParamId::interfaceType, static_cast<float>(interfaceType));
+        engine.setParameter(ParamId::interfaceIntensity, 0.80f);
+        engine.setParameter(ParamId::delay1Feedback, 0.70f);
+        engine.setParameter(ParamId::delay2Feedback, 0.45f);
+        engine.setParameter(ParamId::filterFeedback, 0.15f);
+        engine.noteOn(60, 112);
+        require(renderEnergy(engine, 4096) > 0.0001f, "floozy should render before note-off");
+        engine.noteOff(60);
+
+        for (int i = 0; i < 144000 && engine.activeVoiceCount() > 0; ++i)
+            (void)engine.processStereo();
+
+        require(engine.activeVoiceCount() == 0, "floozy note-off should let every interface stop");
+    }
 }
 
 void polyphonyIsCapped()
@@ -162,7 +198,9 @@ int main()
     defaultsAndClamping();
     allAlgorithmsRender();
     velocityAffectsOutput();
+    allInterfacesRender();
     midiVoiceLifecycle();
+    noteOffEventuallyStopsAllInterfaces();
     polyphonyIsCapped();
     processBlockSchedulesMidi();
     extremeParametersStayFinite();

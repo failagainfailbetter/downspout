@@ -79,6 +79,16 @@ inline constexpr std::array<const char*, 7> kSourceAlgorithmNames = {{
     "Modified FM",
 }};
 
+inline constexpr std::array<std::array<const char*, 2>, 7> kSourceAlgorithmParamNames = {{
+    {{"Harmonics", "Tilt"}},
+    {{"Decay", "Ratio"}},
+    {{"Decay", "Ratio"}},
+    {{"Drive", "Trim"}},
+    {{"Drive", "Blend"}},
+    {{"Ratio", "Bandwidth"}},
+    {{"Index", "Ratio"}},
+}};
+
 inline constexpr std::array<const char*, 12> kInterfaceTypeNames = {{
     "Pluck",
     "Hit",

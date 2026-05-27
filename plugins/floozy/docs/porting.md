@@ -15,7 +15,7 @@ stable and trace the original LV2 control intent:
 
 - source algorithm and source shaping;
 - envelope attack/release and interface type/intensity;
-- tuning, delay ratio, and feedback;
+- quantized body tuning, resonator ratio, and feedback;
 - filter and modulation;
 - reverb and master gain.
 
@@ -28,3 +28,18 @@ The DPF wrapper exposes Floozy as an instrument:
 - one MIDI input;
 - VST3 category `Instrument|Synth`;
 - metadata maker `danja`, brand/group `Downspout`.
+
+## Body stage
+
+The LV2-era PM modules are used as historical reference only. The current
+Downspout core uses a local two-resonator body model whose excitation and
+resonator profile changes with the selected interface type:
+
+- Hit/Drum emphasize short noise impulses and lower feedback.
+- Reed/Flute/Brass use sustained pressure-style excitation against the body
+  feedback.
+- Pluck/Bow/Bell use transient, friction, or inharmonic profiles.
+
+`Tune` remains a normalized host parameter for compatibility, but the engine
+maps it to quantized semitone offsets from -24 to +24 before calculating body
+delay lengths. The UI displays the snapped semitone value.

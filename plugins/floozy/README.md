@@ -2,8 +2,8 @@
 
 Floozy is a corrected VST3 port of `/home/danny/github/flues/lv2/floozy-poly`.
 It is an 8-voice stereo instrument that combines Disyn-style distortion
-sources with PM-Synth-style excitation, delay, feedback, filtering,
-modulation, and reverb.
+sources with a Downspout body resonator, interface-specific excitation,
+filtering, modulation, and reverb.
 
 The port follows the normal Downspout split:
 
@@ -28,4 +28,6 @@ ctest --test-dir ../../build --output-on-failure -R floozy
 This is intentionally a corrected continuation rather than a strict binary or
 behavior clone. The LV2 version had unstable edges, so the Downspout core clamps
 parameters, bounds audio output, uses deterministic voice/source behavior, and
-tests the core before host integration.
+tests the core before host integration. The Body stage now uses a local
+physical-ish resonator profile per interface type instead of preserving the
+original passive delay block.

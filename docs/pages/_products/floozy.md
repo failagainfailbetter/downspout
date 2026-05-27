@@ -11,5 +11,6 @@ summary: Corrected 8-voice synthesizer combining distortion sources, physical-mo
 ## Functionality
 
 Floozy is a playable stereo instrument derived from `floozy-poly`. It exposes
-source algorithm, excitation, feedback, filter, modulation, reverb, and output
-controls while keeping the voice engine deterministic and bounded.
+source algorithm, interface/body model, quantized body tuning, feedback,
+filter, modulation, reverb, and output controls while keeping the voice engine
+deterministic and bounded.

@@ -2,11 +2,8 @@
 
 #include "flues/disyn/modules/OscillatorModule.hpp"
 #include "flues/pm/Random.hpp"
-#include "flues/pm/modules/DelayLinesModule.hpp"
 #include "flues/pm/modules/EnvelopeModule.hpp"
-#include "flues/pm/modules/FeedbackModule.hpp"
 #include "flues/pm/modules/FilterModule.hpp"
-#include "flues/pm/modules/InterfaceModule.hpp"
 #include "flues/pm/modules/ModulationModule.hpp"
 #include "flues/pm/modules/ReverbModule.hpp"
 
@@ -14,6 +11,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <vector>
 
 namespace downspout::floozy {
 namespace {
@@ -46,6 +44,16 @@ float equalPowerLeft(const float pan)
 float equalPowerRight(const float pan)
 {
     return std::sin(std::clamp(pan, 0.0f, 1.0f) * kPi * 0.5f);
+}
+
+float expoMap(const float value, const float minimum, const float maximum)
+{
+    return minimum * std::pow(maximum / minimum, clampUnit(value));
+}
+
+int quantizedTuneSemitone(const float value)
+{
+    return static_cast<int>(std::lround((clampUnit(value) - 0.5f) * 48.0f));
 }
 
 struct FloozyParams {
@@ -114,13 +122,299 @@ private:
     float dcBlockY1_ = 0.0f;
 };
 
+class FloozyBody {
+public:
+    explicit FloozyBody(const float sampleRate)
+        : sampleRate_(std::max(1000.0f, sampleRate))
+        , maxDelay_(static_cast<std::size_t>(sampleRate_ / 12.0f))
+        , delay1_(maxDelay_, 0.0f)
+        , delay2_(maxDelay_, 0.0f)
+    {
+    }
+
+    void reset()
+    {
+        std::fill(delay1_.begin(), delay1_.end(), 0.0f);
+        std::fill(delay2_.begin(), delay2_.end(), 0.0f);
+        write1_ = 0;
+        write2_ = 0;
+        lowpass1_ = 0.0f;
+        lowpass2_ = 0.0f;
+        previousOutput_ = 0.0f;
+        transient_ = 0.0f;
+        bowState_ = 0.0f;
+    }
+
+    void noteOn(const int interfaceType, const float velocity)
+    {
+        interfaceType_ = std::clamp(interfaceType, 0, 11);
+        transient_ = std::clamp(velocity, 0.0f, 1.0f);
+        bowState_ = 0.0f;
+    }
+
+    void sync(const FloozyParams& params)
+    {
+        interfaceType_ = std::clamp(
+            static_cast<int>(std::lround(params.values[static_cast<std::size_t>(ParamId::interfaceType)])), 0, 11);
+        intensity_ = clampUnit(params.values[static_cast<std::size_t>(ParamId::interfaceIntensity)]);
+        tuneSemitones_ = quantizedTuneSemitone(params.values[static_cast<std::size_t>(ParamId::tuning)]);
+        ratioControl_ = clampUnit(params.values[static_cast<std::size_t>(ParamId::ratio)]);
+        feedback1Control_ = clampUnit(params.values[static_cast<std::size_t>(ParamId::delay1Feedback)]);
+        feedback2Control_ = clampUnit(params.values[static_cast<std::size_t>(ParamId::delay2Feedback)]);
+        crossFeedbackControl_ = clampUnit(params.values[static_cast<std::size_t>(ParamId::filterFeedback)]);
+    }
+
+    struct Output {
+        float mix = 0.0f;
+        float tap1 = 0.0f;
+        float tap2 = 0.0f;
+    };
+
+    Output process(const float source, const float env, const float baseFrequency, const float velocity)
+    {
+        const Profile profile = makeProfile();
+        const float tuned = std::clamp(baseFrequency * std::pow(2.0f, static_cast<float>(tuneSemitones_) / 12.0f),
+                                       20.0f,
+                                       sampleRate_ * 0.40f);
+        const float delay1 = delaySamples(tuned * profile.ratio1);
+        const float delay2 = delaySamples(tuned * profile.ratio2);
+
+        const float tap1 = readDelay(delay1_, write1_, delay1);
+        const float tap2 = readDelay(delay2_, write2_, delay2);
+        const float bodyFeedback = (tap1 + tap2) * 0.5f + previousOutput_ * profile.cross;
+        const float excitation = makeExcitation(profile, source, env, bodyFeedback, velocity);
+        const float releaseScale = 0.22f + clampUnit(env) * 0.78f;
+
+        const float damp1 = damp(tap1, lowpass1_, profile.damping);
+        const float damp2 = damp(tap2, lowpass2_, profile.damping * 1.08f);
+        const float writeA = sanitizeAudio(excitation + damp1 * profile.feedback1 * releaseScale +
+                                           damp2 * profile.cross * releaseScale);
+        const float writeB = sanitizeAudio(excitation * profile.secondInput + damp2 * profile.feedback2 * releaseScale +
+                                           damp1 * profile.cross * releaseScale);
+
+        delay1_[write1_] = writeA;
+        delay2_[write2_] = writeB;
+        write1_ = (write1_ + 1) % delay1_.size();
+        write2_ = (write2_ + 1) % delay2_.size();
+
+        const float mix = sanitizeAudio((tap1 * profile.mix1 + tap2 * profile.mix2) * profile.outputGain);
+        previousOutput_ = mix;
+        return {mix, tap1, tap2};
+    }
+
+private:
+    struct Profile {
+        float ratio1 = 1.0f;
+        float ratio2 = 1.5f;
+        float feedback1 = 0.82f;
+        float feedback2 = 0.72f;
+        float cross = 0.05f;
+        float damping = 0.18f;
+        float mix1 = 0.7f;
+        float mix2 = 0.3f;
+        float secondInput = 0.7f;
+        float outputGain = 1.0f;
+        float transientDecay = 0.995f;
+    };
+
+    Profile makeProfile() const
+    {
+        Profile profile {};
+        const float ratioSpread = (ratioControl_ - 0.5f) * 0.45f;
+
+        switch (interfaceType_)
+        {
+        case 0: // Plucked string.
+            profile.ratio2 = 2.0f + ratioSpread;
+            profile.feedback1 = 0.88f;
+            profile.feedback2 = 0.80f;
+            profile.damping = 0.16f + (1.0f - intensity_) * 0.18f;
+            profile.transientDecay = 0.9965f;
+            profile.outputGain = 1.15f;
+            break;
+        case 1: // Struck bar/plate.
+            profile.ratio2 = 1.51f + ratioSpread * 0.8f;
+            profile.feedback1 = 0.68f;
+            profile.feedback2 = 0.61f;
+            profile.cross = 0.12f;
+            profile.damping = 0.30f + (1.0f - intensity_) * 0.20f;
+            profile.transientDecay = 0.935f;
+            profile.outputGain = 1.35f;
+            break;
+        case 2: // Reed, odd-harmonic leaning.
+            profile.ratio2 = 3.0f + ratioSpread * 0.35f;
+            profile.feedback1 = 0.92f;
+            profile.feedback2 = 0.72f;
+            profile.cross = 0.05f;
+            profile.damping = 0.08f + (1.0f - intensity_) * 0.14f;
+            profile.mix1 = 0.78f;
+            profile.mix2 = 0.22f;
+            profile.outputGain = 1.20f;
+            break;
+        case 3: // Flute/jet.
+            profile.ratio2 = 2.01f + ratioSpread * 0.25f;
+            profile.feedback1 = 0.90f;
+            profile.feedback2 = 0.76f;
+            profile.cross = 0.03f;
+            profile.damping = 0.05f + (1.0f - intensity_) * 0.18f;
+            profile.outputGain = 1.05f;
+            break;
+        case 4: // Brass lip.
+            profile.ratio2 = 2.0f + ratioSpread * 0.55f;
+            profile.feedback1 = 0.94f;
+            profile.feedback2 = 0.82f;
+            profile.cross = 0.08f;
+            profile.damping = 0.07f + (1.0f - intensity_) * 0.10f;
+            profile.outputGain = 1.15f;
+            break;
+        case 5: // Bowed string.
+            profile.ratio2 = 2.0f + ratioSpread * 0.3f;
+            profile.feedback1 = 0.93f;
+            profile.feedback2 = 0.86f;
+            profile.cross = 0.07f;
+            profile.damping = 0.10f + (1.0f - intensity_) * 0.18f;
+            profile.outputGain = 1.10f;
+            break;
+        case 6: // Bell.
+            profile.ratio2 = 2.72f + ratioSpread;
+            profile.feedback1 = 0.86f;
+            profile.feedback2 = 0.91f;
+            profile.cross = 0.16f;
+            profile.damping = 0.14f;
+            profile.mix1 = 0.45f;
+            profile.mix2 = 0.55f;
+            profile.transientDecay = 0.986f;
+            profile.outputGain = 1.25f;
+            break;
+        case 7: // Drum membrane.
+            profile.ratio1 = 0.50f;
+            profile.ratio2 = 0.74f + ratioSpread * 0.5f;
+            profile.feedback1 = 0.77f;
+            profile.feedback2 = 0.70f;
+            profile.cross = 0.20f;
+            profile.damping = 0.28f + (1.0f - intensity_) * 0.20f;
+            profile.transientDecay = 0.950f;
+            profile.outputGain = 1.45f;
+            break;
+        default: // Synthetic body variants keep more inharmonicity.
+            profile.ratio2 = 1.25f + ratioControl_ * 2.75f;
+            profile.feedback1 = 0.84f + intensity_ * 0.08f;
+            profile.feedback2 = 0.78f + intensity_ * 0.11f;
+            profile.cross = 0.10f + intensity_ * 0.12f;
+            profile.damping = 0.09f + (1.0f - intensity_) * 0.22f;
+            profile.outputGain = 1.18f;
+            break;
+        }
+
+        profile.feedback1 *= 0.45f + feedback1Control_ * 0.52f;
+        profile.feedback2 *= 0.35f + feedback2Control_ * 0.60f;
+        profile.cross += crossFeedbackControl_ * 0.28f;
+        profile.ratio1 = std::max(0.25f, profile.ratio1);
+        profile.ratio2 = std::max(0.25f, profile.ratio2);
+        return profile;
+    }
+
+    float makeExcitation(const Profile& profile,
+                         const float source,
+                         const float env,
+                         const float bodyFeedback,
+                         const float velocity)
+    {
+        const float noise = rng_.uniformSignedFloat();
+        const float pressure = env * (0.25f + intensity_ * 0.80f) * (0.35f + velocity * 0.65f);
+        const float gatedSource = source * env;
+        const float gatedFeedback = bodyFeedback * env;
+        const float transient = transient_;
+        transient_ *= profile.transientDecay;
+
+        switch (interfaceType_)
+        {
+        case 0:
+            return sanitizeAudio(gatedSource * 0.18f + noise * transient * (0.40f + intensity_ * 0.35f));
+        case 1:
+            return sanitizeAudio((noise * 0.85f + gatedSource * 0.18f) * transient * (0.8f + intensity_ * 0.6f));
+        case 2:
+            return sanitizeAudio(std::tanh((pressure + gatedSource * 0.12f - gatedFeedback * 0.65f) *
+                                           (2.5f + intensity_ * 6.5f)) * 0.32f);
+        case 3:
+            return sanitizeAudio((std::tanh((pressure * 0.8f + noise * (0.05f + intensity_ * 0.08f) -
+                                            gatedFeedback * 0.48f) *
+                                           (1.8f + intensity_ * 4.2f)) *
+                                  0.22f) +
+                                 noise * env * (0.006f + intensity_ * 0.018f));
+        case 4:
+            return sanitizeAudio(std::tanh((pressure + gatedSource * 0.20f - gatedFeedback * 0.40f) *
+                                           (3.0f + intensity_ * 7.0f)) *
+                                 (0.28f + intensity_ * 0.10f));
+        case 5:
+        {
+            const float slip = pressure + gatedSource * 0.10f - bowState_ - gatedFeedback * 0.55f;
+            const float friction = std::tanh(slip * (5.0f + intensity_ * 12.0f));
+            bowState_ = bowState_ * (0.985f - intensity_ * 0.08f) + (pressure + friction * 0.08f) * 0.05f;
+            return sanitizeAudio(friction * (0.18f + intensity_ * 0.14f) + noise * env * intensity_ * 0.006f);
+        }
+        case 6:
+            return sanitizeAudio((gatedSource * 0.20f + noise * 0.65f) * transient * (0.55f + intensity_ * 0.45f));
+        case 7:
+            return sanitizeAudio((noise * 0.95f + gatedSource * 0.10f) * transient * (0.95f + intensity_ * 0.65f));
+        default:
+            return sanitizeAudio(gatedSource * (0.18f + intensity_ * 0.22f) +
+                                 noise * transient * 0.20f -
+                                 gatedFeedback * crossFeedbackControl_ * 0.18f);
+        }
+    }
+
+    float delaySamples(const float frequency) const
+    {
+        return std::clamp(sampleRate_ / std::max(20.0f, frequency), 2.0f, static_cast<float>(maxDelay_ - 2));
+    }
+
+    float readDelay(const std::vector<float>& buffer, const std::size_t write, const float delay) const
+    {
+        const float raw = static_cast<float>(write) - delay;
+        float wrapped = std::fmod(raw + static_cast<float>(buffer.size()), static_cast<float>(buffer.size()));
+        if (wrapped < 0.0f)
+            wrapped += static_cast<float>(buffer.size());
+        const std::size_t index = static_cast<std::size_t>(std::floor(wrapped));
+        const std::size_t next = (index + 1) % buffer.size();
+        const float frac = wrapped - static_cast<float>(index);
+        return buffer[index] * (1.0f - frac) + buffer[next] * frac;
+    }
+
+    static float damp(const float input, float& state, const float damping)
+    {
+        const float follow = std::clamp(1.0f - damping, 0.02f, 0.98f);
+        state += (input - state) * follow;
+        return state;
+    }
+
+    float sampleRate_;
+    std::size_t maxDelay_;
+    std::vector<float> delay1_;
+    std::vector<float> delay2_;
+    std::size_t write1_ = 0;
+    std::size_t write2_ = 0;
+    float lowpass1_ = 0.0f;
+    float lowpass2_ = 0.0f;
+    float previousOutput_ = 0.0f;
+    float transient_ = 0.0f;
+    float bowState_ = 0.0f;
+    int interfaceType_ = 2;
+    int tuneSemitones_ = 0;
+    float intensity_ = 0.5f;
+    float ratioControl_ = 0.5f;
+    float feedback1Control_ = 0.5f;
+    float feedback2Control_ = 0.1f;
+    float crossFeedbackControl_ = 0.0f;
+    flues::pm::Random rng_ {0x7100b0u};
+};
+
 class FloozyVoice {
 public:
     FloozyVoice(const float sampleRate, const std::size_t slot)
         : source_(sampleRate)
         , envelope_(sampleRate)
-        , interface_(sampleRate)
-        , delayLines_(sampleRate)
+        , body_(sampleRate)
         , filter_(sampleRate)
         , modulation_(sampleRate)
         , pan_(kVoiceCount > 1 ? static_cast<float>(slot) / static_cast<float>(kVoiceCount - 1) : 0.5f)
@@ -137,7 +431,8 @@ public:
         releasing_ = false;
         resetModules();
         envelope_.setGate(true);
-        interface_.setGate(true);
+        body_.noteOn(static_cast<int>(std::lround(params.values[static_cast<std::size_t>(ParamId::interfaceType)])),
+                     velocityGain_);
         sync(params);
     }
 
@@ -147,7 +442,6 @@ public:
             return;
         releasing_ = true;
         envelope_.setGate(false);
-        interface_.setGate(false);
     }
 
     void forceStop()
@@ -157,7 +451,6 @@ public:
         midiNote_ = -1;
         resetModules();
         envelope_.setGate(false);
-        interface_.setGate(false);
     }
 
     StereoFrame process(const FloozyParams& params)
@@ -171,28 +464,23 @@ public:
         const float source = source_.process(frequency_ * mod.fm) * velocityGain_;
         const float env = envelope_.process();
         const bool envActive = envelope_.isPlaying();
-        const float feedbackSignal = feedback_.process(prevDelay1_, prevDelay2_, prevFilter_);
 
         if (envActive)
             releaseDamp_ = 1.0f;
         else
             releaseDamp_ *= 0.995f;
 
-        const float interfaceInput = source * env + feedbackSignal * releaseDamp_;
-        const float interfaceOut = interface_.process(sanitizeAudio(interfaceInput));
-        const auto delays = delayLines_.process(sanitizeAudio(interfaceOut), frequency_);
-        const float delayMix = (delays.delay1 + delays.delay2) * 0.5f;
-        const float filtered = filter_.process(sanitizeAudio(delayMix));
+        const auto body = body_.process(source, env, frequency_, velocityGain_);
+        const float filtered = filter_.process(sanitizeAudio(body.mix));
         const float mono = sanitizeAudio(filtered * mod.am * velocityGain_ *
                                          params.values[static_cast<std::size_t>(ParamId::masterGain)]);
 
-        prevDelay1_ = sanitizeAudio(delays.delay1);
-        prevDelay2_ = sanitizeAudio(delays.delay2);
-        prevFilter_ = mono;
+        prevDelay1_ = sanitizeAudio(body.tap1);
+        prevDelay2_ = sanitizeAudio(body.tap2);
+        prevFilter_ = sanitizeAudio(filtered);
         lastLevel_ = std::fabs(mono);
 
-        if (!envActive && releaseDamp_ < 1.0e-4f && lastLevel_ < 1.0e-5f &&
-            std::fabs(prevDelay1_) < 1.0e-5f && std::fabs(prevDelay2_) < 1.0e-5f)
+        if (!envActive && releaseDamp_ < 1.0e-4f)
             forceStop();
 
         return {mono * equalPowerLeft(pan_), mono * equalPowerRight(pan_)};
@@ -214,13 +502,7 @@ private:
         source_.sync(params);
         envelope_.setAttack(params.values[static_cast<std::size_t>(ParamId::attack)]);
         envelope_.setRelease(params.values[static_cast<std::size_t>(ParamId::release)]);
-        interface_.setType(static_cast<int>(std::round(params.values[static_cast<std::size_t>(ParamId::interfaceType)])));
-        interface_.setIntensity(params.values[static_cast<std::size_t>(ParamId::interfaceIntensity)]);
-        delayLines_.setTuning(params.values[static_cast<std::size_t>(ParamId::tuning)]);
-        delayLines_.setRatio(params.values[static_cast<std::size_t>(ParamId::ratio)]);
-        feedback_.setDelay1Gain(params.values[static_cast<std::size_t>(ParamId::delay1Feedback)]);
-        feedback_.setDelay2Gain(params.values[static_cast<std::size_t>(ParamId::delay2Feedback)]);
-        feedback_.setFilterGain(params.values[static_cast<std::size_t>(ParamId::filterFeedback)]);
+        body_.sync(params);
         filter_.setFrequency(params.values[static_cast<std::size_t>(ParamId::filterFrequency)]);
         filter_.setQ(params.values[static_cast<std::size_t>(ParamId::filterQ)]);
         filter_.setShape(params.values[static_cast<std::size_t>(ParamId::filterShape)]);
@@ -232,9 +514,7 @@ private:
     {
         source_.reset();
         envelope_.reset();
-        interface_.reset();
-        delayLines_.reset();
-        feedback_.reset();
+        body_.reset();
         filter_.reset();
         modulation_.reset();
         prevDelay1_ = 0.0f;
@@ -247,9 +527,7 @@ private:
 
     FloozySource source_;
     flues::pm::EnvelopeModule envelope_;
-    flues::pm::InterfaceModule interface_;
-    flues::pm::DelayLinesModule delayLines_;
-    flues::pm::FeedbackModule feedback_;
+    FloozyBody body_;
     flues::pm::FilterModule filter_;
     flues::pm::ModulationModule modulation_;
     float pan_ = 0.5f;

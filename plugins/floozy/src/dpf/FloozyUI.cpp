@@ -16,6 +16,7 @@ using downspout::floozy::ParamId;
 using downspout::floozy::kInterfaceTypeNames;
 using downspout::floozy::kParameterCount;
 using downspout::floozy::kParameterSpecs;
+using downspout::floozy::kSourceAlgorithmParamNames;
 using downspout::floozy::kSourceAlgorithmNames;
 
 struct Rect {
@@ -82,11 +83,40 @@ std::string formatValue(const std::uint32_t parameter, const float value)
         const int index = std::clamp(static_cast<int>(std::lround(value)), 0, 11);
         std::snprintf(buffer, sizeof(buffer), "%s", kInterfaceTypeNames[static_cast<std::size_t>(index)]);
     }
+    else if (parameter == static_cast<std::uint32_t>(ParamId::tuning))
+    {
+        const int semitone = static_cast<int>(std::lround((clampf(value, 0.0f, 1.0f) - 0.5f) * 48.0f));
+        std::snprintf(buffer, sizeof(buffer), "%+d st", semitone);
+    }
     else
     {
         std::snprintf(buffer, sizeof(buffer), "%d%%", static_cast<int>(std::lround(value * 100.0f)));
     }
     return buffer;
+}
+
+bool isDropdownParameter(const std::uint32_t parameter)
+{
+    return parameter == static_cast<std::uint32_t>(ParamId::sourceAlgorithm) ||
+           parameter == static_cast<std::uint32_t>(ParamId::interfaceType);
+}
+
+std::size_t dropdownItemCount(const std::uint32_t parameter)
+{
+    if (parameter == static_cast<std::uint32_t>(ParamId::sourceAlgorithm))
+        return kSourceAlgorithmNames.size();
+    if (parameter == static_cast<std::uint32_t>(ParamId::interfaceType))
+        return kInterfaceTypeNames.size();
+    return 0;
+}
+
+const char* dropdownItemName(const std::uint32_t parameter, const std::size_t index)
+{
+    if (parameter == static_cast<std::uint32_t>(ParamId::sourceAlgorithm))
+        return kSourceAlgorithmNames[index];
+    if (parameter == static_cast<std::uint32_t>(ParamId::interfaceType))
+        return kInterfaceTypeNames[index];
+    return "";
 }
 
 } // namespace
@@ -135,6 +165,8 @@ protected:
             const Rect rect {pad + static_cast<float>(i) * (sectionW + gap), top, sectionW, sectionH};
             drawSection(i, rect);
         }
+
+        drawOpenDropdown();
     }
 
     bool onMouse(const MouseEvent& ev) override
@@ -150,10 +182,48 @@ protected:
 
         const float x = static_cast<float>(ev.pos.getX());
         const float y = static_cast<float>(ev.pos.getY());
+
+        if (dropdownParameter_ >= 0)
+        {
+            const std::uint32_t parameter = static_cast<std::uint32_t>(dropdownParameter_);
+            const std::size_t itemCount = dropdownItemCount(parameter);
+            const Rect menu {
+                dropdownRect_.x,
+                dropdownRect_.y + dropdownRect_.h + 4.0f,
+                dropdownRect_.w,
+                26.0f * static_cast<float>(itemCount),
+            };
+
+            if (menu.contains(x, y))
+            {
+                const std::size_t item = std::min<std::size_t>(
+                    itemCount - 1,
+                    static_cast<std::size_t>((y - menu.y) / 26.0f));
+                commitParameter(parameter, static_cast<float>(item));
+                dropdownParameter_ = -1;
+                return true;
+            }
+
+            if (!dropdownRect_.contains(x, y))
+            {
+                dropdownParameter_ = -1;
+                repaint();
+            }
+        }
+
         for (std::size_t i = 0; i < controlRects_.size(); ++i)
         {
             if (controlRects_[i].contains(x, y))
             {
+                if (isDropdownParameter(static_cast<std::uint32_t>(i)))
+                {
+                    dropdownParameter_ = dropdownParameter_ == static_cast<int>(i) ? -1 : static_cast<int>(i);
+                    dropdownRect_ = controlRects_[i];
+                    repaint();
+                    return true;
+                }
+
+                dropdownParameter_ = -1;
                 activeParameter_ = static_cast<int>(i);
                 updateParameterFromPosition(static_cast<std::uint32_t>(i), x, controlRects_[i]);
                 return true;
@@ -169,6 +239,8 @@ protected:
             return false;
 
         const std::uint32_t parameter = static_cast<std::uint32_t>(activeParameter_);
+        if (isDropdownParameter(parameter))
+            return false;
         updateParameterFromPosition(parameter, static_cast<float>(ev.pos.getX()), controlRects_[parameter]);
         return true;
     }
@@ -194,6 +266,8 @@ private:
     std::array<float, kParameterCount> values_ {};
     std::array<Rect, kParameterCount> controlRects_ {};
     int activeParameter_ = -1;
+    int dropdownParameter_ = -1;
+    Rect dropdownRect_ {};
 
     void drawBackground(const float width, const float height)
     {
@@ -275,11 +349,18 @@ private:
         const float value = values_[control.parameter];
         const float norm = normalizedValue(control.parameter, value);
         const std::string textValue = formatValue(control.parameter, value);
+        const std::string label = labelForControl(control);
+
+        if (isDropdownParameter(control.parameter))
+        {
+            drawDropdownControl(control.parameter, label.c_str(), rect, color);
+            return;
+        }
 
         fontSize(12.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
         fillColor(213, 220, 217, 255);
-        text(rect.x, rect.y, control.label, nullptr);
+        text(rect.x, rect.y, label.c_str(), nullptr);
 
         fontSize(10.5f);
         textAlign(ALIGN_RIGHT | ALIGN_TOP);
@@ -304,6 +385,99 @@ private:
         fillColor(237, 242, 238, 255);
         fill();
         closePath();
+    }
+
+    std::string labelForControl(const ControlDef& control) const
+    {
+        const int algorithm = std::clamp(
+            static_cast<int>(std::lround(values_[static_cast<std::size_t>(ParamId::sourceAlgorithm)])), 0, 6);
+
+        if (control.parameter == static_cast<std::uint32_t>(ParamId::sourceParam1))
+            return kSourceAlgorithmParamNames[static_cast<std::size_t>(algorithm)][0];
+        if (control.parameter == static_cast<std::uint32_t>(ParamId::sourceParam2))
+            return kSourceAlgorithmParamNames[static_cast<std::size_t>(algorithm)][1];
+        if (control.parameter == static_cast<std::uint32_t>(ParamId::tuning))
+            return "Tune";
+        return control.label;
+    }
+
+    void drawDropdownControl(const std::uint32_t parameter, const char* const label, const Rect& rect, const Color& color)
+    {
+        fontSize(12.0f);
+        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        fillColor(213, 220, 217, 255);
+        text(rect.x, rect.y, label, nullptr);
+
+        const Rect box {rect.x, rect.y + 21.0f, rect.w, 25.0f};
+        const bool open = dropdownParameter_ == static_cast<int>(parameter);
+        beginPath();
+        roundedRect(box.x, box.y, box.w, box.h, 6.0f);
+        fillColor(open ? 45 : 33, open ? 53 : 40, open ? 54 : 42, 255);
+        fill();
+        strokeColor(color.r, color.g, color.b, open ? 230 : 145);
+        strokeWidth(open ? 1.5f : 1.0f);
+        stroke();
+        closePath();
+
+        fontSize(11.0f);
+        textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
+        fillColor(234, 239, 235, 255);
+        text(box.x + 10.0f, box.y + box.h * 0.5f + 1.0f, formatValue(parameter, values_[parameter]).c_str(), nullptr);
+
+        beginPath();
+        moveTo(box.x + box.w - 18.0f, box.y + 10.0f);
+        lineTo(box.x + box.w - 10.0f, box.y + 10.0f);
+        lineTo(box.x + box.w - 14.0f, box.y + 16.0f);
+        fillColor(color.r, color.g, color.b, 255);
+        fill();
+        closePath();
+    }
+
+    void drawOpenDropdown()
+    {
+        if (dropdownParameter_ < 0)
+            return;
+
+        const std::uint32_t parameter = static_cast<std::uint32_t>(dropdownParameter_);
+        const std::size_t itemCount = dropdownItemCount(parameter);
+        if (itemCount == 0)
+            return;
+
+        const Rect menu {
+            dropdownRect_.x,
+            dropdownRect_.y + dropdownRect_.h + 4.0f,
+            dropdownRect_.w,
+            26.0f * static_cast<float>(itemCount),
+        };
+        const int selected = static_cast<int>(std::lround(values_[parameter]));
+
+        beginPath();
+        roundedRect(menu.x, menu.y, menu.w, menu.h, 7.0f);
+        fillColor(13, 17, 18, 248);
+        fill();
+        strokeColor(75, 88, 88, 255);
+        strokeWidth(1.0f);
+        stroke();
+        closePath();
+
+        for (std::size_t i = 0; i < itemCount; ++i)
+        {
+            const bool isSelected = selected == static_cast<int>(i);
+            const float y = menu.y + static_cast<float>(i) * 26.0f;
+            if (isSelected)
+            {
+                beginPath();
+                rect(menu.x + 4.0f, y + 3.0f, menu.w - 8.0f, 20.0f);
+                fillColor(58, 89, 88, 235);
+                fill();
+                closePath();
+            }
+
+            fontSize(11.0f);
+            textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
+            fillColor(isSelected ? 244 : 205, isSelected ? 248 : 214, isSelected ? 243 : 211, 255);
+            text(menu.x + 10.0f, y + 13.5f, dropdownItemName(parameter, i), nullptr);
+        }
     }
 
     void updateParameterFromPosition(const std::uint32_t parameter, const float x, const Rect& rect)
