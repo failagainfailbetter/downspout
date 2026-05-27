@@ -88,6 +88,10 @@ int activePendingCount(const EngineState& state) {
     return count;
 }
 
+bool hasHit(const PatternState& pattern, const LaneId lane, const int step) {
+    return pattern.lanes[static_cast<int>(lane)].steps[step].velocity > 0;
+}
+
 void testDeterministicGeneration() {
     Controls controls;
     controls.seed = 12345u;
@@ -210,6 +214,53 @@ void testExplicitStyleModesChangePatternShape() {
     regeneratePattern(straight, controls, ::downspout::makeMeter(6, 8), false);
 
     assert(patternsDiffer(jig, straight));
+}
+
+void testAmenGenrePinsBreakSignature() {
+    Controls controls;
+    controls.seed = 616u;
+    controls.genre = GenreId::amen;
+    controls.bars = 1;
+    controls.resolution = ResolutionId::sixteenth;
+    controls.density = 0.50f;
+    controls.variation = 0.20f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, false);
+
+    assert(pattern.stepsPerBar == 16);
+    assert(hasHit(pattern, LaneId::kick, 0));
+    assert(hasHit(pattern, LaneId::kick, 6));
+    assert(hasHit(pattern, LaneId::kick, 10));
+    assert(hasHit(pattern, LaneId::snare, 4));
+    assert(hasHit(pattern, LaneId::snare, 12));
+    assert(hasHit(pattern, LaneId::snare, 7));
+    assert(hasHit(pattern, LaneId::closedHat, 0));
+    assert(hasHit(pattern, LaneId::closedHat, 2));
+    assert(hasHit(pattern, LaneId::openHat, 3));
+}
+
+void testHipHopGenrePinsSparseBackbeat() {
+    Controls controls;
+    controls.seed = 717u;
+    controls.genre = GenreId::hipHop;
+    controls.bars = 1;
+    controls.resolution = ResolutionId::sixteenth;
+    controls.density = 0.35f;
+    controls.variation = 0.20f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, false);
+
+    assert(pattern.stepsPerBar == 16);
+    assert(hasHit(pattern, LaneId::kick, 0));
+    assert(hasHit(pattern, LaneId::kick, 7));
+    assert(hasHit(pattern, LaneId::kick, 10));
+    assert(hasHit(pattern, LaneId::snare, 4));
+    assert(hasHit(pattern, LaneId::snare, 12));
+    assert(hasHit(pattern, LaneId::closedHat, 0));
+    assert(hasHit(pattern, LaneId::closedHat, 2));
+    assert(hasHit(pattern, LaneId::openHat, 6));
 }
 
 void testRefreshBarKeepsOtherBars() {
@@ -582,6 +633,8 @@ int main() {
     testCompoundMeterBackbeatLandsOnSecondPulse();
     testTripleMeterBackbeatLandsOnSecondBeat();
     testExplicitStyleModesChangePatternShape();
+    testAmenGenrePinsBreakSignature();
+    testHipHopGenrePinsSparseBackbeat();
     testRefreshBarKeepsOtherBars();
     testRefreshFillBarTargetsChosenBar();
     testTransportHelpers();

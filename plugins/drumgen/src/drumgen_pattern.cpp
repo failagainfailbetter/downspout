@@ -20,6 +20,10 @@ constexpr auto GENRE_DUB = GenreId::dub;
 constexpr auto GENRE_MOTORIK = GenreId::motorik;
 constexpr auto GENRE_BOSSA = GenreId::bossa;
 constexpr auto GENRE_AFRO = GenreId::afro;
+constexpr auto GENRE_BREAKBEAT = GenreId::breakbeat;
+constexpr auto GENRE_AMEN = GenreId::amen;
+constexpr auto GENRE_JUNGLE = GenreId::jungle;
+constexpr auto GENRE_HIPHOP = GenreId::hipHop;
 
 constexpr auto RESOLUTION_8TH = ResolutionId::eighth;
 constexpr auto RESOLUTION_16TH = ResolutionId::sixteenth;
@@ -102,6 +106,10 @@ struct StylePulseInfo {
     }
 
     return (::downspout::meterPulseIndexForBeat(normalized, beatIndex) % 2) == 1;
+}
+
+[[nodiscard]] bool isBreakbeatFamily(const GenreId genre) {
+    return genre == GENRE_BREAKBEAT || genre == GENRE_AMEN || genre == GENRE_JUNGLE;
 }
 
 [[nodiscard]] int quarterBeatStartStep(const PatternState& pattern, const int quarterSlot) {
@@ -749,6 +757,19 @@ struct StylePulseInfo {
     switch (lane) {
     case LANE_KICK:
         switch (controls.genre) {
+        case GENRE_BREAKBEAT:
+        case GENRE_AMEN:
+        case GENRE_JUNGLE:
+            if (beatIndex == 0 && beatStart) return 0.98f;
+            if (beatIndex == 1 && subIndex == std::max(1, stepsPerBeat / 2)) return 0.56f + 0.28f * kick;
+            if (beatIndex == 2 && subIndex == std::max(1, stepsPerBeat / 2)) return 0.48f + 0.24f * kick;
+            if (beatIndex == 3 && lateSub) return 0.18f + 0.20f * controls.variation;
+            break;
+        case GENRE_HIPHOP:
+            if (beatIndex == 0 && beatStart) return 0.96f;
+            if ((onQ1 || onQ2) && offbeat) return 0.22f + 0.22f * kick;
+            if (onQ3 && lateSub) return 0.14f + 0.16f * controls.variation;
+            break;
         case GENRE_DISCO:
         case GENRE_MOTORIK:
             if (beatStart) return 0.86f + 0.12f * kick;
@@ -794,12 +815,18 @@ struct StylePulseInfo {
     case LANE_SNARE:
         if (backbeatStart) {
             switch (controls.genre) {
+            case GENRE_BREAKBEAT:
+            case GENRE_AMEN:
+            case GENRE_JUNGLE: return 0.88f + 0.10f * backbeat;
+            case GENRE_HIPHOP: return 0.82f + 0.12f * backbeat;
             case GENRE_DISCO: return 0.76f + 0.18f * backbeat;
             case GENRE_ELECTRO: return 0.72f + 0.18f * backbeat;
             case GENRE_DUB: return 0.64f + 0.16f * backbeat;
             default: return 0.84f + 0.12f * backbeat;
             }
         }
+        if (isBreakbeatFamily(controls.genre) && lateSub) return 0.16f + 0.20f * controls.variation * backbeat;
+        if (controls.genre == GENRE_HIPHOP && lateSub && (onQ1 || onQ3)) return 0.08f + 0.08f * controls.variation;
         if (fillBar && beatIndex >= q2Beat && lateSub) return 0.08f + 0.24f * fill * backbeat;
         if (controls.genre == GENRE_AFRO && offbeat) return 0.08f + 0.10f * controls.variation;
         if (controls.genre == GENRE_SHUFFLE && lateSub) return 0.06f + 0.10f * controls.variation;
@@ -808,6 +835,10 @@ struct StylePulseInfo {
     case LANE_CLAP:
         if (backbeatStart) {
             switch (controls.genre) {
+            case GENRE_BREAKBEAT:
+            case GENRE_AMEN:
+            case GENRE_JUNGLE: return 0.10f + 0.14f * backbeat;
+            case GENRE_HIPHOP: return 0.10f + 0.18f * backbeat;
             case GENRE_DISCO: return 0.78f + 0.16f * backbeat;
             case GENRE_ELECTRO: return 0.52f + 0.20f * backbeat;
             case GENRE_DUB: return 0.18f + 0.14f * backbeat;
@@ -833,6 +864,15 @@ struct StylePulseInfo {
             if (subIndex == 2) return 0.54f + 0.20f * hat;
             return 0.18f + 0.16f * controls.variation;
         }
+        if (isBreakbeatFamily(controls.genre)) {
+            if (controls.genre == GENRE_JUNGLE) return 0.48f + 0.38f * hat;
+            if (subIndex == 0 || subIndex == 2) return 0.78f + 0.16f * hat;
+            return 0.30f + 0.24f * hat * controls.density;
+        }
+        if (controls.genre == GENRE_HIPHOP) {
+            if (subIndex == 0 || subIndex == 2) return 0.66f + 0.16f * hat;
+            return 0.08f + 0.14f * hat * controls.variation;
+        }
         if (stepsPerBeat == 2) {
             return offbeat ? 0.66f + 0.20f * hat : 0.74f + 0.16f * hat;
         }
@@ -842,6 +882,10 @@ struct StylePulseInfo {
     case LANE_OPEN_HAT:
         if (offbeat) {
             switch (controls.genre) {
+            case GENRE_BREAKBEAT:
+            case GENRE_AMEN:
+            case GENRE_JUNGLE: return 0.22f + 0.24f * hat;
+            case GENRE_HIPHOP: return 0.10f + 0.12f * hat;
             case GENRE_DISCO:
             case GENRE_MOTORIK: return 0.34f + 0.32f * hat;
             case GENRE_DUB: return 0.14f + 0.18f * hat;
@@ -865,6 +909,13 @@ struct StylePulseInfo {
 
     case LANE_BASH:
         switch (controls.genre) {
+        case GENRE_BREAKBEAT:
+        case GENRE_AMEN:
+        case GENRE_JUNGLE:
+            if (beatStart && beatIndex == 0) return 0.10f + 0.18f * metal;
+            if (lateSub && (onQ1 || onQ3)) return 0.10f + 0.16f * metal;
+            if (fillBar && beatIndex >= q2Beat && (offbeat || lateSub)) return 0.10f + 0.22f * fill * metal;
+            break;
         case GENRE_ELECTRO:
             if (beatStart && beatIndex == 0) return 0.14f + 0.16f * metal;
             if (fillBar && beatIndex >= q2Beat && (beatStart || lateSub)) return 0.10f + 0.26f * fill * metal;
@@ -886,6 +937,11 @@ struct StylePulseInfo {
 
     case LANE_COWBELL:
         switch (controls.genre) {
+        case GENRE_BREAKBEAT:
+        case GENRE_AMEN:
+        case GENRE_JUNGLE:
+            if (lateSub && (onQ1 || onQ3)) return 0.08f + 0.12f * perc;
+            break;
         case GENRE_DISCO:
             if (offbeat) return 0.16f + 0.24f * perc;
             if (beatStart && (onQ1 || onQ3)) return 0.08f + 0.14f * perc;
@@ -1001,22 +1057,29 @@ struct StylePulseInfo {
     float desiredHits = 0.0f;
     switch (lane) {
     case LANE_KICK:
-        desiredHits = 1.0f + ((controls.genre == GENRE_DISCO || controls.genre == GENRE_MOTORIK) ? 3.0f : 1.6f) * density * macro;
+        desiredHits = 1.0f + ((controls.genre == GENRE_DISCO || controls.genre == GENRE_MOTORIK)
+            ? 3.0f
+            : (isBreakbeatFamily(controls.genre) ? 2.4f : (controls.genre == GENRE_HIPHOP ? 1.2f : 1.6f))) * density * macro;
         break;
     case LANE_CLAP:
-        desiredHits = ((controls.genre == GENRE_DISCO || controls.genre == GENRE_ELECTRO) ? 1.6f : 0.8f) * density * macro;
+        desiredHits = ((controls.genre == GENRE_DISCO || controls.genre == GENRE_ELECTRO)
+            ? 1.6f
+            : (isBreakbeatFamily(controls.genre) ? 0.45f : 0.8f)) * density * macro;
         break;
     case LANE_SNARE:
-        desiredHits = 1.0f + 1.0f * density * macro * (0.4f + 0.6f * variation);
+        desiredHits = 1.0f + (isBreakbeatFamily(controls.genre) ? 1.8f : 1.0f) * density * macro * (0.4f + 0.6f * variation);
         break;
     case LANE_CRASH:
         desiredHits = fillBar ? (0.3f + 1.2f * fill * macro) : (0.15f + 0.35f * macro);
         break;
     case LANE_CLOSED_HAT:
-        desiredHits = (stepsPerBar * (0.20f + 0.55f * density * macro)) + (stepsPerBar >= 16 ? 1.5f : 0.0f);
+        desiredHits = (stepsPerBar * (isBreakbeatFamily(controls.genre)
+            ? (0.34f + 0.58f * density * macro)
+            : (controls.genre == GENRE_HIPHOP ? (0.16f + 0.42f * density * macro) : (0.20f + 0.55f * density * macro)))) +
+            (stepsPerBar >= 16 ? 1.5f : 0.0f);
         break;
     case LANE_OPEN_HAT:
-        desiredHits = 0.4f + 1.5f * density * macro;
+        desiredHits = (isBreakbeatFamily(controls.genre) ? 0.7f : 0.4f) + 1.5f * density * macro;
         break;
     case LANE_LOW_TOM:
     case LANE_HIGH_TOM:
@@ -1025,7 +1088,8 @@ struct StylePulseInfo {
     case LANE_BASH:
         desiredHits = fillBar
             ? (0.2f + 1.4f * fill * macro)
-            : (((controls.genre == GENRE_ELECTRO) || (controls.genre == GENRE_DUB) || (controls.genre == GENRE_MOTORIK))
+            : (((controls.genre == GENRE_ELECTRO) || (controls.genre == GENRE_DUB) || (controls.genre == GENRE_MOTORIK) ||
+                isBreakbeatFamily(controls.genre))
                 ? (0.15f + 0.75f * variation * macro)
                 : (0.05f + 0.35f * variation * macro));
         break;
@@ -1200,6 +1264,127 @@ void setStepHit(PatternState& pattern, int lane, int step, int velocity, std::ui
     cell.flags = static_cast<std::uint8_t>(cell.flags | flags);
 }
 
+[[nodiscard]] int stepForSixteenthSlot(const PatternState& pattern, const int barStart, const int slot) {
+    if (pattern.stepsPerBar <= 0) {
+        return barStart;
+    }
+    return barStart + clampi(static_cast<int>(std::lround(static_cast<float>(slot) *
+                                                          static_cast<float>(pattern.stepsPerBar) / 16.0f)),
+                             0,
+                             pattern.stepsPerBar - 1);
+}
+
+void setSlotHit(PatternState& pattern,
+                const int barStart,
+                const int lane,
+                const int slot,
+                const int velocity,
+                const std::uint8_t flags = 0) {
+    setStepHit(pattern, lane, stepForSixteenthSlot(pattern, barStart, slot), velocity, flags);
+}
+
+void applyBackbeatBreakHats(PatternState& pattern,
+                            const int barStart,
+                            const Controls& controls,
+                            const bool dense) {
+    const int stride = dense ? 1 : 2;
+    for (int slot = 0; slot < 16; slot += stride) {
+        const int velocity = dense
+            ? (62 + ((slot % 4) == 0 ? 8 : 0))
+            : (78 + ((slot % 4) == 0 ? 7 : 0));
+        setSlotHit(pattern, barStart, LANE_CLOSED_HAT, slot, velocity, 0);
+    }
+
+    if (controls.hatAmt > 0.20f) {
+        const int openHatVelocity = controls.genre == GENRE_HIPHOP ? 62 : 70;
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 3, openHatVelocity, 0);
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 7, openHatVelocity + 2, 0);
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 11, openHatVelocity, 0);
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 15, openHatVelocity + 4, 0);
+    }
+}
+
+void applyGenreSignatureToBar(PatternState& pattern, const Controls& controls, const int barIndex) {
+    if (controls.styleMode != StyleModeId::autoMode ||
+        pattern.stepsPerBar <= 0 ||
+        barIndex < 0 ||
+        barIndex >= pattern.bars) {
+        return;
+    }
+
+    const int barStart = barIndex * pattern.stepsPerBar;
+
+    switch (controls.genre) {
+    case GENRE_AMEN:
+        applyBackbeatBreakHats(pattern, barStart, controls, false);
+        setSlotHit(pattern, barStart, LANE_KICK, 0, 122, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_KICK, 6, 108, 0);
+        setSlotHit(pattern, barStart, LANE_KICK, 10, 112, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 4, 119, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 12, 122, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 3, 58, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 7, 66, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 11, 58, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 15, 72, 0);
+        setSlotHit(pattern, barStart, LANE_CRASH, 0, 86, STEP_FLAG_ACCENT);
+        break;
+
+    case GENRE_JUNGLE:
+        applyBackbeatBreakHats(pattern, barStart, controls, true);
+        setSlotHit(pattern, barStart, LANE_KICK, 0, 122, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_KICK, 6, 112, 0);
+        setSlotHit(pattern, barStart, LANE_KICK, 10, 116, 0);
+        setSlotHit(pattern, barStart, LANE_KICK, 14, 96, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 4, 121, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 12, 124, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 3, 54, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 7, 70, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 11, 62, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 15, 76, 0);
+        setSlotHit(pattern, barStart, LANE_BASH, 15, 98, 0);
+        break;
+
+    case GENRE_BREAKBEAT:
+        applyBackbeatBreakHats(pattern, barStart, controls, false);
+        setSlotHit(pattern, barStart, LANE_KICK, 0, 120, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_KICK, 3, 96, 0);
+        setSlotHit(pattern, barStart, LANE_KICK, 10, 110, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 4, 116, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 12, 118, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 7, 64, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 15, 70, 0);
+        break;
+
+    case GENRE_HIPHOP:
+        for (int slot = 0; slot < 16; slot += 2) {
+            setSlotHit(pattern, barStart, LANE_CLOSED_HAT, slot, 68 + ((slot % 4) == 0 ? 8 : 0), 0);
+        }
+        setSlotHit(pattern, barStart, LANE_KICK, 0, 120, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_KICK, 7, 94, 0);
+        setSlotHit(pattern, barStart, LANE_KICK, 10, 108, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 4, 116, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 12, 118, STEP_FLAG_ACCENT);
+        setSlotHit(pattern, barStart, LANE_SNARE, 15, 52, 0);
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 6, 58, 0);
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 14, 60, 0);
+        break;
+
+    default:
+        break;
+    }
+}
+
+void applyGenreSignature(PatternState& pattern, const Controls& controls) {
+    if (controls.styleMode != StyleModeId::autoMode ||
+        (!isBreakbeatFamily(controls.genre) && controls.genre != GENRE_HIPHOP)) {
+        return;
+    }
+
+    for (int bar = 0; bar < pattern.bars; ++bar) {
+        applyGenreSignatureToBar(pattern, controls, bar);
+    }
+}
+
 void clearBarHits(PatternState& pattern, int barIndex) {
     if (barIndex < 0 || barIndex >= pattern.bars) {
         return;
@@ -1270,6 +1455,7 @@ void applyFillOverlayToBar(PatternState& pattern,
     switch (controls.genre) {
     case GENRE_ROCK:
     case GENRE_SHUFFLE:
+    case GENRE_HIPHOP:
         motif = rng.nextInt(0, 1);
         break;
     case GENRE_DISCO:
@@ -1278,6 +1464,9 @@ void applyFillOverlayToBar(PatternState& pattern,
         break;
     case GENRE_ELECTRO:
     case GENRE_DUB:
+    case GENRE_BREAKBEAT:
+    case GENRE_AMEN:
+    case GENRE_JUNGLE:
         motif = 1 + rng.nextInt(0, 2);
         break;
     case GENRE_BOSSA:
@@ -1641,6 +1830,7 @@ void regeneratePattern(PatternState& pattern,
                      baseSeedForSerial(controls, nextSerial) ^
                          fillSeedForSerial(controls, nextSerial) ^
                          0x6D2B79F5u);
+    applyGenreSignature(nextPattern, controls);
     cleanupPattern(nextPattern, controls);
 
     nextPattern.version = kPatternStateVersion;
@@ -1686,6 +1876,7 @@ void refreshBar(PatternState& pattern,
                              0x6D2B79F5u);
     }
 
+    applyGenreSignatureToBar(nextPattern, controls, clampedBar);
     cleanupPattern(nextPattern, controls);
     pattern = nextPattern;
 }
@@ -1727,6 +1918,7 @@ void refreshFillBar(PatternState& pattern,
                               0x6D2B79F5u ^
                               (static_cast<std::uint32_t>(clampedBar + 1) * 0xA24BAED5u),
                           clampedBar);
+    applyGenreSignatureToBar(nextPattern, controls, clampedBar);
     PatternState cleanedPattern = nextPattern;
     cleanupPattern(cleanedPattern, controls);
 

@@ -52,6 +52,13 @@ cmake --install "$build_dir"
 if compgen -G "$vst3_dir/*.vst3" > /dev/null; then
   echo "Installed VST3 bundles:"
   find "$vst3_dir" -maxdepth 1 -type d -name "*.vst3" | sort
+  cat <<EOF
+
+If a DAW still shows old names, makers, or categories, force a plugin rescan
+or clear that DAW's VST3 cache. This installer updates the bundles but does
+not edit DAW-specific caches such as REAPER's reaper-vstplugins64.ini or
+Ardour's ~/.cache/ardour*/vst entries.
+EOF
 else
   cat <<EOF
 No .vst3 bundles were installed.

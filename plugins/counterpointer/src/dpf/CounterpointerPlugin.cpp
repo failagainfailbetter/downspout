@@ -138,7 +138,7 @@ protected:
 
     const char* getHomePage() const override
     {
-        return "https://danja.github.io/flues/";
+        return "https://danja.github.io/downspout/";
     }
 
     const char* getLicense() const override

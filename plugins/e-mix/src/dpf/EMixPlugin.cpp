@@ -69,12 +69,12 @@ public:
 protected:
     const char* getLabel() const override
     {
-        return "e_mix";
+        return "E-Mix";
     }
 
     const char* getDescription() const override
     {
-        return "Transport-aware Euclidean audio gate ported from flues LV2 into downspout/DPF.";
+        return "Transport-aware Euclidean audio gate.";
     }
 
     const char* getMaker() const override
@@ -84,7 +84,7 @@ protected:
 
     const char* getHomePage() const override
     {
-        return "https://danja.github.io/flues/";
+        return "https://danja.github.io/downspout/";
     }
 
     const char* getLicense() const override

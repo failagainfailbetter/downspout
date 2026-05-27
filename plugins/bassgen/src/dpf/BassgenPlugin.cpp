@@ -118,7 +118,7 @@ protected:
 
     const char* getDescription() const override
     {
-        return "Transport-synced MIDI bassline generator ported from flues LV2 into downspout/DPF.";
+        return "Transport-synced MIDI bassline generator.";
     }
 
     const char* getMaker() const override
@@ -128,7 +128,7 @@ protected:
 
     const char* getHomePage() const override
     {
-        return "https://danja.github.io/flues/";
+        return "https://danja.github.io/downspout/";
     }
 
     const char* getLicense() const override

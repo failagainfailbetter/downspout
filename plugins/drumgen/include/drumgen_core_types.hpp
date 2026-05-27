@@ -26,6 +26,10 @@ enum class GenreId : std::int32_t {
     motorik,
     bossa,
     afro,
+    breakbeat,
+    amen,
+    jungle,
+    hipHop,
     count
 };
 

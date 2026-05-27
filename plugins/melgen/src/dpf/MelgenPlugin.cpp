@@ -136,7 +136,7 @@ public:
 protected:
     const char* getLabel() const override { return "MelGen"; }
     const char* getDescription() const override { return "Transport-synced MIDI melody generator with phrase and period structure."; }
-    const char* getMaker() const override { return "Downspout"; }
+    const char* getMaker() const override { return "danja"; }
     const char* getHomePage() const override { return "https://danja.github.io/downspout/"; }
     const char* getLicense() const override { return "MIT"; }
     uint32_t getVersion() const override { return d_version(0, 1, 0); }

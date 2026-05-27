@@ -85,7 +85,7 @@ public:
 protected:
     const char* getLabel() const override
     {
-        return "rift";
+        return "Rift";
     }
 
     const char* getDescription() const override
@@ -95,7 +95,7 @@ protected:
 
     const char* getMaker() const override
     {
-        return "Downspout";
+        return "danja";
     }
 
     const char* getHomePage() const override
