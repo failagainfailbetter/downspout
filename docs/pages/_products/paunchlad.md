@@ -12,8 +12,8 @@ summary: Launchpad dub performance effect with echo throws, sirens, spring splas
 
 PaunchLad is a Launchpad-controlled dub effect for snare sends, drum buses,
 vocals, or live input. It combines a stereo dub delay, internal siren sweeps,
-spring-style splashes, dry dropouts, and rhythmic chops for hands-on
-performance.
+car alarms, echoing snare hits, spring-style splashes, dry dropouts, and
+rhythmic chops for hands-on performance.
 
 It follows Luma's Launchpad control path by default: LED feedback puts the
 hardware into programmer mode, while LED-off use falls back to a simple

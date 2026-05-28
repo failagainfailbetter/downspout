@@ -24,17 +24,19 @@ feedback is enabled. With LEDs disabled it falls back to a linear chromatic grid
 
 ## Grid layout
 
-Bottom to top:
+Visible top to bottom:
 
-- rows 1-2: echo/snare throws, from tight slap to long runaway repeats;
-- rows 3-4: sirens, lasers, and alarm sweeps;
+- row 1: panic, freeze, and reset gestures;
+- row 2: car alarms and warning tones, for example pad `(2,7)`;
+- row 3: sirens and laser sweeps;
+- row 4: echoing snare throws, for example pad `(4,3)`;
 - row 5: spring splashes and tone jumps;
-- row 6: dry dropouts;
-- row 7: rhythmic chops;
-- row 8: freeze, panic, and big reset gestures.
+- row 6: dry dropouts that cut the incoming audio;
+- row 7: rhythmic chops and stutters;
+- row 8: dub echo throws, from tight slap to long runaway repeats.
 
-The top Launchpad row nudges wet level, feedback, and tone. The right side
-buttons set siren level from low to high.
+The top Launchpad buttons trigger common gestures and safety actions. The right
+side buttons set siren/alarm level and fire matching alarm accents.
 
 ## Reaper routing
 

@@ -86,6 +86,7 @@ private:
     std::vector<float> delayLeft_ {};
     std::vector<float> delayRight_ {};
     std::size_t delayWrite_ = 0;
+    float delaySeconds_ = 0.34f;
     float delayToneLeft_ = 0.0f;
     float delayToneRight_ = 0.0f;
     float sirenPhase_ = 0.0f;
@@ -93,6 +94,10 @@ private:
     float sirenEnv_ = 0.0f;
     float sirenSweep_ = 0.0f;
     int sirenMode_ = 0;
+    float alarmPhase_ = 0.0f;
+    float alarmEnv_ = 0.0f;
+    float alarmRate_ = 3.5f;
+    int alarmMode_ = 0;
     float snareEnv_ = 0.0f;
     float snareBodyPhase_ = 0.0f;
     float snareBodyHz_ = 180.0f;

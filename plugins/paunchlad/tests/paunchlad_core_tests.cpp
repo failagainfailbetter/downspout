@@ -56,42 +56,56 @@ int main()
     inLeft[0] = 1.0f;
     inRight[0] = 1.0f;
 
-    MidiMessage siren {};
-    siren.size = 3;
-    siren.data[0] = 0x90;
-    siren.data[1] = gridToNote(2, 3);
-    siren.data[2] = 127;
+    MidiMessage alarm {};
+    alarm.size = 3;
+    alarm.data[0] = 0x90;
+    alarm.data[1] = gridToNote(6, 6);
+    alarm.data[2] = 127;
 
-    auto result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
-    require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(2, 3)) == 1.0f,
-            "paunchlad status cell should reflect triggered siren pad");
-    require(containsMidi(result, 0x90, gridToNote(2, 3), kLedPurple),
+    auto result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &alarm, 1);
+    require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(6, 6)) == 1.0f,
+            "paunchlad status cell should reflect triggered visible pad 2,7 alarm");
+    require(containsMidi(result, 0x90, gridToNote(6, 6), kLedPurple),
             "paunchlad LED feedback should follow Luma-style programmer mode by default");
 
-    float peak = 0.0f;
+    float alarmPeak = 0.0f;
     for (std::size_t i = 0; i < outLeft.size(); ++i)
-        peak = std::max(peak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
-    require(peak > 0.005f, "paunchlad siren should produce audible output");
+        alarmPeak = std::max(alarmPeak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
+    require(alarmPeak > 0.005f, "paunchlad visible pad 2,7 should produce audible alarm output");
 
     processor.setParameter(kParamLedFeedback, 0.0f);
-    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &alarm, 1);
     require(result.eventCount == 0, "paunchlad should stop emitting LED MIDI when LED feedback is disabled");
 
     processor.activate();
     processor.setParameter(kParamSirenLevel, 0.0f);
     inLeft.fill(0.0f);
     inRight.fill(0.0f);
-    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &alarm, 1);
     float mutedPeak = 0.0f;
     for (std::size_t i = 0; i < outLeft.size(); ++i)
         mutedPeak = std::max(mutedPeak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
     processor.activate();
     processor.setParameter(kParamSirenLevel, 1.0f);
-    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &alarm, 1);
     float loudPeak = 0.0f;
     for (std::size_t i = 0; i < outLeft.size(); ++i)
         loudPeak = std::max(loudPeak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
-    require(loudPeak > mutedPeak + 0.005f, "paunchlad siren level parameter should change generated siren output");
+    require(loudPeak > mutedPeak + 0.005f, "paunchlad siren level parameter should change generated alarm output");
+
+    processor.activate();
+    MidiMessage snare {};
+    snare.size = 3;
+    snare.data[0] = 0x90;
+    snare.data[1] = gridToNote(4, 2);
+    snare.data[2] = 127;
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &snare, 1);
+    require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(4, 2)) == 1.0f,
+            "paunchlad visible pad 4,3 should trigger the snare echo row");
+    float snarePeak = 0.0f;
+    for (std::size_t i = 0; i < outLeft.size(); ++i)
+        snarePeak = std::max(snarePeak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
+    require(snarePeak > 0.005f, "paunchlad visible pad 4,3 should produce audible snare echo output");
 
     processor.activate();
     processor.setParameter(kParamLedFeedback, 0.0f);
@@ -105,6 +119,20 @@ int main()
     result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &custom, 1);
     require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(2, 3)) == 1.0f,
             "paunchlad should map linear chromatic Launchpad-style notes when LEDs are disabled");
+
+    processor.activate();
+    std::array<float, 512> dryLeft {};
+    std::array<float, 512> dryRight {};
+    processor.processBlock(inLeft.data(), inRight.data(), dryLeft.data(), dryRight.data(), 512, nullptr, 0);
+    processor.activate();
+    MidiMessage drop {};
+    drop.size = 3;
+    drop.data[0] = 0x90;
+    drop.data[1] = gridToNote(2, 0);
+    drop.data[2] = 127;
+    processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &drop, 1);
+    require(std::fabs(outLeft[0]) < std::fabs(dryLeft[0]) * 0.5f,
+            "paunchlad drop row should visibly affect incoming audio level");
 
     MidiMessage echo {};
     echo.size = 3;

@@ -53,12 +53,12 @@ constexpr std::array<SliderDef, 7> kSliders = {{
 
 constexpr std::array<const char*, 8> kRowNames = {{
     "Echo",
-    "Throw",
+    "Chop",
+    "Drop",
+    "Spring",
+    "Snare",
     "Siren",
     "Alarm",
-    "Spring",
-    "Drop",
-    "Chop",
     "Panic",
 }};
 

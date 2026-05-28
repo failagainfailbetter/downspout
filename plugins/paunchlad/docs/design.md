@@ -6,8 +6,10 @@ state.
 
 Core roles:
 
-- echo throw rows push incoming audio into a delay line with boosted feedback;
-- siren rows generate internal oscillator sweeps;
+- bottom echo and visible row 4 snare gestures push incoming audio or generated
+  snare hits into a delay line with boosted feedback;
+- visible row 2 generates car-alarm tones;
+- visible row 3 generates internal oscillator sweeps;
 - spring row injects decaying noisy resonator splashes and tone jumps;
 - dropout/chop rows momentarily remove or rhythmically interrupt dry signal;
 - top row gestures clear or freeze performance state.
