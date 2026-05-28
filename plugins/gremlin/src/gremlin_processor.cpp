@@ -596,7 +596,8 @@ bool Processor::handleControllerButton(const std::uint8_t note, const bool press
 
 void Processor::cycleMode(const int delta)
 {
-    const int mode = (static_cast<int>(std::lround(live_[idx(LiveParamId::mode)])) + delta + 4) % 4;
+    const int mode = (static_cast<int>(std::lround(live_[idx(LiveParamId::mode)])) + delta + static_cast<int>(kModeCount)) %
+                     static_cast<int>(kModeCount);
     setLiveParameter(LiveParamId::mode, static_cast<float>(mode));
 }
 
@@ -615,19 +616,21 @@ void Processor::cycleScene(const int delta)
 
 void Processor::randomizeSource()
 {
-    setLiveParameter(LiveParamId::mode, static_cast<float>(static_cast<int>(randomUnit() * 4.0f) % 4));
-    setLiveParameter(LiveParamId::damage, randomRange(0.18f, 0.72f));
-    setLiveParameter(LiveParamId::chaos, randomRange(0.12f, 0.68f));
-    setLiveParameter(LiveParamId::noise, randomRange(0.0f, 0.30f));
-    setLiveParameter(LiveParamId::drift, randomRange(0.04f, 0.48f));
-    setLiveParameter(LiveParamId::crunch, randomRange(0.0f, 0.44f));
-    setLiveParameter(LiveParamId::fold, randomRange(0.04f, 0.50f));
-    setLiveParameter(LiveParamId::attack, randomRange(0.0f, 0.08f));
-    setLiveParameter(LiveParamId::release, randomRange(0.06f, 0.24f));
-    setHiddenParameter(HiddenParamId::sourceGain, randomRange(0.50f, 0.82f));
-    setHiddenParameter(HiddenParamId::burst, randomRange(0.56f, 0.96f));
-    setHiddenParameter(HiddenParamId::pitchSpread, randomRange(0.08f, 0.56f));
-    setHiddenParameter(HiddenParamId::chaosRate, randomRange(0.10f, 0.56f));
+    setLiveParameter(LiveParamId::mode,
+                     static_cast<float>(static_cast<int>(randomUnit() * static_cast<float>(kModeCount)) %
+                                        static_cast<int>(kModeCount)));
+    setLiveParameter(LiveParamId::damage, randomRange(0.10f, 0.90f));
+    setLiveParameter(LiveParamId::chaos, randomRange(0.08f, 0.88f));
+    setLiveParameter(LiveParamId::noise, randomRange(0.0f, 0.58f));
+    setLiveParameter(LiveParamId::drift, randomRange(0.02f, 0.70f));
+    setLiveParameter(LiveParamId::crunch, randomRange(0.0f, 0.72f));
+    setLiveParameter(LiveParamId::fold, randomRange(0.02f, 0.82f));
+    setLiveParameter(LiveParamId::attack, randomRange(0.0f, 0.16f));
+    setLiveParameter(LiveParamId::release, randomRange(0.04f, 0.42f));
+    setHiddenParameter(HiddenParamId::sourceGain, randomRange(0.44f, 0.94f));
+    setHiddenParameter(HiddenParamId::burst, randomRange(0.42f, 1.0f));
+    setHiddenParameter(HiddenParamId::pitchSpread, randomRange(0.04f, 0.82f));
+    setHiddenParameter(HiddenParamId::chaosRate, randomRange(0.08f, 0.78f));
     reseedEngine();
 }
 

@@ -63,7 +63,9 @@ public:
         SHARD = 0,
         SERVO = 1,
         SPRAY = 2,
-        COLLAPSE = 3
+        COLLAPSE = 3,
+        RING = 4,
+        VAPOR = 5
     };
 
     explicit GremlinEngine(float sampleRate)
@@ -76,7 +78,7 @@ public:
     }
 
     void setMode(float value) {
-        mode_ = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
+        mode_ = std::clamp(static_cast<int>(std::lround(value)), 0, 5);
     }
 
     void setDamage(float value) { damage_ = std::clamp(value, 0.0f, 1.0f); }
@@ -218,10 +220,27 @@ public:
                        + 0.16f * transient_ * burstFactor * (0.5f + 0.5f * chaosAbs_);
                 break;
             case COLLAPSE:
-            default:
                 source = 0.24f * chaosAudio + 0.16f * sawA + 0.28f * sineA + 0.12f * comparator
                        + 0.08f * heldNoise_ * gritGate + 0.30f * attackTone + 0.10f * metallicTone;
                 break;
+            case RING: {
+                const float ring = (sineA * sineB) * (0.72f + 0.42f * damage_)
+                                 + (squareA * sineC) * (0.14f + 0.40f * fold_);
+                const float fm = std::sin(2.0f * kPi * (phaseA_ + sineC * (0.08f + chaos_ * 0.32f)));
+                source = 0.34f * ring + 0.28f * fm + 0.18f * comparator
+                       + 0.18f * attackTone + 0.18f * metallicTone + 0.08f * chaosAudio;
+                break;
+            }
+            case VAPOR:
+            default: {
+                const float cloud = std::tanh((heldNoise_ * 0.34f + chaosAudio * 0.46f + sineB * 0.20f)
+                                            * (1.0f + chaos_ * 1.8f));
+                const float airy = std::sin(2.0f * kPi * (phaseC_ + slowChaos_ * 0.08f))
+                                 * (0.32f + 0.42f * space_);
+                source = 0.30f * cloud + 0.26f * airy + 0.18f * sineA + 0.14f * triC
+                       + 0.14f * attackTone + 0.05f * metallicTone;
+                break;
+            }
         }
 
         const float noiseGate = std::clamp(0.16f + transient_ * 0.82f + env_ * 0.18f, 0.0f, 1.0f);

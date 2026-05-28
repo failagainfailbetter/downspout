@@ -68,6 +68,20 @@ int main()
 
     require(peak > 0.01f, "gremlin should emit audio after note-on");
 
+    for (std::size_t mode = 0; mode < downspout::gremlin::kModeCount; ++mode)
+    {
+        Processor modeProcessor;
+        modeProcessor.init(48000.0);
+        modeProcessor.setLiveParameter(LiveParamId::mode, static_cast<float>(mode));
+        modeProcessor.processBlock(synthLeft, synthRight, 512, &noteOn, 1);
+
+        float modePeak = 0.0f;
+        for (int i = 0; i < 512; ++i)
+            modePeak = std::max(modePeak, std::max(std::fabs(synthLeft[i]), std::fabs(synthRight[i])));
+
+        require(modePeak > 0.005f, "gremlin mode should emit audio after note-on");
+    }
+
     float monoOnly[128] {};
     processor.processBlock(monoOnly, nullptr, 128, nullptr, 0);
     float monoPeak = 0.0f;

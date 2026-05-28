@@ -62,6 +62,9 @@ ParameterEnumerationValue kShapeEnumValues[] = {
     {3.0f, "SampleHold"},
     {4.0f, "RandomWalk"},
     {5.0f, "Logistic"},
+    {6.0f, "Pulse"},
+    {7.0f, "Rev Ramp"},
+    {8.0f, "Expo"},
 };
 
 ParameterEnumerationValue kActionEnumValues[] = {

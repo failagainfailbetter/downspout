@@ -11,6 +11,8 @@ and one-shot patch randomisation bursts.
 - emits Gremlin-compatible macro/master CCs and action notes
 - custom UI for four continuous lanes and two trigger lanes
 - host-following clock by default, with explicit manual BPM mode when needed
+- lane shapes include sine, triangle, ramp, reverse ramp, pulse, exponential,
+  sample-and-hold, random walk, and logistic motion
 
 ## Typical chain
 

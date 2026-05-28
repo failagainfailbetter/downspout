@@ -264,7 +264,7 @@ protected:
             if (statusIndex == 0)
                 parameter.hints |= kParameterIsInteger;
             parameter.ranges.min = 0.0f;
-            parameter.ranges.max = (statusIndex == 0) ? 3.0f : 1.0f;
+            parameter.ranges.max = (statusIndex == 0) ? static_cast<float>(downspout::gremlin::kModeCount - 1) : 1.0f;
             parameter.ranges.def = 0.0f;
             return;
         }

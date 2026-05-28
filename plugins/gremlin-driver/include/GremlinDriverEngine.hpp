@@ -10,6 +10,7 @@ namespace flues::gremlindriver {
 static constexpr size_t kLaneCount = 4;
 static constexpr size_t kTriggerCount = 2;
 static constexpr size_t kTargetCount = 10;
+static constexpr size_t kShapeCount = 9;
 
 enum class ClockMode : int {
     Free = 0,
@@ -35,7 +36,10 @@ enum class LaneShape : int {
     Ramp = 2,
     SampleHold = 3,
     RandomWalk = 4,
-    Logistic = 5
+    Logistic = 5,
+    Pulse = 6,
+    ReverseRamp = 7,
+    Exponential = 8
 };
 
 enum class TriggerAction : int {
@@ -213,7 +217,7 @@ private:
     }
 
     static LaneShape sanitizeShape(int shape) {
-        if (shape < static_cast<int>(LaneShape::Sine) || shape > static_cast<int>(LaneShape::Logistic)) {
+        if (shape < static_cast<int>(LaneShape::Sine) || shape > static_cast<int>(LaneShape::Exponential)) {
             return LaneShape::Sine;
         }
         return static_cast<LaneShape>(shape);
@@ -294,6 +298,12 @@ private:
                 return state.walk;
             case LaneShape::Logistic:
                 return state.logistic;
+            case LaneShape::Pulse:
+                return state.phase < 0.5f ? 1.0f : 0.0f;
+            case LaneShape::ReverseRamp:
+                return 1.0f - state.phase;
+            case LaneShape::Exponential:
+                return state.phase * state.phase;
             default:
                 return 0.5f;
         }

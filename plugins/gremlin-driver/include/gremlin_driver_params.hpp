@@ -17,6 +17,7 @@ using flues::gremlindriver::TriggerConfig;
 inline constexpr std::size_t kLaneCount = flues::gremlindriver::kLaneCount;
 inline constexpr std::size_t kTriggerCount = flues::gremlindriver::kTriggerCount;
 inline constexpr std::size_t kTargetCount = flues::gremlindriver::kTargetCount;
+inline constexpr std::size_t kShapeCount = flues::gremlindriver::kShapeCount;
 
 struct ParamSpec {
     const char* symbol;
@@ -46,13 +47,16 @@ inline constexpr std::array<const char*, 10> kTargetNames = {{
     "Master",
 }};
 
-inline constexpr std::array<const char*, 6> kShapeNames = {{
+inline constexpr std::array<const char*, kShapeCount> kShapeNames = {{
     "Sine",
     "Triangle",
     "Ramp",
     "SampleHold",
     "RandomWalk",
     "Logistic",
+    "Pulse",
+    "Rev Ramp",
+    "Expo",
 }};
 
 inline constexpr std::array<const char*, 11> kActionNames = {{
@@ -76,22 +80,22 @@ inline constexpr std::array<ParamSpec, 2> kGlobalParamSpecs = {{
 
 inline constexpr std::array<ParamSpec, kLaneCount * 5> kLaneParamSpecs = {{
     {"lane1_target", "Lane 1 Target", 0.0f, 9.0f, 1.0f, true, false},
-    {"lane1_shape", "Lane 1 Shape", 0.0f, 5.0f, 1.0f, true, false},
+    {"lane1_shape", "Lane 1 Shape", 0.0f, static_cast<float>(kShapeCount - 1), 1.0f, true, false},
     {"lane1_rate", "Lane 1 Rate", 0.0f, 1.0f, 0.22f, false, false},
     {"lane1_depth", "Lane 1 Depth", 0.0f, 1.0f, 0.34f, false, false},
     {"lane1_center", "Lane 1 Center", 0.0f, 1.0f, 0.60f, false, false},
     {"lane2_target", "Lane 2 Target", 0.0f, 9.0f, 2.0f, true, false},
-    {"lane2_shape", "Lane 2 Shape", 0.0f, 5.0f, 4.0f, true, false},
+    {"lane2_shape", "Lane 2 Shape", 0.0f, static_cast<float>(kShapeCount - 1), 4.0f, true, false},
     {"lane2_rate", "Lane 2 Rate", 0.0f, 1.0f, 0.18f, false, false},
     {"lane2_depth", "Lane 2 Depth", 0.0f, 1.0f, 0.42f, false, false},
     {"lane2_center", "Lane 2 Center", 0.0f, 1.0f, 0.46f, false, false},
     {"lane3_target", "Lane 3 Target", 0.0f, 9.0f, 4.0f, true, false},
-    {"lane3_shape", "Lane 3 Shape", 0.0f, 5.0f, 3.0f, true, false},
+    {"lane3_shape", "Lane 3 Shape", 0.0f, static_cast<float>(kShapeCount - 1), 3.0f, true, false},
     {"lane3_rate", "Lane 3 Rate", 0.0f, 1.0f, 0.12f, false, false},
     {"lane3_depth", "Lane 3 Depth", 0.0f, 1.0f, 0.44f, false, false},
     {"lane3_center", "Lane 3 Center", 0.0f, 1.0f, 0.36f, false, false},
     {"lane4_target", "Lane 4 Target", 0.0f, 9.0f, 6.0f, true, false},
-    {"lane4_shape", "Lane 4 Shape", 0.0f, 5.0f, 5.0f, true, false},
+    {"lane4_shape", "Lane 4 Shape", 0.0f, static_cast<float>(kShapeCount - 1), 5.0f, true, false},
     {"lane4_rate", "Lane 4 Rate", 0.0f, 1.0f, 0.16f, false, false},
     {"lane4_depth", "Lane 4 Depth", 0.0f, 1.0f, 0.24f, false, false},
     {"lane4_center", "Lane 4 Center", 0.0f, 1.0f, 0.18f, false, false},

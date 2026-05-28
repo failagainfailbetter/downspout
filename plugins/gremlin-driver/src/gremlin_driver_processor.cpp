@@ -86,7 +86,7 @@ void Processor::setLaneShape(const std::size_t laneIndex, const int shape)
 {
     if (laneIndex >= lanes_.size())
         return;
-    lanes_[laneIndex].shape = clampi(shape, 0, 5);
+    lanes_[laneIndex].shape = clampi(shape, 0, static_cast<int>(kShapeCount - 1));
 }
 
 void Processor::setLaneRate(const std::size_t laneIndex, const float rate)

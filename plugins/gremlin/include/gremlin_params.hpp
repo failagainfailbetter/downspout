@@ -11,6 +11,7 @@ inline constexpr std::size_t kMacroCount = 8;
 inline constexpr std::size_t kMomentaryCount = 8;
 inline constexpr std::size_t kEffectiveParamCount = kLiveParamCount + kHiddenParamCount;
 inline constexpr std::size_t kSceneCount = 4;
+inline constexpr std::size_t kModeCount = 6;
 
 enum class LiveParamId : std::uint32_t {
     mode = 0,
@@ -93,7 +94,7 @@ struct ParamSpec {
 };
 
 inline constexpr std::array<ParamSpec, kLiveParamCount> kLiveParamSpecs = {{
-    {"mode", "Mode", 0.0f, 3.0f, 0.0f, true, false},
+    {"mode", "Mode", 0.0f, static_cast<float>(kModeCount - 1), 0.0f, true, false},
     {"damage", "Damage", 0.0f, 1.0f, 0.34f, false, false},
     {"chaos", "Chaos", 0.0f, 1.0f, 0.38f, false, false},
     {"noise", "Noise", 0.0f, 1.0f, 0.10f, false, false},
@@ -145,11 +146,13 @@ inline constexpr std::array<ParamSpec, kMomentaryCount> kMomentaryParamSpecs = {
     {"momentary_duck_kill", "Duck Kill", 0.0f, 1.0f, 0.0f, true, true},
 }};
 
-inline constexpr std::array<const char*, 4> kModeNames = {{
+inline constexpr std::array<const char*, kModeCount> kModeNames = {{
     "Shard",
     "Servo",
     "Spray",
     "Collapse",
+    "Ring",
+    "Vapor",
 }};
 
 inline constexpr std::array<const char*, 5> kSceneNames = {{

@@ -34,6 +34,14 @@ int main()
     require(processor.getClockMode() == 1, "gremlin-driver default clock mode mismatch");
     require(nearlyEqual(processor.getBpm(), 120.0f), "gremlin-driver default bpm mismatch");
 
+    for (std::size_t shape = 0; shape < downspout::gremlin_driver::kShapeCount; ++shape)
+    {
+        processor.setLaneShape(0, static_cast<int>(shape));
+        const auto shaped = processor.processBlock(256, TransportSnapshot {}, nullptr, 0);
+        require(processor.getLane(0).shape == static_cast<int>(shape), "gremlin-driver lane shape should be settable");
+        require(std::isfinite(shaped.status.laneValues[0]), "gremlin-driver lane shape should produce finite status");
+    }
+
     processor.triggerRandomize();
     const auto randomized = processor.processBlock(64, TransportSnapshot {}, nullptr, 0);
     require(randomized.eventCount >= 24, "gremlin-driver randomize should emit direct patch CCs");

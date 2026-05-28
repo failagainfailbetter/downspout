@@ -22,7 +22,7 @@ using downspout::gremlin::kActionRandomAll;
 using downspout::gremlin::kActionPanic;
 using downspout::gremlin::kEffectiveParamCount;
 using downspout::gremlin::kGremlinParameterCount;
-using downspout::gremlin::kLiveParamCount;
+using downspout::gremlin::kModeCount;
 using downspout::gremlin::kModeNames;
 using downspout::gremlin::kMomentaryNames;
 using downspout::gremlin::kParamInputHiddenStart;
@@ -82,8 +82,8 @@ constexpr std::array<SliderDef, 9> kPrimarySliderDefs = {{
     {4, kParamStatusStart + 4, "Drift"},
     {5, kParamStatusStart + 5, "Crunch"},
     {6, kParamStatusStart + 6, "Fold"},
-    {14, kParamStatusStart + 14, "Attack"},
-    {15, kParamStatusStart + 15, "Release"},
+    {11, kParamStatusStart + 11, "Tone"},
+    {16, kParamStatusStart + 16, "Output"},
     {kInvalidParam, kInvalidParam, ""},
 }};
 
@@ -92,30 +92,20 @@ constexpr std::array<SliderDef, 9> kDelaySliderDefs = {{
     {8, kParamStatusStart + 8, "Feedback"},
     {9, kParamStatusStart + 9, "Warp"},
     {10, kParamStatusStart + 10, "Stutter"},
-    {11, kParamStatusStart + 11, "Tone"},
     {12, kParamStatusStart + 12, "Damping"},
     {13, kParamStatusStart + 13, "Space"},
-    {16, kParamStatusStart + 16, "Output"},
+    {14, kParamStatusStart + 14, "Attack"},
+    {15, kParamStatusStart + 15, "Release"},
     {kInvalidParam, kInvalidParam, ""},
 }};
 
-constexpr std::array<SliderDef, 9> kHiddenSliderDefs = {{
-    {kParamInputHiddenStart + 0, kParamStatusStart + kLiveParamCount + 0, "Source"},
-    {kParamInputHiddenStart + 1, kParamStatusStart + kLiveParamCount + 1, "Burst"},
-    {kParamInputHiddenStart + 2, kParamStatusStart + kLiveParamCount + 2, "Pitch"},
-    {kParamInputHiddenStart + 3, kParamStatusStart + kLiveParamCount + 3, "Delay Mix"},
-    {kParamInputHiddenStart + 4, kParamStatusStart + kLiveParamCount + 4, "Cross Fb"},
-    {kParamInputHiddenStart + 5, kParamStatusStart + kLiveParamCount + 5, "Glitch"},
-    {kParamInputHiddenStart + 6, kParamStatusStart + kLiveParamCount + 6, "Chaos Rate"},
-    {kParamInputHiddenStart + 7, kParamStatusStart + kLiveParamCount + 7, "Duck"},
-    {kInvalidParam, kInvalidParam, ""},
-}};
-
-constexpr std::array<ButtonDef, 4> kModeButtons = {{
+constexpr std::array<ButtonDef, kModeCount> kModeButtons = {{
     {0, "Shard", 207, 148, 74},
     {0, "Servo", 92, 176, 167},
     {0, "Spray", 128, 143, 222},
     {0, "Collapse", 192, 101, 126},
+    {0, "Ring", 220, 132, 176},
+    {0, "Vapor", 142, 180, 202},
 }};
 
 constexpr std::array<ButtonDef, 4> kSceneButtons = {{
@@ -159,7 +149,7 @@ std::string formatPercent(const float value)
 
 std::string formatMode(const float value)
 {
-    const int index = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
+    const int index = std::clamp(static_cast<int>(std::lround(value)), 0, static_cast<int>(kModeCount - 1));
     return kModeNames[static_cast<std::size_t>(index)];
 }
 
@@ -209,9 +199,9 @@ protected:
 
         drawBackground(width, height);
         drawHeader(pad, pad, width - pad * 2.0f, 84.0f);
-        drawButtonBands(pad, 124.0f, width - pad * 2.0f);
-        drawSliders(pad, 312.0f, width - pad * 2.0f);
-        drawMomentaries(pad, height - 118.0f, width - pad * 2.0f);
+        drawButtonBands(pad, 122.0f, width - pad * 2.0f);
+        drawSliders(pad, 292.0f, width - pad * 2.0f);
+        drawMomentaries(pad, height - 108.0f, width - pad * 2.0f);
     }
 
     bool onMouse(const MouseEvent& ev) override
@@ -315,7 +305,7 @@ private:
     std::array<bool, kGremlinParameterCount> touched_ {};
     std::array<SliderDef, 36> sliderDefs_ {};
     std::array<Rect, 36> sliderRects_ {};
-    std::array<Rect, 4> modeRects_ {};
+    std::array<Rect, kModeCount> modeRects_ {};
     std::array<Rect, 4> sceneRects_ {};
     std::array<Rect, 6> actionRects_ {};
     std::array<Rect, 8> momentaryRects_ {};
@@ -440,7 +430,9 @@ private:
         {
             rects[i] = {innerX + static_cast<float>(i) * (buttonW + gap), innerY, buttonW, buttonH};
             const bool active = modeBand
-                ? (std::clamp(static_cast<int>(std::lround(displayValue(kParamStatusStart, kParamStatusStart))), 0, 3) == static_cast<int>(i))
+                ? (std::clamp(static_cast<int>(std::lround(displayValue(kParamStatusStart, kParamStatusStart))),
+                              0,
+                              static_cast<int>(kModeCount - 1)) == static_cast<int>(i))
                 : sceneBand
                     ? (sceneIndex() == static_cast<int>(i + 1))
                     : false;
@@ -451,7 +443,10 @@ private:
     void drawSliders(const float x, const float y, const float w)
     {
         beginPath();
-        roundedRect(x, y, w, 338.0f, 20.0f);
+        sliderDefs_.fill(SliderDef {kInvalidParam, kInvalidParam, ""});
+        sliderRects_.fill(Rect {});
+
+        roundedRect(x, y, w, 258.0f, 20.0f);
         fillColor(18, 22, 28, 240);
         fill();
         closePath();
@@ -461,17 +456,15 @@ private:
         fillColor(179, 185, 194, 255);
         text(x + 18.0f, y + 14.0f, "Performance Surface", nullptr);
 
-        constexpr std::array<const char*, 4> kRowTitles = {{
+        constexpr std::array<const char*, 3> kRowTitles = {{
             "Master and Macros",
-            "Source Behaviour",
-            "Delay and Space",
-            "Hidden Breakage",
+            "Source",
+            "Space",
         }};
-        const std::array<const SliderDef*, 4> rowDefs = {{
+        const std::array<const SliderDef*, 3> rowDefs = {{
             kMacroSliderDefs.data(),
             kPrimarySliderDefs.data(),
             kDelaySliderDefs.data(),
-            kHiddenSliderDefs.data(),
         }};
 
         const float rowYStart = y + 42.0f;
@@ -481,7 +474,7 @@ private:
         const float sliderH = 56.0f;
 
         std::size_t sliderIndex = 0;
-        for (std::size_t row = 0; row < 4; ++row)
+        for (std::size_t row = 0; row < 3; ++row)
         {
             fontSize(11.0f);
             fillColor(120, 128, 139, 255);
