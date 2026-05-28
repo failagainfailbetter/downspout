@@ -51,9 +51,10 @@ inline constexpr std::uint32_t kParamRandomize = 75;
 inline constexpr std::uint32_t kParamClear = 76;
 inline constexpr std::uint32_t kParamSeed = 77;
 inline constexpr std::uint32_t kParamStep = 78;
-inline constexpr std::uint32_t kParamStatusActive = 79;
-inline constexpr std::uint32_t kParamStatusGeneration = 80;
-inline constexpr std::uint32_t kParamStatusCellStart = 81;
+inline constexpr std::uint32_t kParamPanic = 79;
+inline constexpr std::uint32_t kParamStatusActive = 80;
+inline constexpr std::uint32_t kParamStatusGeneration = 81;
+inline constexpr std::uint32_t kParamStatusCellStart = 82;
 inline constexpr std::uint32_t kParameterCount = kParamStatusCellStart + static_cast<std::uint32_t>(kCellCount);
 
 inline constexpr std::array<const char*, static_cast<std::size_t>(ScaleId::count)> kScaleNames = {{
@@ -81,6 +82,8 @@ inline constexpr std::array<const char*, static_cast<std::size_t>(OutputMode::co
 inline constexpr std::array<std::uint8_t, 9> kTopButtonCCs = {{
     91, 92, 93, 94, 95, 96, 97, 98, 99,
 }};
+
+inline constexpr std::uint8_t kLogoCC = 99;
 
 inline constexpr std::array<std::uint8_t, 8> kSideButtonCCs = {{
     19, 29, 39, 49, 59, 69, 79, 89,

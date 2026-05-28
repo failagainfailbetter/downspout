@@ -31,4 +31,17 @@ rotation, wrapping, probability, and external rhythm influence.
 The grid uses Novation programmer-mode note coordinates. UI drawing is inverted
 vertically so the bottom row in the UI corresponds to Launchpad note row `1`.
 Top-row and side buttons are Launchpad control-change messages and provide
-run/step/random/clear/seed/performance shortcuts.
+run/step/random/clear/seed/performance shortcuts. `CC 99` is treated as the
+logo/panic control, matching `flues/lv2/padseq`. Launchpad pad and control
+release messages are consumed rather than echoed, because note/CC messages with
+zero values are also LED-off commands in programmer mode.
+
+The panic path follows the `padseq` pattern: emit programmer-mode SysEx
+(`F0 00 20 29 02 0D 0E 01 F7`), emit a bulk LED-lighting SysEx with every grid,
+side, top, and logo LED set to colour 0, clear all cells, clear pending notes,
+reset clock state, and stop the generator.
+
+Musical MIDI defaults to channel 4 so generated notes do not overlap the
+programmer-mode LED channels 1-3. Setting the base channel back to 1 is still
+allowed, but routing that output to the Launchpad will make generated notes act
+as LED commands.

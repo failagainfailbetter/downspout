@@ -30,6 +30,7 @@ using downspout::lifeform::kParamGate;
 using downspout::lifeform::kParamLedFeedback;
 using downspout::lifeform::kParamMutation;
 using downspout::lifeform::kParamOutputMode;
+using downspout::lifeform::kParamPanic;
 using downspout::lifeform::kParamRandomize;
 using downspout::lifeform::kParamRootNote;
 using downspout::lifeform::kParamRunning;
@@ -69,7 +70,7 @@ MidiMessage toCoreMidiMessage(const MidiEvent& event)
 {
     MidiMessage message {};
     message.frame = event.frame;
-    message.size = static_cast<std::uint8_t>(std::min<std::size_t>(event.size, message.data.size()));
+    message.size = static_cast<std::uint16_t>(std::min<std::size_t>(event.size, message.data.size()));
     const std::uint8_t* const bytes = event.size > MidiEvent::kDataSize ? event.dataExt : event.data;
     for (std::size_t i = 0; i < message.size; ++i)
         message.data[i] = bytes[i];
@@ -254,7 +255,7 @@ protected:
             parameter.hints |= kParameterIsInteger;
             parameter.ranges.min = 1.0f;
             parameter.ranges.max = 16.0f;
-            parameter.ranges.def = 1.0f;
+            parameter.ranges.def = 4.0f;
             break;
         case kParamLedFeedback:
             parameter.name = "LED Feedback";
@@ -299,6 +300,14 @@ protected:
         case kParamStep:
             parameter.name = "Step";
             parameter.symbol = "step";
+            parameter.hints |= kParameterIsBoolean | kParameterIsInteger | kParameterIsTrigger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
+            break;
+        case kParamPanic:
+            parameter.name = "Panic";
+            parameter.symbol = "panic";
             parameter.hints |= kParameterIsBoolean | kParameterIsInteger | kParameterIsTrigger;
             parameter.ranges.min = 0.0f;
             parameter.ranges.max = 1.0f;

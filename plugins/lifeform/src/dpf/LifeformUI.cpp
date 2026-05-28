@@ -24,6 +24,7 @@ using downspout::lifeform::kParamGate;
 using downspout::lifeform::kParamLedFeedback;
 using downspout::lifeform::kParamMutation;
 using downspout::lifeform::kParamOutputMode;
+using downspout::lifeform::kParamPanic;
 using downspout::lifeform::kParamRandomize;
 using downspout::lifeform::kParamRootNote;
 using downspout::lifeform::kParamRunning;
@@ -101,7 +102,7 @@ public:
         values_[kParamGate] = 0.52f;
         values_[kParamVelocity] = 0.72f;
         values_[kParamDensity] = 0.34f;
-        values_[kParamBaseChannel] = 1.0f;
+        values_[kParamBaseChannel] = 4.0f;
         values_[kParamLedFeedback] = 1.0f;
         values_[kParamRunning] = 1.0f;
 
@@ -185,6 +186,11 @@ protected:
             triggerParameter(kParamClear);
             return true;
         }
+        if (panicRect_.contains(x, y))
+        {
+            triggerParameter(kParamPanic);
+            return true;
+        }
         if (ledRect_.contains(x, y))
         {
             commitParameter(kParamLedFeedback, values_[kParamLedFeedback] >= 0.5f ? 0.0f : 1.0f);
@@ -223,6 +229,7 @@ private:
     Rect randomRect_ {};
     Rect clearRect_ {};
     Rect ledRect_ {};
+    Rect panicRect_ {};
     int activeSlider_ = -1;
 
     [[nodiscard]] float padValue(const std::size_t index) const noexcept
@@ -454,12 +461,14 @@ private:
         stepRect_ = {x + buttonW + 8.0f, y, buttonW, 38.0f};
         randomRect_ = {x + (buttonW + 8.0f) * 2.0f, y, buttonW, 38.0f};
         clearRect_ = {x, y + 38.0f + rowGap, buttonW, 38.0f};
-        ledRect_ = {x + buttonW + 8.0f, y + 38.0f + rowGap, buttonW * 2.0f + 8.0f, 38.0f};
+        panicRect_ = {x + buttonW + 8.0f, y + 38.0f + rowGap, buttonW, 38.0f};
+        ledRect_ = {x + (buttonW + 8.0f) * 2.0f, y + 38.0f + rowGap, buttonW, 38.0f};
         drawButton(runRect_, values_[kParamRunning] >= 0.5f ? "Run" : "Stop", 72, 188, 112, values_[kParamRunning] >= 0.5f);
         drawButton(stepRect_, "Step", 82, 143, 221, false);
         drawButton(randomRect_, "Random", 173, 92, 215, false);
         drawButton(clearRect_, "Clear", 204, 76, 70, false);
-        drawButton(ledRect_, values_[kParamLedFeedback] >= 0.5f ? "LED On" : "LED Off", 75, 146, 214, values_[kParamLedFeedback] >= 0.5f);
+        drawButton(panicRect_, "Panic", 232, 70, 58, false);
+        drawButton(ledRect_, values_[kParamLedFeedback] >= 0.5f ? "LED" : "No LED", 75, 146, 214, values_[kParamLedFeedback] >= 0.5f);
     }
 
     void drawButton(const Rect& rect, const char* label, const int r, const int g, const int b, const bool active)

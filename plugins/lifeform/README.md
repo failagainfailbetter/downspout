@@ -28,17 +28,24 @@ Top-row buttons:
 - `94`: clear
 - `95`: next seed pattern
 - `96`/`97`: mutation down/up
-- `98`/`99`: density down/up
+- `98`: density up
+- `99`: panic; stop, clear cells, re-enter programmer mode, and clear Launchpad LEDs
 
 Side buttons `19` through `89` load seed patterns.
 
 ## MIDI Mapping
 
 In `Voices` mode, low, middle, and high rows are sent to adjacent MIDI channels
-starting from `Base Channel`. In `Single` mode all notes use the base channel.
+starting from `Base Channel`. The default base channel is `4`, because
+Launchpad programmer-mode LED updates use MIDI channels 1-3 for static,
+flashing, and pulsing colours. In `Single` mode all notes use the base channel.
 In `Drums` mode living cells emit a compact GM-style drum palette.
 
 The plugin has no audio I/O. Route its MIDI output to an instrument track, and
 route the same MIDI output back to the Launchpad if you want hardware LEDs.
+
+`Panic` sends the same programmer-mode SysEx used by the `padseq` LV2 plugin,
+then sends a bulk Launchpad LED clear message covering the 8x8 grid, side
+buttons, top buttons, and logo.
 
 See [docs/design.md](docs/design.md) for implementation notes.

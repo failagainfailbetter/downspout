@@ -64,6 +64,8 @@ void Processor::resetToDefaults()
     freeBeatSamples_ = 0.0;
     ledRefreshSamples_ = 0;
     ledInitialized_ = false;
+    panicRequested_ = false;
+    suppressLedFeedbackOnce_ = false;
     seedPattern();
     updateStatus();
 }
@@ -83,7 +85,7 @@ float Processor::parameterDefault(const std::uint32_t index) const noexcept
     case kParamDensity: return 0.34f;
     case kParamClockMode: return 0.0f;
     case kParamOutputMode: return 0.0f;
-    case kParamBaseChannel: return 1.0f;
+    case kParamBaseChannel: return 4.0f;
     case kParamLedFeedback: return 1.0f;
     case kParamRunning: return 1.0f;
     case kParamSeed: return 0.0f;
@@ -150,6 +152,11 @@ void Processor::setParameter(const std::uint32_t index, float value)
         }
         value = 0.0f;
         break;
+    case kParamPanic:
+        if (value > 0.5f)
+            requestPanic();
+        value = 0.0f;
+        break;
     case kParamStatusActive:
     case kParamStatusGeneration:
         return;
@@ -185,6 +192,8 @@ ProcessResult Processor::processBlock(const std::uint32_t frameCount,
 {
     ProcessResult result {};
     processPendingNoteOffs(result, frameCount);
+    if (panicRequested_)
+        runPanic(result);
 
     const int clockMode = static_cast<int>(std::lround(parameters_[kParamClockMode]));
     const bool running = parameters_[kParamRunning] >= 0.5f;
@@ -226,7 +235,14 @@ ProcessResult Processor::processBlock(const std::uint32_t frameCount,
     }
 
     const bool periodicRefresh = ledRefreshSamples_ >= static_cast<std::uint32_t>(sampleRate_ * 0.75);
-    emitLedFeedback(result, forceLeds || periodicRefresh || !ledInitialized_);
+    if (suppressLedFeedbackOnce_)
+    {
+        suppressLedFeedbackOnce_ = false;
+    }
+    else
+    {
+        emitLedFeedback(result, forceLeds || periodicRefresh || !ledInitialized_);
+    }
     ledRefreshSamples_ = periodicRefresh ? 0u : ledRefreshSamples_ + frameCount;
 
     updateStatus();
@@ -313,10 +329,23 @@ bool Processor::handleMidi(const MidiMessage& event, ProcessResult& result)
     const std::uint8_t data1 = event.data[1];
     const std::uint8_t data2 = event.data[2];
 
-    if (status == 0x90u && data2 > 0u)
-        return handleGridPress(data1);
-    if (status == 0xb0u && data2 > 0u)
-        return handleTopButton(data1, result, event.frame) || handleSideButton(data1);
+    std::size_t row = 0;
+    std::size_t col = 0;
+    if ((status == 0x90u || status == 0x80u) && noteToGrid(data1, row, col))
+    {
+        if (status == 0x90u && data2 > 0u)
+            return handleGridPress(data1);
+        return false;
+    }
+
+    const bool launchpadTop = findIndex(data1, kTopButtonCCs.data(), kTopButtonCCs.size()) >= 0;
+    const bool launchpadSide = findIndex(data1, kSideButtonCCs.data(), kSideButtonCCs.size()) >= 0;
+    if (status == 0xb0u && (launchpadTop || launchpadSide))
+    {
+        if (data2 > 0u)
+            return handleTopButton(data1, result, event.frame) || handleSideButton(data1);
+        return false;
+    }
 
     if (status == 0x90u || status == 0x80u || status == 0xb0u)
         appendMidi(result, event.frame, event.data[0], data1, data2);
@@ -353,8 +382,8 @@ bool Processor::handleTopButton(const std::uint8_t cc, ProcessResult& result, co
     case 4: setParameter(kParamSeed, std::fmod(parameters_[kParamSeed] + 1.0f, 8.0f)); break;
     case 5: setParameter(kParamMutation, parameters_[kParamMutation] - 0.04f); break;
     case 6: setParameter(kParamMutation, parameters_[kParamMutation] + 0.04f); break;
-    case 7: setParameter(kParamDensity, parameters_[kParamDensity] - 0.06f); break;
-    case 8: setParameter(kParamDensity, parameters_[kParamDensity] + 0.06f); break;
+    case 7: setParameter(kParamDensity, parameters_[kParamDensity] + 0.06f); break;
+    case 8: requestPanic(); runPanic(result); break;
     default: break;
     }
     return true;
@@ -510,6 +539,40 @@ void Processor::appendNoteOff(const std::uint8_t status, const std::uint8_t note
     }
 }
 
+void Processor::requestPanic()
+{
+    panicRequested_ = true;
+}
+
+void Processor::runPanic(ProcessResult& result)
+{
+    for (PendingNoteOff& pending : pendingNoteOffs_)
+    {
+        if (pending.active)
+        {
+            appendMidi(result, 0, pending.status, pending.note, 0u);
+            pending.active = false;
+        }
+    }
+
+    appendSysex(result, kProgrammerModeSysex.data(), static_cast<std::uint16_t>(kProgrammerModeSysex.size()));
+    appendClearAllSysex(result);
+
+    clearCells();
+    parameters_[kParamRunning] = 0.0f;
+    generation_ = 0;
+    lastHostBeat_ = static_cast<std::uint64_t>(-1);
+    freeBeatSamples_ = 0.0;
+    ledRefreshSamples_ = 0;
+    lastCellLeds_.fill(255u);
+    lastTopLeds_.fill(255u);
+    lastSideLeds_.fill(255u);
+    ledInitialized_ = true;
+    suppressLedFeedbackOnce_ = true;
+    panicRequested_ = false;
+    updateStatus();
+}
+
 void Processor::emitLedFeedback(ProcessResult& result, const bool force)
 {
     if (parameters_[kParamLedFeedback] < 0.5f)
@@ -532,8 +595,8 @@ void Processor::emitLedFeedback(ProcessResult& result, const bool force)
         }
     }
 
-    const std::array<std::uint8_t, 9> topColors = {{
-        kLedGreen, kLedWhite, kLedPurple, kLedRed, kLedBlue, kLedOrange, kLedOrange, kLedCyan, kLedCyan,
+    const std::array<std::uint8_t, kTopButtonCCs.size()> topColors = {{
+        kLedGreen, kLedWhite, kLedPurple, kLedRed, kLedBlue, kLedOrange, kLedOrange, kLedCyan, kLedRed,
     }};
     for (std::size_t i = 0; i < topColors.size(); ++i)
     {
@@ -576,7 +639,7 @@ void Processor::appendMidi(ProcessResult& result,
     event.data[2] = data2;
 }
 
-void Processor::appendSysex(ProcessResult& result, const std::uint8_t* data, const std::uint8_t size)
+void Processor::appendSysex(ProcessResult& result, const std::uint8_t* data, const std::uint16_t size)
 {
     if (result.eventCount >= result.events.size() || data == nullptr || size > result.events[0].data.size())
         return;
@@ -584,8 +647,45 @@ void Processor::appendSysex(ProcessResult& result, const std::uint8_t* data, con
     MidiMessage& event = result.events[result.eventCount++];
     event.frame = 0;
     event.size = size;
-    for (std::uint8_t i = 0; i < size; ++i)
+    for (std::uint16_t i = 0; i < size; ++i)
         event.data[i] = data[i];
+}
+
+void Processor::appendClearAllSysex(ProcessResult& result)
+{
+    std::array<std::uint8_t, 256> data {};
+    std::uint16_t size = 0;
+    auto append = [&](const std::uint8_t byte) {
+        if (size < data.size())
+            data[size++] = byte;
+    };
+    auto appendLight = [&](const std::uint8_t id) {
+        append(0x00u);
+        append(id);
+        append(kLedOff);
+    };
+
+    append(0xf0u);
+    append(0x00u);
+    append(0x20u);
+    append(0x29u);
+    append(0x02u);
+    append(0x0du);
+    append(0x03u);
+
+    for (std::size_t row = 0; row < kGridHeight; ++row)
+    {
+        for (std::size_t col = 0; col < kGridWidth; ++col)
+            appendLight(gridToNote(row, col));
+    }
+
+    for (const std::uint8_t cc : kSideButtonCCs)
+        appendLight(cc);
+    for (const std::uint8_t cc : kTopButtonCCs)
+        appendLight(cc);
+
+    append(0xf7u);
+    appendSysex(result, data.data(), size);
 }
 
 int Processor::liveNeighborCount(const std::size_t row, const std::size_t col) const noexcept

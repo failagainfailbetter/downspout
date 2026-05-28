@@ -18,8 +18,8 @@ struct TransportSnapshot {
 
 struct MidiMessage {
     std::uint32_t frame = 0;
-    std::uint8_t size = 0;
-    std::array<std::uint8_t, 16> data {};
+    std::uint16_t size = 0;
+    std::array<std::uint8_t, 256> data {};
 };
 
 struct Status {
@@ -89,13 +89,16 @@ private:
                   std::uint8_t velocity,
                   std::uint32_t gateFrames);
     void appendNoteOff(std::uint8_t status, std::uint8_t note, std::uint32_t framesLeft);
+    void requestPanic();
+    void runPanic(ProcessResult& result);
     void emitLedFeedback(ProcessResult& result, bool force);
     void appendMidi(ProcessResult& result,
                     std::uint32_t frame,
                     std::uint8_t status,
                     std::uint8_t data1,
                     std::uint8_t data2);
-    void appendSysex(ProcessResult& result, const std::uint8_t* data, std::uint8_t size);
+    void appendSysex(ProcessResult& result, const std::uint8_t* data, std::uint16_t size);
+    void appendClearAllSysex(ProcessResult& result);
     [[nodiscard]] int liveNeighborCount(std::size_t row, std::size_t col) const noexcept;
     [[nodiscard]] std::uint8_t outputChannel(std::size_t row) const noexcept;
     [[nodiscard]] std::uint8_t noteForCell(std::size_t row, std::size_t col) const noexcept;
@@ -111,7 +114,7 @@ private:
     std::array<bool, kCellCount> cells_ {};
     std::array<bool, kCellCount> born_ {};
     std::array<std::uint8_t, kCellCount> lastCellLeds_ {};
-    std::array<std::uint8_t, 9> lastTopLeds_ {};
+    std::array<std::uint8_t, kTopButtonCCs.size()> lastTopLeds_ {};
     std::array<std::uint8_t, 8> lastSideLeds_ {};
     std::array<PendingNoteOff, 192> pendingNoteOffs_ {};
     std::uint64_t generation_ = 0;
@@ -120,6 +123,8 @@ private:
     std::uint32_t ledRefreshSamples_ = 0;
     std::uint32_t randomState_ = 0x1f123bb5u;
     bool ledInitialized_ = false;
+    bool panicRequested_ = false;
+    bool suppressLedFeedbackOnce_ = false;
     Status status_ {};
 };
 
