@@ -16,8 +16,10 @@ using downspout::paunchlad::kControlParamSpecs;
 using downspout::paunchlad::kGridHeight;
 using downspout::paunchlad::kGridWidth;
 using downspout::paunchlad::gridToNote;
+using downspout::paunchlad::unapplyPadMap;
 using downspout::paunchlad::kParamDry;
 using downspout::paunchlad::kParamLedFeedback;
+using downspout::paunchlad::kParamPadMap;
 using downspout::paunchlad::kParamPanic;
 using downspout::paunchlad::kParamStatusActivity;
 using downspout::paunchlad::kParamStatusCellStart;
@@ -164,6 +166,12 @@ protected:
             return true;
         }
 
+        if (mapRect_.contains(x, y))
+        {
+            setParameter(kParamPadMap, static_cast<float>((static_cast<int>(std::lround(values_[kParamPadMap])) + 1) % 4));
+            return true;
+        }
+
         for (std::size_t i = 0; i < sliderRects_.size(); ++i)
         {
             if (sliderRects_[i].contains(x, y))
@@ -191,6 +199,7 @@ private:
     std::array<Rect, kSliders.size()> sliderRects_ {};
     Rect panicRect_ {};
     Rect ledRect_ {};
+    Rect mapRect_ {};
     int activeSlider_ = -1;
 
     [[nodiscard]] float padValue(const std::size_t index) const noexcept
@@ -389,10 +398,14 @@ private:
 
     void drawButtons(const float x, const float y, const float w)
     {
-        const float buttonW = (w - 10.0f) * 0.5f;
+        const float buttonW = (w - 20.0f) / 3.0f;
         panicRect_ = {x, y, buttonW, 44.0f};
-        ledRect_ = {x + buttonW + 10.0f, y, buttonW, 44.0f};
+        mapRect_ = {x + buttonW + 10.0f, y, buttonW, 44.0f};
+        ledRect_ = {x + (buttonW + 10.0f) * 2.0f, y, buttonW, 44.0f};
+        char mapLabel[16];
+        std::snprintf(mapLabel, sizeof(mapLabel), "Map %d", static_cast<int>(std::lround(values_[kParamPadMap])) + 1);
         drawButton(panicRect_, "Panic", 206, 70, 64, false);
+        drawButton(mapRect_, mapLabel, 216, 132, 49, values_[kParamPadMap] > 0.5f);
         drawButton(ledRect_, values_[kParamLedFeedback] >= 0.5f ? "LED On" : "LED Off", 74, 137, 214, values_[kParamLedFeedback] >= 0.5f);
     }
 
@@ -428,7 +441,10 @@ private:
         {
             const std::size_t row = parameter / kGridWidth;
             const std::size_t col = parameter % kGridWidth;
-            sendNote(0, gridToNote(row, col), 127);
+            std::size_t hardwareRow = row;
+            std::size_t hardwareCol = col;
+            unapplyPadMap(static_cast<std::uint32_t>(std::lround(values_[kParamPadMap])), hardwareRow, hardwareCol);
+            sendNote(0, gridToNote(hardwareRow, hardwareCol), 127);
             return;
         }
 

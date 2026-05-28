@@ -31,10 +31,11 @@ inline constexpr std::uint32_t kParamSirenLevel = 68;
 inline constexpr std::uint32_t kParamSpring = 69;
 inline constexpr std::uint32_t kParamOutput = 70;
 inline constexpr std::uint32_t kParamLedFeedback = 71;
-inline constexpr std::uint32_t kParamPanic = 72;
-inline constexpr std::uint32_t kParamStatusActivity = 73;
-inline constexpr std::uint32_t kParamStatusMode = 74;
-inline constexpr std::uint32_t kParamStatusCellStart = 75;
+inline constexpr std::uint32_t kParamPadMap = 72;
+inline constexpr std::uint32_t kParamPanic = 73;
+inline constexpr std::uint32_t kParamStatusActivity = 74;
+inline constexpr std::uint32_t kParamStatusMode = 75;
+inline constexpr std::uint32_t kParamStatusCellStart = 76;
 inline constexpr std::uint32_t kParameterCount = kParamStatusCellStart + static_cast<std::uint32_t>(kCellCount);
 
 inline constexpr std::array<ParamSpec, 8> kControlParamSpecs = {{
@@ -120,6 +121,52 @@ inline constexpr std::uint8_t kLedPink = 57;
     row = static_cast<std::size_t>(offset / 8u);
     col = static_cast<std::size_t>(offset % 8u);
     return row < kGridHeight;
+}
+
+constexpr void applyPadMap(const std::uint32_t map, std::size_t& row, std::size_t& col) noexcept
+{
+    const std::size_t r = row;
+    const std::size_t c = col;
+    switch (map % 4u)
+    {
+    case 1u:
+        row = c;
+        col = kGridWidth - 1u - r;
+        break;
+    case 2u:
+        row = kGridHeight - 1u - r;
+        col = kGridWidth - 1u - c;
+        break;
+    case 3u:
+        row = kGridHeight - 1u - c;
+        col = r;
+        break;
+    default:
+        break;
+    }
+}
+
+constexpr void unapplyPadMap(const std::uint32_t map, std::size_t& row, std::size_t& col) noexcept
+{
+    const std::size_t r = row;
+    const std::size_t c = col;
+    switch (map % 4u)
+    {
+    case 1u:
+        row = kGridHeight - 1u - c;
+        col = r;
+        break;
+    case 2u:
+        row = kGridHeight - 1u - r;
+        col = kGridWidth - 1u - c;
+        break;
+    case 3u:
+        row = c;
+        col = kGridWidth - 1u - r;
+        break;
+    default:
+        break;
+    }
 }
 
 [[nodiscard]] constexpr std::size_t cellIndex(const std::size_t row, const std::size_t col) noexcept

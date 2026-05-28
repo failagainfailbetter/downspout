@@ -43,6 +43,7 @@ int main()
     using downspout::paunchlad::gridToNote;
     using downspout::paunchlad::kLedPurple;
     using downspout::paunchlad::kParamLedFeedback;
+    using downspout::paunchlad::kParamPadMap;
     using downspout::paunchlad::kParamSirenLevel;
     using downspout::paunchlad::kParamStatusCellStart;
 
@@ -76,6 +77,19 @@ int main()
     processor.setParameter(kParamLedFeedback, 0.0f);
     result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &alarm, 1);
     require(result.eventCount == 0, "paunchlad should stop emitting LED MIDI when LED feedback is disabled");
+
+    processor.activate();
+    processor.setParameter(kParamPadMap, 2.0f);
+    MidiMessage rotatedAlarm {};
+    rotatedAlarm.size = 3;
+    rotatedAlarm.data[0] = 0x90;
+    rotatedAlarm.data[1] = gridToNote(1, 1);
+    rotatedAlarm.data[2] = 127;
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &rotatedAlarm, 1);
+    require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(6, 6)) == 1.0f,
+            "paunchlad pad map should rotate hardware input onto the UI grid");
+    require(containsMidi(result, 0x90, gridToNote(1, 1), kLedPurple),
+            "paunchlad pad map should rotate LED feedback back onto the hardware pad");
 
     processor.activate();
     processor.setParameter(kParamSirenLevel, 0.0f);

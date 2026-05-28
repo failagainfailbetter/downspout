@@ -17,6 +17,7 @@ using downspout::paunchlad::kCellCount;
 using downspout::paunchlad::kControlParamSpecs;
 using downspout::paunchlad::kParamDry;
 using downspout::paunchlad::kParamLedFeedback;
+using downspout::paunchlad::kParamPadMap;
 using downspout::paunchlad::kParamPanic;
 using downspout::paunchlad::kParamStatusActivity;
 using downspout::paunchlad::kParamStatusCellStart;
@@ -136,6 +137,17 @@ protected:
             parameter.ranges.min = spec.minimum;
             parameter.ranges.max = spec.maximum;
             parameter.ranges.def = spec.defaultValue;
+            return;
+        }
+
+        if (index == kParamPadMap)
+        {
+            parameter.name = "Pad Map";
+            parameter.symbol = "pad_map";
+            parameter.hints |= kParameterIsInteger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 3.0f;
+            parameter.ranges.def = 0.0f;
             return;
         }
 

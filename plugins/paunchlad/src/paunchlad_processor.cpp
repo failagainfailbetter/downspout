@@ -83,6 +83,20 @@ void Processor::clearPerformance()
     laserPhase_ = 0.0f;
     laserStartHz_ = 1200.0f;
     laserEndHz_ = 160.0f;
+    thunderEnv_ = 0.0f;
+    monsterEnv_ = 0.0f;
+    monsterPhase_ = 0.0f;
+    zapEnv_ = 0.0f;
+    zapPhase_ = 0.0f;
+    rewindEnv_ = 0.0f;
+    rewindPhase_ = 0.0f;
+    bubbleEnv_ = 0.0f;
+    bubblePhase_ = 0.0f;
+    riserEnv_ = 0.0f;
+    riserPhase_ = 0.0f;
+    hornEnv_ = 0.0f;
+    hornPhase_ = 0.0f;
+    effectMode_ = 0;
     springEnv_ = 0.0f;
     springState_ = 0.0f;
     throwSend_ = 0.0f;
@@ -110,6 +124,7 @@ float Processor::parameterDefault(const std::uint32_t index) const noexcept
     case kParamSpring: return kControlParamSpecs[5].defaultValue;
     case kParamOutput: return kControlParamSpecs[6].defaultValue;
     case kParamLedFeedback: return kControlParamSpecs[7].defaultValue;
+    case kParamPadMap: return 0.0f;
     default: return 0.0f;
     }
 }
@@ -136,9 +151,21 @@ void Processor::setParameter(const std::uint32_t index, float value)
     }
 
     if (index == kParamLedFeedback)
+    {
         value = value >= 0.5f ? 1.0f : 0.0f;
+    }
+    else if (index == kParamPadMap)
+    {
+        value = static_cast<float>(clampValue(static_cast<int>(std::lround(value)), 0, 3));
+        lastCellLeds_.fill(255u);
+        lastTopLeds_.fill(255u);
+        lastSideLeds_.fill(255u);
+        ledInitialized_ = false;
+    }
     else
+    {
         value = clampValue(value, 0.0f, 1.0f);
+    }
 
     parameters_[index] = value;
 }
@@ -241,6 +268,7 @@ bool Processor::handleGridPress(const std::uint8_t note, const std::uint8_t velo
     if (!mapped)
         return false;
 
+    applyPadMap(static_cast<std::uint32_t>(std::lround(parameters_[kParamPadMap])), row, col);
     triggerPad(row, col, static_cast<float>(velocity) / 127.0f);
     return true;
 }
@@ -300,6 +328,16 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         snareBodyHz_ = 135.0f + static_cast<float>(col) * 16.0f;
         subEnv_ = 0.45f;
         subHz_ = 72.0f + static_cast<float>(col) * 5.0f;
+        if (col == 0 || col == 4)
+        {
+            hornEnv_ = 1.15f;
+            effectMode_ = static_cast<int>(col);
+        }
+        if (col == 2 || col == 6)
+        {
+            bubbleEnv_ = 0.90f;
+            effectMode_ = static_cast<int>(col);
+        }
         return;
     }
 
@@ -311,6 +349,10 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         throwSend_ = clampValue(0.65f + strength * 0.45f, 0.0f, 1.0f);
         throwFeedback_ = clampValue(0.28f + static_cast<float>(col) * 0.075f, 0.0f, 0.88f);
         crashEnv_ = 0.65f + strength * 0.35f;
+        zapEnv_ = 0.65f + static_cast<float>(col) * 0.05f;
+        effectMode_ = static_cast<int>(col);
+        if (col >= 4)
+            rewindEnv_ = 0.55f;
         return;
     }
 
@@ -324,6 +366,10 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         subEnv_ = 0.90f + strength * 0.40f;
         subHz_ = 98.0f - static_cast<float>(col) * 6.0f;
         crashEnv_ = 0.45f;
+        thunderEnv_ = 0.55f + static_cast<float>(col) * 0.08f;
+        if (col >= 4)
+            monsterEnv_ = 0.85f;
+        effectMode_ = static_cast<int>(col);
         return;
     }
 
@@ -336,6 +382,10 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         throwSend_ = 0.62f + strength * 0.30f;
         throwFeedback_ = 0.34f + static_cast<float>(col) * 0.055f;
         crashEnv_ = 0.35f + strength * 0.25f;
+        bubbleEnv_ = 1.15f + strength * 0.35f;
+        if ((col % 3u) == 2u)
+            zapEnv_ = 0.70f;
+        effectMode_ = static_cast<int>(col);
         return;
     }
 
@@ -353,6 +403,11 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         crashEnv_ = 0.55f + strength * 0.30f;
         subEnv_ = 0.50f;
         subHz_ = 82.0f + static_cast<float>(col) * 3.5f;
+        if (col == 1 || col == 5)
+            hornEnv_ = 0.95f;
+        if (col >= 6)
+            thunderEnv_ = 0.80f;
+        effectMode_ = static_cast<int>(col);
         return;
     }
 
@@ -364,10 +419,15 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         laserEnv_ = 0.70f + strength * 0.50f;
         laserStartHz_ = 2200.0f + static_cast<float>(col) * 250.0f;
         laserEndHz_ = 180.0f + static_cast<float>(col) * 45.0f;
+        if (col >= 4)
+            riserEnv_ = 1.05f;
+        if (col == 1 || col == 6)
+            zapEnv_ = 0.95f;
         throwFrames_ = framesForBeatDivision(1.0f + static_cast<float>(col) * 0.25f);
         delaySeconds_ = 0.18f + static_cast<float>(col) * 0.08f;
         throwSend_ = 0.55f + strength * 0.32f;
         throwFeedback_ = 0.38f + static_cast<float>(col) * 0.055f;
+        effectMode_ = static_cast<int>(col);
         return;
     }
 
@@ -377,16 +437,25 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         alarmEnv_ = 2.10f;
         alarmRate_ = 2.0f + static_cast<float>(col) * 0.75f;
         crashEnv_ = 0.35f;
+        if (col == 2 || col == 5)
+            zapEnv_ = 1.10f;
+        if (col == 3 || col == 7)
+            monsterEnv_ = 1.15f;
+        if (col == 1 || col == 6)
+            hornEnv_ = 1.00f;
         throwFrames_ = framesForBeatDivision(1.0f + static_cast<float>(col) * 0.30f);
         delaySeconds_ = 0.16f + static_cast<float>(col) * 0.07f;
         throwSend_ = 0.70f + strength * 0.25f;
         throwFeedback_ = 0.48f + static_cast<float>(col) * 0.055f;
+        effectMode_ = static_cast<int>(col);
         return;
     }
 
     if (col < 3)
     {
         freezeFrames_ = framesForBeatDivision(1.0f + static_cast<float>(col) * 1.5f);
+        rewindEnv_ = 0.85f + static_cast<float>(col) * 0.20f;
+        zapEnv_ = 0.65f;
     }
     else if (col < 6)
     {
@@ -395,13 +464,26 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         springEnv_ = 1.35f;
         crashEnv_ = 1.1f;
         subEnv_ = 1.0f;
+        thunderEnv_ = 1.30f;
+        monsterEnv_ = col == 5 ? 1.40f : 0.80f;
         dropFrames_ = framesForBeatDivision(0.5f);
+    }
+    else if (col == 6)
+    {
+        sirenEnv_ = 2.0f;
+        alarmEnv_ = 2.0f;
+        laserEnv_ = 1.2f;
+        riserEnv_ = 1.2f;
+        thunderEnv_ = 1.0f;
+        crashEnv_ = 1.2f;
+        subEnv_ = 1.0f;
     }
     else
     {
         clearPerformance();
         cellFlash_[index] = 1.0f;
     }
+    effectMode_ = static_cast<int>(col);
 }
 
 void Processor::processAudio(const float* inLeft,
@@ -467,7 +549,9 @@ void Processor::processAudio(const float* inLeft,
         float crash = 0.0f;
         if (crashEnv_ > 0.0001f)
         {
-            crash = noise() * crashEnv_;
+            const float grit = noise();
+            const float metallic = std::sin((snareBodyPhase_ * 19.0f + static_cast<float>(effectMode_) * 0.13f) * 2.0f * kPi);
+            crash = (grit * 0.75f + metallic * 0.25f) * crashEnv_;
             crashEnv_ *= 0.9945f;
         }
 
@@ -493,7 +577,7 @@ void Processor::processAudio(const float* inLeft,
         float laser = 0.0f;
         if (laserEnv_ > 0.0001f)
         {
-            const float progress = clampValue(1.0f - laserEnv_, 0.0f, 1.0f);
+            const float progress = clampValue(1.0f - laserEnv_ * 0.78f, 0.0f, 1.0f);
             const float hz = laserStartHz_ + (laserEndHz_ - laserStartHz_) * progress;
             laserPhase_ += hz / static_cast<float>(sampleRate_);
             if (laserPhase_ >= 1.0f)
@@ -530,6 +614,87 @@ void Processor::processAudio(const float* inLeft,
             springEnv_ *= 0.9978f;
         }
 
+        float thunder = 0.0f;
+        if (thunderEnv_ > 0.0001f)
+        {
+            const float rumble = noise() * 0.20f + std::sin(subPhase_ * 2.0f * kPi) * 0.80f;
+            thunder = rumble * thunderEnv_ * 1.25f;
+            thunderEnv_ *= 0.9991f;
+        }
+
+        float monster = 0.0f;
+        if (monsterEnv_ > 0.0001f)
+        {
+            const float hz = 42.0f + static_cast<float>((effectMode_ * 13) % 55);
+            monsterPhase_ += hz / static_cast<float>(sampleRate_);
+            if (monsterPhase_ >= 1.0f)
+                monsterPhase_ -= 1.0f;
+            const float growl = std::sin(monsterPhase_ * 2.0f * kPi);
+            const float folded = std::tanh((growl + noise() * 0.35f) * 5.0f);
+            monster = folded * monsterEnv_ * 0.95f;
+            monsterEnv_ *= 0.99935f;
+        }
+
+        float zap = 0.0f;
+        if (zapEnv_ > 0.0001f)
+        {
+            const float hz = 2400.0f - zapEnv_ * 1800.0f + static_cast<float>(effectMode_) * 90.0f;
+            zapPhase_ += std::max(120.0f, hz) / static_cast<float>(sampleRate_);
+            if (zapPhase_ >= 1.0f)
+                zapPhase_ -= 1.0f;
+            zap = (zapPhase_ < 0.5f ? 1.0f : -1.0f) * zapEnv_ * 0.82f;
+            zapEnv_ *= 0.989f;
+        }
+
+        float rewind = 0.0f;
+        if (rewindEnv_ > 0.0001f)
+        {
+            const float hz = 900.0f + rewindEnv_ * 1800.0f + static_cast<float>(effectMode_) * 70.0f;
+            rewindPhase_ += hz / static_cast<float>(sampleRate_);
+            if (rewindPhase_ >= 1.0f)
+                rewindPhase_ -= 1.0f;
+            const float saw = rewindPhase_ * 2.0f - 1.0f;
+            rewind = (saw + noise() * 0.25f) * rewindEnv_ * 0.72f;
+            rewindEnv_ *= 0.9962f;
+        }
+
+        float bubble = 0.0f;
+        if (bubbleEnv_ > 0.0001f)
+        {
+            const float wobble = std::sin(bubblePhase_ * 2.0f * kPi);
+            const float hz = 190.0f + wobble * 95.0f + static_cast<float>(effectMode_) * 42.0f;
+            bubblePhase_ += hz / static_cast<float>(sampleRate_);
+            if (bubblePhase_ >= 1.0f)
+                bubblePhase_ -= 1.0f;
+            bubble = std::sin(bubblePhase_ * 2.0f * kPi) * bubbleEnv_ * 0.82f;
+            bubbleEnv_ *= 0.9965f;
+        }
+
+        float riser = 0.0f;
+        if (riserEnv_ > 0.0001f)
+        {
+            const float progress = clampValue(1.0f - riserEnv_ * 0.70f, 0.0f, 1.0f);
+            const float hz = 160.0f + progress * (2200.0f + static_cast<float>(effectMode_) * 160.0f);
+            riserPhase_ += hz / static_cast<float>(sampleRate_);
+            if (riserPhase_ >= 1.0f)
+                riserPhase_ -= 1.0f;
+            riser = (std::sin(riserPhase_ * 2.0f * kPi) + noise() * progress * 0.35f) * riserEnv_ * 0.72f;
+            riserEnv_ *= 0.9987f;
+        }
+
+        float horn = 0.0f;
+        if (hornEnv_ > 0.0001f)
+        {
+            const float baseHz = 190.0f + static_cast<float>((effectMode_ % 4) * 32);
+            hornPhase_ += baseHz / static_cast<float>(sampleRate_);
+            if (hornPhase_ >= 1.0f)
+                hornPhase_ -= 1.0f;
+            const float root = std::sin(hornPhase_ * 2.0f * kPi);
+            const float fifth = std::sin(hornPhase_ * 3.0f * kPi);
+            horn = (root * 0.78f + fifth * 0.42f) * hornEnv_ * 0.88f;
+            hornEnv_ *= 0.9983f;
+        }
+
         float dryGain = parameters_[kParamDry];
         if (dropFrames_ > 0)
             dryGain *= 0.015f;
@@ -546,17 +711,21 @@ void Processor::processAudio(const float* inLeft,
         }
 
         const float send = parameters_[kParamWet] * 0.28f + throwAmount;
+        const float funBus = thunder + monster + zap + rewind + bubble + riser + horn;
         const float generatedForDelay = snare * 0.95f + siren * 0.45f + laser * 0.40f +
-                                        alarm * 0.55f + spring * 0.90f + crash * 0.75f + sub * 0.30f;
+                                        alarm * 0.55f + spring * 0.90f + crash * 0.75f +
+                                        sub * 0.30f + funBus * 0.72f;
         delayLeft_[delayWrite_] = (inputL + generatedForDelay) * send + delayR * feedback;
         delayRight_[delayWrite_] = (inputR + generatedForDelay * 0.88f) * send + delayL * feedback;
         delayWrite_ = (delayWrite_ + 1u) % delaySize;
 
         const float wetGain = parameters_[kParamWet] * (0.25f + throwAmount * 1.3f);
         const float outL = (mangledInputL + delayL * wetGain + snare * 1.15f + siren + laser +
-                            alarm + spring + crash * 0.85f + sub * 0.80f) * outputGain;
+                            alarm + spring + crash * 0.85f + sub * 0.80f + funBus) * outputGain;
         const float outR = (mangledInputR + delayR * wetGain + snare * 0.98f + siren * 0.86f - laser * 0.74f +
-                            alarm * 0.90f - spring + crash * 0.65f + sub * 0.72f) * outputGain;
+                            alarm * 0.90f - spring + crash * 0.65f + sub * 0.72f +
+                            thunder * 0.92f - monster * 0.82f + zap * 0.70f - rewind * 0.75f +
+                            bubble * 0.88f - riser * 0.68f + horn * 0.78f) * outputGain;
 
         if (outLeft != nullptr)
             outLeft[frame] = std::tanh(outL);
@@ -591,7 +760,10 @@ void Processor::emitLedFeedback(ProcessResult& result, const bool force)
             const std::uint8_t color = colorForPad(row, col, active);
             if (force || color != lastCellLeds_[index])
             {
-                appendMidi(result, 0, 0x90u, gridToNote(row, col), color);
+                std::size_t hardwareRow = row;
+                std::size_t hardwareCol = col;
+                unapplyPadMap(static_cast<std::uint32_t>(std::lround(parameters_[kParamPadMap])), hardwareRow, hardwareCol);
+                appendMidi(result, 0, 0x90u, gridToNote(hardwareRow, hardwareCol), color);
                 lastCellLeds_[index] = color;
             }
         }
