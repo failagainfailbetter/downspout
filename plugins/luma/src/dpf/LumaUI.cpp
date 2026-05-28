@@ -28,6 +28,7 @@ using downspout::luma::kParamRandomize;
 using downspout::luma::kParamRootNote;
 using downspout::luma::kParamScale;
 using downspout::luma::kParamStatusActive;
+using downspout::luma::kParamStatusCellStart;
 using downspout::luma::kParamStatusStep;
 using downspout::luma::kParamSwing;
 using downspout::luma::kParameterCount;
@@ -124,6 +125,7 @@ protected:
         if (index < values_.size())
         {
             values_[index] = value;
+            touched_[index] = true;
             repaint();
         }
     }
@@ -210,6 +212,7 @@ protected:
 
 private:
     std::array<float, kParameterCount> values_ {};
+    std::array<bool, kParameterCount> touched_ {};
     std::array<Rect, kCellCount> padRects_ {};
     std::array<Rect, kSliders.size()> sliderRects_ {};
     std::array<Rect, 3> selectorRects_ {};
@@ -217,6 +220,14 @@ private:
     Rect clearRect_ {};
     Rect ledRect_ {};
     int activeSlider_ = -1;
+
+    [[nodiscard]] float padValue(const std::size_t index) const noexcept
+    {
+        const std::size_t statusIndex = kParamStatusCellStart + index;
+        if (statusIndex < touched_.size() && touched_[statusIndex])
+            return values_[statusIndex];
+        return values_[index];
+    }
 
     void drawBackground(const float width, const float height)
     {
@@ -274,7 +285,7 @@ private:
                                  cell,
                                  cell};
                 padRects_[index] = rect;
-                drawPad(rect, row, values_[index] >= 0.5f);
+                drawPad(rect, row, padValue(index) >= 0.5f);
             }
         }
     }
@@ -506,6 +517,12 @@ private:
         setParameterValue(parameter, value);
         editParameter(parameter, false);
         values_[parameter] = value;
+        if (parameter < kCellCount)
+        {
+            const std::size_t statusIndex = kParamStatusCellStart + parameter;
+            values_[statusIndex] = value;
+            touched_[statusIndex] = true;
+        }
         repaint();
     }
 

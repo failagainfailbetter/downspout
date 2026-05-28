@@ -107,6 +107,9 @@ void Processor::setParameter(const std::uint32_t index, float value)
     if (index >= kParameterCount)
         return;
 
+    if (index >= kParamStatusCellStart)
+        return;
+
     if (index < kCellCount)
     {
         cells_[index] = value >= 0.5f;
@@ -163,6 +166,8 @@ float Processor::getParameter(const std::uint32_t index) const noexcept
         return status_.activeCells;
     if (index == kParamStatusStep)
         return status_.currentStep;
+    if (index >= kParamStatusCellStart && index < kParamStatusCellStart + kCellCount)
+        return cells_[index - kParamStatusCellStart] ? 1.0f : 0.0f;
     return index < kParameterCount ? parameters_[index] : 0.0f;
 }
 

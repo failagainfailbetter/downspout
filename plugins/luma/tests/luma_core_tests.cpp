@@ -61,6 +61,7 @@ int main()
     using downspout::luma::kParamDensity;
     using downspout::luma::kParamEnergy;
     using downspout::luma::kParamLedFeedback;
+    using downspout::luma::kParamStatusCellStart;
     using downspout::luma::kParamStatusActive;
 
     Processor processor;
@@ -77,6 +78,7 @@ int main()
     TransportSnapshot stopped {};
     auto result = processor.processBlock(64, stopped, &pad, 1);
     require(processor.getParameter(kParamCellStart) == 1.0f, "luma Launchpad pad should toggle a cell");
+    require(processor.getParameter(kParamStatusCellStart) == 1.0f, "luma status pad mirror should track hardware toggles");
     require(processor.getParameter(kParamStatusActive) == 1.0f, "luma active pad status should update");
     require(hasMessage(result, 0x90, gridToNote(0, 0), downspout::luma::kLedBlue),
             "luma LED feedback should light the toggled bass pad");

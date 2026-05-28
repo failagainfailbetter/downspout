@@ -34,6 +34,7 @@ using downspout::luma::kParamRandomize;
 using downspout::luma::kParamRootNote;
 using downspout::luma::kParamScale;
 using downspout::luma::kParamStatusActive;
+using downspout::luma::kParamStatusCellStart;
 using downspout::luma::kParamStatusStep;
 using downspout::luma::kParamSwing;
 using downspout::luma::kParameterCount;
@@ -292,6 +293,17 @@ protected:
             parameter.ranges.def = 0.0f;
             break;
         default:
+            if (index >= kParamStatusCellStart && index < kParamStatusCellStart + kCellCount)
+            {
+                const uint32_t cell = index - kParamStatusCellStart;
+                parameter.name = String("Pad Status ") + String(static_cast<int>(cell + 1));
+                parameter.symbol = String("status_pad_") + String(static_cast<int>(cell + 1));
+                parameter.hints = kParameterIsOutput | kParameterIsBoolean | kParameterIsInteger;
+                parameter.ranges.min = 0.0f;
+                parameter.ranges.max = 1.0f;
+                parameter.ranges.def = 0.0f;
+                return;
+            }
             break;
         }
     }
