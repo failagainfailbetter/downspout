@@ -33,6 +33,7 @@ plugins=(
   "floozy:floozy"
   "basilico:basilico"
   "luma:luma"
+  "paunchlad:paunchlad"
 )
 
 usage() {

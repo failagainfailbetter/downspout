@@ -32,7 +32,7 @@ Public release packaging is handled separately by
 
 ## Current outputs
 
-The repository currently installs sixteen real wrapper targets:
+The repository currently installs seventeen real wrapper targets:
 
 - `bassgen.vst3` with UI
 - `p_mix.vst3` with UI
@@ -50,8 +50,9 @@ The repository currently installs sixteen real wrapper targets:
 - `floozy.vst3` with UI
 - `basilico.vst3` with UI
 - `luma.vst3` with UI
+- `paunchlad.vst3` with UI
 
-The next install-related validation is host-side confirmation that all sixteen bundles behave correctly in `Release` builds.
+The next install-related validation is host-side confirmation that all seventeen bundles behave correctly in `Release` builds.
 
 `install.sh` updates the VST3 bundles, but it does not modify DAW plugin
 caches. If a DAW still shows stale names, makers, categories, or homepage
@@ -83,3 +84,4 @@ The script has been smoke-tested with a temporary install root under `/tmp`:
 - confirmed `floozy.vst3` bundle output and install
 - confirmed `basilico.vst3` bundle output and install
 - confirmed `luma.vst3` bundle output and install
+- confirmed `paunchlad.vst3` bundle output and install

@@ -27,6 +27,7 @@ option(DOWNSPOUT_BUILD_GROUND "Configure the ground original MIDI target" ON)
 option(DOWNSPOUT_BUILD_FLOOZY "Configure the floozy port target" ON)
 option(DOWNSPOUT_BUILD_BASILICO "Configure the basilico bass instrument target" ON)
 option(DOWNSPOUT_BUILD_LUMA "Configure the luma Launchpad performance target" ON)
+option(DOWNSPOUT_BUILD_PAUNCHLAD "Configure the PaunchLad Launchpad dub effect target" ON)
 option(DOWNSPOUT_ENABLE_DPF "Enable DPF-based plugin wrapper targets" ON)
 option(DOWNSPOUT_BUILD_SCREENSHOT_APPS "Build DPF standalone apps for documentation screenshots" OFF)
 
@@ -119,4 +120,8 @@ endif()
 
 if(DOWNSPOUT_BUILD_LUMA)
     add_subdirectory(plugins/luma)
+endif()
+
+if(DOWNSPOUT_BUILD_PAUNCHLAD)
+    add_subdirectory(plugins/paunchlad)
 endif()

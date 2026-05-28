@@ -73,6 +73,7 @@ Current output filenames:
 - `floozy.png`
 - `basilico.png`
 - `luma.png`
+- `paunchlad.png`
 
 The output path can be overridden:
 

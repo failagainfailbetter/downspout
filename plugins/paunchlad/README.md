@@ -1,0 +1,47 @@
+# PaunchLad
+
+PaunchLad is a Launchpad-controlled dub performance effect. Put it on a snare,
+drum bus, send return, or live input channel, then use the Launchpad for echo
+throws, sirens, spring splashes, dropouts, and tape-style chops.
+
+It is both practical and playable:
+
+- stereo audio input/output passes the source through a dub delay path;
+- Launchpad MIDI input triggers momentary performance actions;
+- generated sirens and spring splashes are mixed into the audio output;
+- MIDI output sends Launchpad Mini Mk3 Programmer Mode LED feedback.
+
+## Grid layout
+
+Bottom to top:
+
+- rows 1-2: echo/snare throws, from tight slap to long runaway repeats;
+- rows 3-4: sirens, lasers, and alarm sweeps;
+- row 5: spring splashes and tone jumps;
+- row 6: dry dropouts;
+- row 7: rhythmic chops;
+- row 8: freeze, panic, and big reset gestures.
+
+The top Launchpad row nudges wet level, feedback, and tone. The right side
+buttons set siren level from low to high.
+
+## Reaper routing
+
+1. Put `paunchlad.vst3` on an audio track or return track.
+2. Send snare, percussion, vocal, or full drum bus audio into that track.
+3. Enable the Launchpad MIDI input for that track.
+4. Set the track's `MIDI Hardware Output` to the Launchpad output port for LEDs.
+
+For classic snare echo, put PaunchLad on an aux/return and send only the snare
+or rimshot to it. For live dub mixing, put it on a drum bus and use the dry,
+wet, feedback, and output sliders as the safety controls.
+
+## Build
+
+PaunchLad is enabled by default with `DOWNSPOUT_BUILD_PAUNCHLAD=ON`.
+
+```bash
+cmake -S ../.. -B ../../build -DDOWNSPOUT_BUILD_PAUNCHLAD=ON
+cmake --build ../../build --target paunchlad-vst3 downspout_paunchlad_core_tests
+ctest --test-dir ../../build --output-on-failure -R paunchlad
+```
