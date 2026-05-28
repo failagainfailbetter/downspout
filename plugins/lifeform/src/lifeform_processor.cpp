@@ -186,13 +186,6 @@ ProcessResult Processor::processBlock(const std::uint32_t frameCount,
     ProcessResult result {};
     processPendingNoteOffs(result, frameCount);
 
-    bool forceLeds = false;
-    for (std::uint32_t i = 0; i < inputEventCount; ++i)
-    {
-        if (handleMidi(inputEvents[i], result))
-            forceLeds = true;
-    }
-
     const int clockMode = static_cast<int>(std::lround(parameters_[kParamClockMode]));
     const bool running = parameters_[kParamRunning] >= 0.5f;
     const bool useHost = running && ((clockMode == static_cast<int>(ClockMode::host)) ||
@@ -200,10 +193,37 @@ ProcessResult Processor::processBlock(const std::uint32_t frameCount,
     const bool useFree = running && ((clockMode == static_cast<int>(ClockMode::free)) ||
                                      (clockMode == static_cast<int>(ClockMode::autoClock) && !transport.valid && transport.playing));
 
+    std::array<std::uint32_t, 32> generationFrames {};
+    std::uint32_t generationCount = 0;
     if (useHost && transport.valid && transport.playing)
-        scheduleClockedGenerations(result, frameCount, transport);
+        scheduleClockedGenerations(generationFrames, generationCount, frameCount, transport);
     else if (useFree)
-        scheduleFreeGenerations(result, frameCount, transport.bpm > 1.0 ? transport.bpm : 120.0);
+        scheduleFreeGenerations(generationFrames, generationCount, frameCount, transport.bpm > 1.0 ? transport.bpm : 120.0);
+
+    bool forceLeds = false;
+    std::uint32_t midiIndex = 0;
+    std::uint32_t generationIndex = 0;
+    while (midiIndex < inputEventCount || generationIndex < generationCount)
+    {
+        const std::uint32_t midiFrame = (inputEvents != nullptr && midiIndex < inputEventCount)
+                                            ? std::min(inputEvents[midiIndex].frame, frameCount > 0 ? frameCount - 1u : 0u)
+                                            : UINT32_MAX;
+        const std::uint32_t generationFrame = generationIndex < generationCount
+                                                  ? generationFrames[generationIndex]
+                                                  : UINT32_MAX;
+
+        if (generationFrame <= midiFrame)
+        {
+            runGeneration(result, generationFrame);
+            ++generationIndex;
+        }
+        else
+        {
+            if (handleMidi(inputEvents[midiIndex], result))
+                forceLeds = true;
+            ++midiIndex;
+        }
+    }
 
     const bool periodicRefresh = ledRefreshSamples_ >= static_cast<std::uint32_t>(sampleRate_ * 0.75);
     emitLedFeedback(result, forceLeds || periodicRefresh || !ledInitialized_);
@@ -296,7 +316,7 @@ bool Processor::handleMidi(const MidiMessage& event, ProcessResult& result)
     if (status == 0x90u && data2 > 0u)
         return handleGridPress(data1);
     if (status == 0xb0u && data2 > 0u)
-        return handleTopButton(data1, result) || handleSideButton(data1);
+        return handleTopButton(data1, result, event.frame) || handleSideButton(data1);
 
     if (status == 0x90u || status == 0x80u || status == 0xb0u)
         appendMidi(result, event.frame, event.data[0], data1, data2);
@@ -318,7 +338,7 @@ bool Processor::handleGridPress(const std::uint8_t note)
     return true;
 }
 
-bool Processor::handleTopButton(const std::uint8_t cc, ProcessResult& result)
+bool Processor::handleTopButton(const std::uint8_t cc, ProcessResult& result, const std::uint32_t frame)
 {
     const int index = findIndex(cc, kTopButtonCCs.data(), kTopButtonCCs.size());
     if (index < 0)
@@ -327,7 +347,7 @@ bool Processor::handleTopButton(const std::uint8_t cc, ProcessResult& result)
     switch (index)
     {
     case 0: setParameter(kParamRunning, parameters_[kParamRunning] >= 0.5f ? 0.0f : 1.0f); break;
-    case 1: runGeneration(result, 0); break;
+    case 1: runGeneration(result, frame); break;
     case 2: randomizeCells(); break;
     case 3: clearCells(); break;
     case 4: setParameter(kParamSeed, std::fmod(parameters_[kParamSeed] + 1.0f, 8.0f)); break;
@@ -369,7 +389,8 @@ void Processor::processPendingNoteOffs(ProcessResult& result, const std::uint32_
     }
 }
 
-void Processor::scheduleClockedGenerations(ProcessResult& result,
+void Processor::scheduleClockedGenerations(std::array<std::uint32_t, 32>& frames,
+                                           std::uint32_t& count,
                                            const std::uint32_t frameCount,
                                            const TransportSnapshot& transport)
 {
@@ -390,19 +411,24 @@ void Processor::scheduleClockedGenerations(ProcessResult& result,
         const double frame = (static_cast<double>(beat) - startBeat) / beatsPerSecond * sampleRate_;
         if (frame >= -0.5 && frame < static_cast<double>(frameCount))
         {
-            runGeneration(result, static_cast<std::uint32_t>(std::max(0.0, std::round(frame))));
+            if (count < frames.size())
+                frames[count++] = static_cast<std::uint32_t>(std::max(0.0, std::round(frame)));
             lastHostBeat_ = beat;
         }
     }
 }
 
-void Processor::scheduleFreeGenerations(ProcessResult& result, const std::uint32_t frameCount, const double bpm)
+void Processor::scheduleFreeGenerations(std::array<std::uint32_t, 32>& frames,
+                                        std::uint32_t& count,
+                                        const std::uint32_t frameCount,
+                                        const double bpm)
 {
     const double samplesPerBeat = sampleRate_ * 60.0 / std::max(1.0, bpm);
     double local = freeBeatSamples_;
     while (local < static_cast<double>(frameCount))
     {
-        runGeneration(result, static_cast<std::uint32_t>(std::round(local)));
+        if (count < frames.size())
+            frames[count++] = static_cast<std::uint32_t>(std::round(local));
         local += samplesPerBeat;
     }
     freeBeatSamples_ = local - static_cast<double>(frameCount);

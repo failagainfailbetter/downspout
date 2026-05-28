@@ -65,13 +65,17 @@ private:
     void setCell(std::size_t row, std::size_t col, bool alive);
     bool handleMidi(const MidiMessage& event, ProcessResult& result);
     bool handleGridPress(std::uint8_t note);
-    bool handleTopButton(std::uint8_t cc, ProcessResult& result);
+    bool handleTopButton(std::uint8_t cc, ProcessResult& result, std::uint32_t frame);
     bool handleSideButton(std::uint8_t cc);
     void processPendingNoteOffs(ProcessResult& result, std::uint32_t frameCount);
-    void scheduleClockedGenerations(ProcessResult& result,
+    void scheduleClockedGenerations(std::array<std::uint32_t, 32>& frames,
+                                    std::uint32_t& count,
                                     std::uint32_t frameCount,
                                     const TransportSnapshot& transport);
-    void scheduleFreeGenerations(ProcessResult& result, std::uint32_t frameCount, double bpm);
+    void scheduleFreeGenerations(std::array<std::uint32_t, 32>& frames,
+                                 std::uint32_t& count,
+                                 std::uint32_t frameCount,
+                                 double bpm);
     void runGeneration(ProcessResult& result, std::uint32_t frame);
     void emitCell(ProcessResult& result,
                   std::uint32_t frame,

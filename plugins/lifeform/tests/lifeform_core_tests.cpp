@@ -43,6 +43,7 @@ int main()
     using downspout::lifeform::kParamRunning;
     using downspout::lifeform::kParamSeed;
     using downspout::lifeform::kParamStatusCellStart;
+    using downspout::lifeform::kParamStatusGeneration;
     using downspout::lifeform::cellIndex;
 
     Processor processor;
@@ -91,6 +92,21 @@ int main()
     result = processor.processBlock(128, transport, &press, 1);
     require(processor.getParameter(kParamStatusCellStart + cellIndex(5, 6)) == 0.0f,
             "lifeform Launchpad pad press should flip a cell off");
+
+    processor.activate();
+    processor.setParameter(kParamLedFeedback, 0.0f);
+    processor.setParameter(kParamRunning, 0.0f);
+    for (std::uint32_t i = 0; i < 64; ++i)
+        processor.setParameter(kParamCellStart + i, 0.0f);
+    processor.setParameter(kParamRunning, 1.0f);
+    processor.setParameter(kParamClockMode, 2.0f);
+    press.frame = 0;
+    press.data[1] = gridToNote(4, 4);
+    result = processor.processBlock(128, transport, &press, 1);
+    require(processor.getParameter(kParamStatusCellStart + cellIndex(4, 4)) == 1.0f,
+            "lifeform same-frame beat and pad press should leave the pressed cell visible");
+    require(processor.getParameter(kParamStatusGeneration) == 1.0f,
+            "lifeform same-frame beat should still advance exactly one generation");
 
     processor.setParameter(kParamSeed, 1.0f);
     require(processor.getStatus().activeCells >= 5.0f, "lifeform seed control should load an organism");
