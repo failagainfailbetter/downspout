@@ -67,6 +67,9 @@ void Processor::clearPerformance()
     sirenLfo_ = 0.0f;
     sirenEnv_ = 0.0f;
     sirenSweep_ = 0.0f;
+    snareEnv_ = 0.0f;
+    snareBodyPhase_ = 0.0f;
+    snareBodyHz_ = 180.0f;
     springEnv_ = 0.0f;
     springState_ = 0.0f;
     throwSend_ = 0.0f;
@@ -75,6 +78,7 @@ void Processor::clearPerformance()
     dropFrames_ = 0;
     chopFrames_ = 0;
     freezeFrames_ = 0;
+    inputLayout_ = LaunchpadInputLayout::unknown;
     status_ = {};
 }
 
@@ -189,7 +193,33 @@ bool Processor::handleGridPress(const std::uint8_t note, const std::uint8_t velo
 {
     std::size_t row = 0;
     std::size_t col = 0;
-    if (!noteToGrid(note, row, col))
+
+    bool mapped = false;
+    if (parameters_[kParamLedFeedback] >= 0.5f && noteToGrid(note, row, col))
+    {
+        inputLayout_ = LaunchpadInputLayout::programmer;
+        mapped = true;
+    }
+    else if (inputLayout_ == LaunchpadInputLayout::programmer)
+    {
+        mapped = noteToGrid(note, row, col);
+    }
+    else if (inputLayout_ == LaunchpadInputLayout::custom)
+    {
+        mapped = noteToDefaultCustomGrid(note, row, col);
+    }
+    else if (noteToDefaultCustomGrid(note, row, col))
+    {
+        inputLayout_ = LaunchpadInputLayout::custom;
+        mapped = true;
+    }
+    else if (noteToGrid(note, row, col))
+    {
+        inputLayout_ = LaunchpadInputLayout::programmer;
+        mapped = true;
+    }
+
+    if (!mapped)
         return false;
 
     triggerPad(row, col, static_cast<float>(velocity) / 127.0f);
@@ -243,6 +273,8 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         throwFrames_ = framesForBeatDivision(kBeatLengths[col]);
         throwSend_ = clampValue(0.45f + strength * 0.55f, 0.0f, 1.0f);
         throwFeedback_ = clampValue(0.18f + static_cast<float>(col) * 0.08f, 0.0f, 0.86f);
+        snareEnv_ = row == 0 ? 0.95f : 0.45f;
+        snareBodyHz_ = 145.0f + static_cast<float>(col) * 18.0f;
         return;
     }
 
@@ -307,6 +339,18 @@ void Processor::processAudio(const float* inLeft,
         const float inputL = inLeft != nullptr ? inLeft[frame] : 0.0f;
         const float inputR = inRight != nullptr ? inRight[frame] : inputL;
 
+        float snare = 0.0f;
+        if (snareEnv_ > 0.0001f)
+        {
+            snareBodyPhase_ += snareBodyHz_ / static_cast<float>(sampleRate_);
+            if (snareBodyPhase_ >= 1.0f)
+                snareBodyPhase_ -= 1.0f;
+            const float body = std::sin(snareBodyPhase_ * 2.0f * kPi) * snareEnv_;
+            const float crack = noise() * snareEnv_ * snareEnv_;
+            snare = body * 0.32f + crack * 0.42f;
+            snareEnv_ *= 0.986f;
+        }
+
         const std::size_t read = (delayWrite_ + delaySize - delaySamples) % delaySize;
         float delayL = delayLeft_[read];
         float delayR = delayRight_[(read + delaySamples / 5u) % delaySize];
@@ -321,8 +365,8 @@ void Processor::processAudio(const float* inLeft,
         const float feedback = std::min(0.985f, baseFeedback + throwFeedback_ + freeze * 0.30f);
         const float send = parameters_[kParamWet] * 0.20f + throwAmount;
 
-        delayLeft_[delayWrite_] = inputL * send + delayR * feedback;
-        delayRight_[delayWrite_] = inputR * send + delayL * feedback;
+        delayLeft_[delayWrite_] = (inputL + snare * 0.80f) * send + delayR * feedback;
+        delayRight_[delayWrite_] = (inputR + snare * 0.65f) * send + delayL * feedback;
         delayWrite_ = (delayWrite_ + 1u) % delaySize;
 
         float siren = 0.0f;
@@ -359,8 +403,8 @@ void Processor::processAudio(const float* inLeft,
             dryGain *= 0.20f;
 
         const float wetGain = parameters_[kParamWet] * (0.25f + throwAmount * 1.3f);
-        const float outL = (inputL * dryGain + delayL * wetGain + siren + spring) * outputGain;
-        const float outR = (inputR * dryGain + delayR * wetGain + siren * 0.92f - spring) * outputGain;
+        const float outL = (inputL * dryGain + delayL * wetGain + snare * 0.42f + siren + spring) * outputGain;
+        const float outR = (inputR * dryGain + delayR * wetGain + snare * 0.36f + siren * 0.92f - spring) * outputGain;
 
         if (outLeft != nullptr)
             outLeft[frame] = std::tanh(outL);

@@ -91,9 +91,28 @@ protected:
         if (index < values_.size())
         {
             values_[index] = value;
-            touched_[index] = true;
             repaint();
         }
+    }
+
+    void uiIdle() override
+    {
+        bool changed = false;
+        for (std::size_t i = kParamStatusCellStart; i < kParamStatusCellStart + kCellCount; ++i)
+        {
+            if (values_[i] > 0.0f)
+            {
+                values_[i] = std::max(0.0f, values_[i] - 0.08f);
+                changed = true;
+            }
+        }
+        if (values_[kParamStatusActivity] > 0.0f)
+        {
+            values_[kParamStatusActivity] = std::max(0.0f, values_[kParamStatusActivity] - 0.04f);
+            changed = true;
+        }
+        if (changed)
+            repaint();
     }
 
     void onNanoDisplay() override
@@ -127,7 +146,6 @@ protected:
                 triggerParameter(static_cast<std::uint32_t>(i));
                 const std::size_t statusIndex = kParamStatusCellStart + i;
                 values_[statusIndex] = 1.0f;
-                touched_[statusIndex] = true;
                 repaint();
                 return true;
             }
@@ -168,7 +186,6 @@ protected:
 
 private:
     std::array<float, kParameterCount> values_ {};
-    std::array<bool, kParameterCount> touched_ {};
     std::array<Rect, kCellCount> padRects_ {};
     std::array<Rect, kSliders.size()> sliderRects_ {};
     Rect panicRect_ {};
@@ -178,7 +195,7 @@ private:
     [[nodiscard]] float padValue(const std::size_t index) const noexcept
     {
         const std::size_t statusIndex = kParamStatusCellStart + index;
-        if (statusIndex < touched_.size() && touched_[statusIndex])
+        if (statusIndex < values_.size() && values_[statusIndex] > 0.02f)
             return values_[statusIndex];
         return values_[index];
     }

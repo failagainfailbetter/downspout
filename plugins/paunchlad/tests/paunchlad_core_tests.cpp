@@ -42,6 +42,8 @@ int main()
     using downspout::paunchlad::Processor;
     using downspout::paunchlad::gridToNote;
     using downspout::paunchlad::kLedPurple;
+    using downspout::paunchlad::kParamLedFeedback;
+    using downspout::paunchlad::kParamSirenLevel;
     using downspout::paunchlad::kParamStatusCellStart;
 
     Processor processor;
@@ -63,13 +65,55 @@ int main()
     auto result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
     require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(2, 3)) == 1.0f,
             "paunchlad status cell should reflect triggered siren pad");
-    require(containsMidi(result, 0x90, gridToNote(2, 3), kLedPurple),
-            "paunchlad LED feedback should light triggered siren pad");
+    require(result.eventCount == 0, "paunchlad should not emit LED MIDI until LED feedback is enabled");
 
     float peak = 0.0f;
     for (std::size_t i = 0; i < outLeft.size(); ++i)
         peak = std::max(peak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
     require(peak > 0.005f, "paunchlad siren should produce audible output");
+
+    processor.setParameter(kParamLedFeedback, 1.0f);
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
+    require(containsMidi(result, 0x90, gridToNote(2, 3), kLedPurple),
+            "paunchlad LED feedback should light triggered siren pad when enabled");
+
+    processor.activate();
+    processor.setParameter(kParamSirenLevel, 0.0f);
+    inLeft.fill(0.0f);
+    inRight.fill(0.0f);
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
+    float mutedPeak = 0.0f;
+    for (std::size_t i = 0; i < outLeft.size(); ++i)
+        mutedPeak = std::max(mutedPeak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
+    processor.activate();
+    processor.setParameter(kParamSirenLevel, 1.0f);
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
+    float loudPeak = 0.0f;
+    for (std::size_t i = 0; i < outLeft.size(); ++i)
+        loudPeak = std::max(loudPeak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
+    require(loudPeak > mutedPeak + 0.005f, "paunchlad siren level parameter should change generated siren output");
+
+    processor.activate();
+    inLeft[0] = 1.0f;
+    inRight[0] = 1.0f;
+    MidiMessage custom {};
+    custom.size = 3;
+    custom.data[0] = 0x90;
+    custom.data[1] = 36 + 2 * 4 + 3;
+    custom.data[2] = 127;
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &custom, 1);
+    require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(2, 3)) == 1.0f,
+            "paunchlad should map Launchpad default custom/user note mode onto the performance grid");
+
+    processor.activate();
+    MidiMessage defaultRightHalf {};
+    defaultRightHalf.size = 3;
+    defaultRightHalf.data[0] = 0x90;
+    defaultRightHalf.data[1] = 68;
+    defaultRightHalf.data[2] = 127;
+    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &defaultRightHalf, 1);
+    require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(0, 4)) == 1.0f,
+            "paunchlad should map Launchpad default custom right half notes into columns 5-8");
 
     MidiMessage echo {};
     echo.size = 3;

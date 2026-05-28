@@ -12,6 +12,15 @@ Core roles:
 - dropout/chop rows momentarily remove or rhythmically interrupt dry signal;
 - top row gestures clear or freeze performance state.
 
-The first pass targets Novation Launchpad Mini Mk3 Programmer Mode. The mapping
-should stay behind the processor's grid helpers so other Launchpad layouts can
-be added without changing the audio behavior.
+The first pass supports two Launchpad input layouts:
+
+- custom/user note mode, using notes `36..67` on the left half and `68..99` on
+  the right half, is the default because it matches the Launchpad's plain
+  MIDI-source behaviour;
+- programmer grid mode, using notes `11..88`, is assumed when LED feedback is
+  enabled.
+
+LED feedback is intentionally off by default. The LED messages are normal MIDI
+note and CC output, so enabling them is only practical when the host routes the
+plugin MIDI output directly back to the Launchpad hardware instead of into
+another instrument.

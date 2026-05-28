@@ -27,6 +27,12 @@ struct ProcessResult {
     Status status {};
 };
 
+enum class LaunchpadInputLayout {
+    unknown,
+    programmer,
+    custom,
+};
+
 class Processor {
 public:
     void init(double sampleRate);
@@ -87,6 +93,9 @@ private:
     float sirenEnv_ = 0.0f;
     float sirenSweep_ = 0.0f;
     int sirenMode_ = 0;
+    float snareEnv_ = 0.0f;
+    float snareBodyPhase_ = 0.0f;
+    float snareBodyHz_ = 180.0f;
     float springEnv_ = 0.0f;
     float springState_ = 0.0f;
     float throwSend_ = 0.0f;
@@ -98,6 +107,7 @@ private:
     std::uint32_t ledRefreshSamples_ = 0;
     std::uint32_t randomState_ = 0x61c88647u;
     bool ledInitialized_ = false;
+    LaunchpadInputLayout inputLayout_ = LaunchpadInputLayout::unknown;
     Status status_ {};
 };
 

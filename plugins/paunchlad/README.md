@@ -9,7 +9,18 @@ It is both practical and playable:
 - stereo audio input/output passes the source through a dub delay path;
 - Launchpad MIDI input triggers momentary performance actions;
 - generated sirens and spring splashes are mixed into the audio output;
-- MIDI output sends Launchpad Mini Mk3 Programmer Mode LED feedback.
+- optional MIDI output sends Launchpad Mini Mk3 Programmer Mode LED feedback.
+
+LED feedback is off by default. Leave it off when the plugin's MIDI output is
+routed onward to instruments, because Launchpad LED updates are ordinary MIDI
+note/CC messages and can otherwise play notes. Enable it only when the track's
+MIDI output is routed directly back to the Launchpad hardware.
+
+PaunchLad accepts both the Launchpad programmer grid notes (`11..88`) and the
+default custom/user grid layout (`36..67` on the left half, `68..99` on the
+right half). With LED feedback enabled it assumes programmer mode; with LEDs
+disabled it defaults to the custom/user layout used by the Launchpad as a simple
+MIDI source.
 
 ## Grid layout
 
@@ -29,8 +40,11 @@ buttons set siren level from low to high.
 
 1. Put `paunchlad.vst3` on an audio track or return track.
 2. Send snare, percussion, vocal, or full drum bus audio into that track.
-3. Enable the Launchpad MIDI input for that track.
-4. Set the track's `MIDI Hardware Output` to the Launchpad output port for LEDs.
+3. Enable the Launchpad MIDI input for that track, but avoid also routing the
+   same Launchpad input directly to a synth track unless you want those notes.
+4. Leave PaunchLad's `LED Feedback` button off for simple MIDI-source use.
+5. For LEDs, set the track's `MIDI Hardware Output` to the Launchpad output
+   port, then enable PaunchLad's `LED Feedback` button.
 
 For classic snare echo, put PaunchLad on an aux/return and send only the snare
 or rimshot to it. For live dub mixing, put it on a drum bus and use the dry,
