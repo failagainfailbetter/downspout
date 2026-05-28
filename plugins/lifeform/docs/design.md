@@ -41,6 +41,12 @@ The panic path follows the `padseq` pattern: emit programmer-mode SysEx
 side, top, and logo LED set to colour 0, clear all cells, clear pending notes,
 reset clock state, and stop the generator.
 
+The vendored DPF VST3 bridge is patched locally to forward SysEx as VST3 data
+events, because upstream DPF's default VST3 MIDI output only forwards note, CC,
+pressure, and pitch-bend events. Panic also sends ordinary 3-byte note/CC LED
+off messages after the SysEx clear, so a Launchpad that is already in programmer
+mode can still be cleared if the host filters SysEx on hardware outputs.
+
 Musical MIDI defaults to channel 4 so generated notes do not overlap the
 programmer-mode LED channels 1-3. Setting the base channel back to 1 is still
 allowed, but routing that output to the Launchpad will make generated notes act

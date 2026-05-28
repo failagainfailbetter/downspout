@@ -200,6 +200,10 @@ int main()
             "lifeform panic should send programmer-mode SysEx");
     require(containsLargeClearSysex(result),
             "lifeform panic should send a full Launchpad clear SysEx");
+    require(containsMidi(result, 0x90, gridToNote(0, 0), 0),
+            "lifeform panic should also send 3-byte LED-off fallback for grid pads");
+    require(containsMidi(result, 0xb0, 99, 0),
+            "lifeform panic should also send 3-byte LED-off fallback for the logo");
 
     processor.setParameter(kParamSeed, 1.0f);
     require(processor.getStatus().activeCells >= 5.0f, "lifeform seed control should load an organism");

@@ -557,6 +557,7 @@ void Processor::runPanic(ProcessResult& result)
 
     appendSysex(result, kProgrammerModeSysex.data(), static_cast<std::uint16_t>(kProgrammerModeSysex.size()));
     appendClearAllSysex(result);
+    appendClearAllMidi(result);
 
     clearCells();
     parameters_[kParamRunning] = 0.0f;
@@ -686,6 +687,20 @@ void Processor::appendClearAllSysex(ProcessResult& result)
 
     append(0xf7u);
     appendSysex(result, data.data(), size);
+}
+
+void Processor::appendClearAllMidi(ProcessResult& result)
+{
+    for (std::size_t row = 0; row < kGridHeight; ++row)
+    {
+        for (std::size_t col = 0; col < kGridWidth; ++col)
+            appendMidi(result, 0, 0x90u, gridToNote(row, col), kLedOff);
+    }
+
+    for (const std::uint8_t cc : kSideButtonCCs)
+        appendMidi(result, 0, 0xb0u, cc, kLedOff);
+    for (const std::uint8_t cc : kTopButtonCCs)
+        appendMidi(result, 0, 0xb0u, cc, kLedOff);
 }
 
 int Processor::liveNeighborCount(const std::size_t row, const std::size_t col) const noexcept

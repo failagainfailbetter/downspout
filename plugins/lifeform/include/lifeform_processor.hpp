@@ -99,6 +99,7 @@ private:
                     std::uint8_t data2);
     void appendSysex(ProcessResult& result, const std::uint8_t* data, std::uint16_t size);
     void appendClearAllSysex(ProcessResult& result);
+    void appendClearAllMidi(ProcessResult& result);
     [[nodiscard]] int liveNeighborCount(std::size_t row, std::size_t col) const noexcept;
     [[nodiscard]] std::uint8_t outputChannel(std::size_t row) const noexcept;
     [[nodiscard]] std::uint8_t noteForCell(std::size_t row, std::size_t col) const noexcept;

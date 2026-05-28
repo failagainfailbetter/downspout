@@ -3122,6 +3122,12 @@ private:
             event.midi_cc_out.value = data[1];
             event.midi_cc_out.value2 = data[2];
             break;
+        case 0xF0:
+            event.type = V3_EVENT_DATA;
+            event.data.size = midiEvent.size;
+            event.data.type = 0; // Steinberg VST3 DataEvent::kMidiSysEx
+            event.data.bytes = data;
+            break;
         default:
             return true;
         }
