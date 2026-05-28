@@ -1,0 +1,664 @@
+#include "basilico_engine.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <vector>
+
+namespace downspout::basilico {
+namespace {
+
+constexpr float kPi = 3.14159265358979323846f;
+constexpr float kTwoPi = kPi * 2.0f;
+
+float clampUnit(const float value)
+{
+    return std::clamp(std::isfinite(value) ? value : 0.0f, 0.0f, 1.0f);
+}
+
+float midiNoteToFrequency(const int midiNote)
+{
+    return 440.0f * std::pow(2.0f, (static_cast<float>(midiNote) - 69.0f) / 12.0f);
+}
+
+float sanitizeAudio(const float value)
+{
+    if (!std::isfinite(value))
+        return 0.0f;
+    return std::tanh(std::clamp(value, -4.0f, 4.0f));
+}
+
+float expMap(const float value, const float minimum, const float maximum)
+{
+    return minimum * std::pow(maximum / minimum, clampUnit(value));
+}
+
+float outputGain(const float value)
+{
+    return clampUnit(value) * 2.0f;
+}
+
+struct Params {
+    std::array<float, kParameterCount> values {};
+
+    Params()
+    {
+        for (std::size_t i = 0; i < kParameterCount; ++i)
+            values[i] = kParameterSpecs[i].defaultValue;
+    }
+};
+
+class Envelope {
+public:
+    void setSampleRate(const float sampleRate)
+    {
+        sampleRate_ = std::max(1000.0f, sampleRate);
+    }
+
+    void set(float attack, float decay, float sustain, float release)
+    {
+        attackSeconds_ = expMap(attack, 0.0005f, 0.120f);
+        decaySeconds_ = expMap(decay, 0.010f, 1.200f);
+        sustain_ = clampUnit(sustain);
+        releaseSeconds_ = expMap(release, 0.006f, 1.500f);
+    }
+
+    void gateOn()
+    {
+        stage_ = Stage::attack;
+        active_ = true;
+    }
+
+    void gateOff()
+    {
+        if (active_)
+            stage_ = Stage::release;
+    }
+
+    void reset()
+    {
+        value_ = 0.0f;
+        active_ = false;
+        stage_ = Stage::idle;
+    }
+
+    float process()
+    {
+        switch (stage_)
+        {
+        case Stage::idle:
+            value_ = 0.0f;
+            break;
+        case Stage::attack:
+            value_ += 1.0f / (attackSeconds_ * sampleRate_);
+            if (value_ >= 1.0f)
+            {
+                value_ = 1.0f;
+                stage_ = Stage::decay;
+            }
+            break;
+        case Stage::decay:
+            value_ += (sustain_ - value_) * (1.0f / (decaySeconds_ * sampleRate_));
+            if (std::fabs(value_ - sustain_) < 0.0005f)
+                value_ = sustain_;
+            break;
+        case Stage::release:
+            value_ -= 1.0f / (releaseSeconds_ * sampleRate_);
+            if (value_ <= 0.0f)
+            {
+                value_ = 0.0f;
+                active_ = false;
+                stage_ = Stage::idle;
+            }
+            break;
+        }
+
+        return clampUnit(value_);
+    }
+
+    bool active() const { return active_; }
+
+private:
+    enum class Stage {
+        idle,
+        attack,
+        decay,
+        release,
+    };
+
+    float sampleRate_ = 44100.0f;
+    float attackSeconds_ = 0.001f;
+    float decaySeconds_ = 0.2f;
+    float sustain_ = 0.6f;
+    float releaseSeconds_ = 0.08f;
+    float value_ = 0.0f;
+    bool active_ = false;
+    Stage stage_ = Stage::idle;
+};
+
+class StateVariableFilter {
+public:
+    void reset()
+    {
+        low_ = 0.0f;
+        band_ = 0.0f;
+    }
+
+    float process(const float input, const float cutoffHz, const float resonance, const float sampleRate)
+    {
+        const float cutoff = std::clamp(cutoffHz, 20.0f, sampleRate * 0.42f);
+        const float f = 2.0f * std::sin(kPi * cutoff / sampleRate);
+        const float q = 0.55f + clampUnit(resonance) * 10.0f;
+        const float high = input - low_ - band_ / q;
+        band_ += f * high;
+        low_ += f * band_;
+
+        if (!std::isfinite(low_))
+            low_ = 0.0f;
+        if (!std::isfinite(band_))
+            band_ = 0.0f;
+
+        return low_;
+    }
+
+private:
+    float low_ = 0.0f;
+    float band_ = 0.0f;
+};
+
+struct ModelProfile {
+    float oscMix = 0.75f;
+    float subMix = 0.5f;
+    float bodyAmount = 0.5f;
+    float biteAmount = 0.3f;
+    float cutoffBias = 0.45f;
+    float resonanceBias = 0.2f;
+    float envScale = 0.5f;
+    float decayScale = 1.0f;
+    float sustainScale = 1.0f;
+    float driveScale = 1.0f;
+    int forcedWave = -1;
+    int forcedDrive = -1;
+};
+
+ModelProfile profileForModel(const int model)
+{
+    ModelProfile profile {};
+    switch (std::clamp(model, 0, 4))
+    {
+    case 0: // Upright.
+        profile.oscMix = 0.45f;
+        profile.subMix = 0.35f;
+        profile.bodyAmount = 0.85f;
+        profile.biteAmount = 0.42f;
+        profile.cutoffBias = 0.30f;
+        profile.resonanceBias = 0.12f;
+        profile.envScale = 0.25f;
+        profile.decayScale = 0.75f;
+        profile.sustainScale = 0.65f;
+        profile.driveScale = 0.35f;
+        profile.forcedWave = 1;
+        profile.forcedDrive = 0;
+        break;
+    case 1: // Electric.
+        profile.oscMix = 0.62f;
+        profile.subMix = 0.55f;
+        profile.bodyAmount = 0.55f;
+        profile.biteAmount = 0.38f;
+        profile.cutoffBias = 0.42f;
+        profile.resonanceBias = 0.18f;
+        profile.envScale = 0.35f;
+        profile.decayScale = 0.95f;
+        profile.sustainScale = 0.85f;
+        profile.driveScale = 0.60f;
+        break;
+    case 2: // Dub.
+        profile.oscMix = 0.40f;
+        profile.subMix = 0.85f;
+        profile.bodyAmount = 0.75f;
+        profile.biteAmount = 0.10f;
+        profile.cutoffBias = 0.22f;
+        profile.resonanceBias = 0.10f;
+        profile.envScale = 0.18f;
+        profile.decayScale = 0.45f;
+        profile.sustainScale = 0.55f;
+        profile.driveScale = 0.45f;
+        profile.forcedWave = 0;
+        profile.forcedDrive = 1;
+        break;
+    case 3: // Acid.
+        profile.oscMix = 0.92f;
+        profile.subMix = 0.28f;
+        profile.bodyAmount = 0.22f;
+        profile.biteAmount = 0.62f;
+        profile.cutoffBias = 0.52f;
+        profile.resonanceBias = 0.58f;
+        profile.envScale = 0.90f;
+        profile.decayScale = 0.60f;
+        profile.sustainScale = 0.55f;
+        profile.driveScale = 1.25f;
+        profile.forcedDrive = 2;
+        break;
+    default: // Industrial.
+        profile.oscMix = 0.95f;
+        profile.subMix = 0.42f;
+        profile.bodyAmount = 0.28f;
+        profile.biteAmount = 0.90f;
+        profile.cutoffBias = 0.66f;
+        profile.resonanceBias = 0.32f;
+        profile.envScale = 0.45f;
+        profile.decayScale = 0.55f;
+        profile.sustainScale = 0.70f;
+        profile.driveScale = 1.75f;
+        profile.forcedDrive = 3;
+        break;
+    }
+    return profile;
+}
+
+} // namespace
+
+class BasilicoEngine::Impl {
+public:
+    explicit Impl(const float sampleRate)
+    {
+        setSampleRate(sampleRate);
+    }
+
+    void setSampleRate(const float sampleRate)
+    {
+        sampleRate_ = std::max(1000.0f, sampleRate);
+        ampEnv_.setSampleRate(sampleRate_);
+        filterEnv_.setSampleRate(sampleRate_);
+        reset();
+    }
+
+    void reset()
+    {
+        ampEnv_.reset();
+        filterEnv_.reset();
+        filter_.reset();
+        heldNotes_.clear();
+        currentNote_ = -1;
+        targetFrequency_ = 55.0f;
+        currentFrequency_ = 55.0f;
+        phase_ = 0.0f;
+        subPhase_ = 0.0f;
+        punch_ = 0.0f;
+        active_ = false;
+        velocity_ = 0.0f;
+        dcX_ = 0.0f;
+        dcY_ = 0.0f;
+    }
+
+    float getParameter(const std::uint32_t index) const
+    {
+        if (index >= kParameterCount)
+            return 0.0f;
+        return params_.values[index];
+    }
+
+    void setParameter(const std::uint32_t index, const float value)
+    {
+        if (index >= kParameterCount)
+            return;
+
+        const auto& spec = kParameterSpecs[index];
+        float clamped = std::clamp(std::isfinite(value) ? value : spec.defaultValue, spec.minimum, spec.maximum);
+        if (spec.integer)
+            clamped = std::round(clamped);
+        params_.values[index] = clamped;
+    }
+
+    void noteOn(const int midiNote, const std::uint8_t velocity)
+    {
+        if (midiNote < 0 || midiNote > 127)
+            return;
+        if (velocity == 0)
+        {
+            noteOff(midiNote);
+            return;
+        }
+
+        removeHeld(midiNote);
+        heldNotes_.push_back(midiNote);
+
+        const bool wasActive = active_;
+        currentNote_ = midiNote;
+        targetFrequency_ = midiNoteToFrequency(midiNote);
+        if (!wasActive || legatoDisabled())
+        {
+            currentFrequency_ = targetFrequency_;
+            phase_ = 0.0f;
+            subPhase_ = 0.0f;
+            ampEnv_.gateOn();
+            filterEnv_.gateOn();
+            filter_.reset();
+        }
+
+        active_ = true;
+        velocity_ = std::clamp(static_cast<float>(velocity) / 127.0f, 0.0f, 1.0f);
+        punch_ = velocity_;
+    }
+
+    void noteOff(const int midiNote)
+    {
+        removeHeld(midiNote);
+        if (!heldNotes_.empty())
+        {
+            currentNote_ = heldNotes_.back();
+            targetFrequency_ = midiNoteToFrequency(currentNote_);
+            return;
+        }
+
+        ampEnv_.gateOff();
+        filterEnv_.gateOff();
+    }
+
+    void allNotesOff()
+    {
+        heldNotes_.clear();
+        ampEnv_.gateOff();
+        filterEnv_.gateOff();
+    }
+
+    void handleMidi(const std::uint8_t* const data, const std::uint32_t size)
+    {
+        if (data == nullptr || size < 1)
+            return;
+
+        const std::uint8_t status = data[0] & 0xf0U;
+        const std::uint8_t note = size > 1 ? data[1] : 0;
+        const std::uint8_t value = size > 2 ? data[2] : 0;
+
+        switch (status)
+        {
+        case 0x80:
+            noteOff(note);
+            break;
+        case 0x90:
+            noteOn(note, value);
+            break;
+        case 0xb0:
+            if (note == 120 || note == 123)
+                allNotesOff();
+            break;
+        default:
+            break;
+        }
+    }
+
+    StereoFrame processStereo()
+    {
+        syncEnvelopes();
+
+        const float amp = ampEnv_.process();
+        const float filterEnv = filterEnv_.process();
+        if (!ampEnv_.active() && heldNotes_.empty())
+            active_ = false;
+
+        updateGlide();
+
+        const int model = static_cast<int>(params_.values[static_cast<std::size_t>(ParamId::model)]);
+        const auto profile = profileForModel(model);
+        const int wave = profile.forcedWave >= 0
+                             ? profile.forcedWave
+                             : static_cast<int>(params_.values[static_cast<std::size_t>(ParamId::waveform)]);
+        const int driveType = profile.forcedDrive >= 0
+                                  ? profile.forcedDrive
+                                  : static_cast<int>(params_.values[static_cast<std::size_t>(ParamId::driveType)]);
+
+        const float main = oscillator(wave, phase_);
+        const float sub = oscillator(model == 2 ? 0 : 3, subPhase_);
+        const float body = bodyTone(main, sub, profile);
+        const float transient = transientTone(profile);
+
+        advancePhase(phase_, currentFrequency_);
+        advancePhase(subPhase_, currentFrequency_ * 0.5f);
+
+        const float source = main * profile.oscMix +
+                             sub * params_.values[static_cast<std::size_t>(ParamId::subLevel)] * profile.subMix +
+                             body * params_.values[static_cast<std::size_t>(ParamId::body)] * profile.bodyAmount +
+                             transient;
+
+        const float cutoff = cutoffHz(profile, filterEnv);
+        const float filtered = filter_.process(sanitizeAudio(source), cutoff, resonance(profile), sampleRate_);
+        const float driven = applyDrive(filtered, driveType, profile);
+        const float out = sanitizeAudio(dcBlock(sanitizeAudio(driven * amp * (0.35f + velocity_ * 0.65f) *
+                                                        outputGain(params_.values[static_cast<std::size_t>(ParamId::output)]))));
+
+        punch_ *= 0.995f - params_.values[static_cast<std::size_t>(ParamId::mute)] * 0.018f;
+
+        return {out, out};
+    }
+
+    bool active() const { return active_; }
+    int currentNote() const { return currentNote_; }
+    float currentFrequency() const { return currentFrequency_; }
+    float sampleRate() const { return sampleRate_; }
+
+private:
+    bool legatoDisabled() const
+    {
+        return params_.values[static_cast<std::size_t>(ParamId::glide)] < 0.02f;
+    }
+
+    void syncEnvelopes()
+    {
+        const int model = static_cast<int>(params_.values[static_cast<std::size_t>(ParamId::model)]);
+        const auto profile = profileForModel(model);
+        const float mute = params_.values[static_cast<std::size_t>(ParamId::mute)];
+        const float decay = std::clamp(params_.values[static_cast<std::size_t>(ParamId::decay)] * profile.decayScale * (1.15f - mute * 0.65f),
+                                       0.0f,
+                                       1.0f);
+        const float sustain = std::clamp(params_.values[static_cast<std::size_t>(ParamId::sustain)] * profile.sustainScale * (1.0f - mute * 0.55f),
+                                         0.0f,
+                                         1.0f);
+        ampEnv_.set(params_.values[static_cast<std::size_t>(ParamId::attack)],
+                    decay,
+                    sustain,
+                    params_.values[static_cast<std::size_t>(ParamId::release)]);
+        filterEnv_.set(0.0f, decay * 0.85f, sustain * 0.45f, params_.values[static_cast<std::size_t>(ParamId::release)]);
+    }
+
+    void updateGlide()
+    {
+        const float glide = params_.values[static_cast<std::size_t>(ParamId::glide)];
+        const float glideSeconds = expMap(glide, 0.001f, 0.450f);
+        const float coefficient = glide <= 0.001f ? 1.0f : 1.0f - std::exp(-1.0f / (glideSeconds * sampleRate_));
+        currentFrequency_ += (targetFrequency_ - currentFrequency_) * coefficient;
+    }
+
+    void advancePhase(float& phase, const float frequency)
+    {
+        phase += frequency / sampleRate_;
+        if (phase >= 1.0f)
+            phase -= std::floor(phase);
+    }
+
+    float oscillator(const int wave, const float phase) const
+    {
+        switch (std::clamp(wave, 0, 4))
+        {
+        case 0:
+            return std::sin(phase * kTwoPi);
+        case 1:
+            return 4.0f * std::fabs(phase - 0.5f) - 1.0f;
+        case 2:
+            return 2.0f * phase - 1.0f;
+        case 3:
+            return phase < 0.5f ? 1.0f : -1.0f;
+        default:
+            return phase < (0.20f + params_.values[static_cast<std::size_t>(ParamId::bite)] * 0.55f) ? 1.0f : -1.0f;
+        }
+    }
+
+    float bodyTone(const float main, const float sub, const ModelProfile& profile) const
+    {
+        const float body = params_.values[static_cast<std::size_t>(ParamId::body)];
+        const float pickup = std::sin(phase_ * kTwoPi * (1.0f + body * 0.08f));
+        return sanitizeAudio((main * 0.35f + sub * 0.55f + pickup * 0.20f) * profile.bodyAmount);
+    }
+
+    float transientTone(const ModelProfile& profile) const
+    {
+        const float bite = params_.values[static_cast<std::size_t>(ParamId::bite)] * profile.biteAmount;
+        const float click = (phase_ < 0.5f ? 1.0f : -1.0f) * punch_ * bite * 0.22f;
+        const float finger = std::sin(phase_ * kTwoPi * 7.0f) * punch_ * bite * 0.08f;
+        return sanitizeAudio(click + finger);
+    }
+
+    float cutoffHz(const ModelProfile& profile, const float env) const
+    {
+        const float cutoffParam = params_.values[static_cast<std::size_t>(ParamId::cutoff)];
+        const float envAmount = params_.values[static_cast<std::size_t>(ParamId::filterEnv)] * profile.envScale;
+        const float keyTrack = params_.values[static_cast<std::size_t>(ParamId::keyTrack)];
+        const float accent = params_.values[static_cast<std::size_t>(ParamId::accent)] * velocity_;
+        const float normalized = std::clamp(profile.cutoffBias + (cutoffParam - 0.5f) * 0.85f +
+                                                env * envAmount * 0.65f + accent * 0.22f,
+                                            0.0f,
+                                            1.0f);
+        const float base = expMap(normalized, 55.0f, 9000.0f);
+        const float tracked = currentFrequency_ * (0.5f + keyTrack * 4.0f);
+        return std::max(base, tracked * keyTrack);
+    }
+
+    float resonance(const ModelProfile& profile) const
+    {
+        return std::clamp(profile.resonanceBias +
+                              params_.values[static_cast<std::size_t>(ParamId::resonance)] * 0.80f,
+                          0.0f,
+                          1.0f);
+    }
+
+    float applyDrive(float input, const int driveType, const ModelProfile& profile) const
+    {
+        const float drive = params_.values[static_cast<std::size_t>(ParamId::drive)] * profile.driveScale;
+        const float amount = 1.0f + drive * 9.0f;
+        switch (std::clamp(driveType, 0, 3))
+        {
+        case 0:
+            return std::tanh(input * (1.0f + drive * 1.5f));
+        case 1:
+            return std::tanh(input * amount) * (0.75f + drive * 0.20f);
+        case 2:
+            return std::tanh((input + std::sin(phase_ * kTwoPi) * drive * 0.15f) * amount);
+        default:
+        {
+            const float folded = std::sin(input * (1.5f + drive * 12.0f));
+            return std::tanh((folded * drive + input * (1.0f - drive * 0.35f)) * 1.6f);
+        }
+        }
+    }
+
+    float dcBlock(const float input)
+    {
+        const float output = input - dcX_ + 0.995f * dcY_;
+        dcX_ = input;
+        dcY_ = output;
+        return output;
+    }
+
+    void removeHeld(const int midiNote)
+    {
+        heldNotes_.erase(std::remove(heldNotes_.begin(), heldNotes_.end(), midiNote), heldNotes_.end());
+    }
+
+    float sampleRate_ = 44100.0f;
+    Params params_;
+    Envelope ampEnv_;
+    Envelope filterEnv_;
+    StateVariableFilter filter_;
+    std::vector<int> heldNotes_;
+    int currentNote_ = -1;
+    float targetFrequency_ = 55.0f;
+    float currentFrequency_ = 55.0f;
+    float phase_ = 0.0f;
+    float subPhase_ = 0.0f;
+    float punch_ = 0.0f;
+    float velocity_ = 0.0f;
+    float dcX_ = 0.0f;
+    float dcY_ = 0.0f;
+    bool active_ = false;
+};
+
+BasilicoEngine::BasilicoEngine(const float sampleRate)
+    : impl_(std::make_unique<Impl>(sampleRate))
+    , sampleRate_(impl_->sampleRate())
+{
+}
+
+BasilicoEngine::~BasilicoEngine() = default;
+
+void BasilicoEngine::setSampleRate(const float sampleRate)
+{
+    impl_->setSampleRate(sampleRate);
+    sampleRate_ = impl_->sampleRate();
+}
+
+void BasilicoEngine::reset()
+{
+    impl_->reset();
+}
+
+float BasilicoEngine::getParameter(const std::uint32_t index) const
+{
+    return impl_->getParameter(index);
+}
+
+void BasilicoEngine::setParameter(const std::uint32_t index, const float value)
+{
+    impl_->setParameter(index, value);
+}
+
+float BasilicoEngine::getParameter(const ParamId id) const
+{
+    return getParameter(static_cast<std::uint32_t>(id));
+}
+
+void BasilicoEngine::setParameter(const ParamId id, const float value)
+{
+    setParameter(static_cast<std::uint32_t>(id), value);
+}
+
+void BasilicoEngine::noteOn(const int midiNote, const std::uint8_t velocity)
+{
+    impl_->noteOn(midiNote, velocity);
+}
+
+void BasilicoEngine::noteOff(const int midiNote)
+{
+    impl_->noteOff(midiNote);
+}
+
+void BasilicoEngine::allNotesOff()
+{
+    impl_->allNotesOff();
+}
+
+void BasilicoEngine::handleMidi(const std::uint8_t* const data, const std::uint32_t size)
+{
+    impl_->handleMidi(data, size);
+}
+
+StereoFrame BasilicoEngine::processStereo()
+{
+    return impl_->processStereo();
+}
+
+bool BasilicoEngine::active() const
+{
+    return impl_->active();
+}
+
+int BasilicoEngine::currentNote() const
+{
+    return impl_->currentNote();
+}
+
+float BasilicoEngine::currentFrequency() const
+{
+    return impl_->currentFrequency();
+}
+
+} // namespace downspout::basilico

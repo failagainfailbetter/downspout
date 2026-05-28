@@ -31,6 +31,7 @@ plugins=(
   "gremlin-driver:gremlin_driver"
   "ground:ground"
   "floozy:floozy"
+  "basilico:basilico"
 )
 
 usage() {

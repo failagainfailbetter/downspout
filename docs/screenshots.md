@@ -71,6 +71,7 @@ Current output filenames:
 - `gremlin-driver.png`
 - `ground.png`
 - `floozy.png`
+- `basilico.png`
 
 The output path can be overridden:
 
