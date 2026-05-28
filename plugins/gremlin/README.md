@@ -8,7 +8,7 @@ exposes a custom performance UI instead of relying on the original X11 panel.
 
 - synth-style VST3 with stereo audio output
 - one MIDI input that accepts both note performance and controller gestures
-- custom UI for scenes, actions, macros, focused live controls, and momentary holds
+- custom UI with conventional fader blocks for scenes, actions, macros, focused live controls, and momentary holds
 - six sound modes: Shard, Servo, Spray, Collapse, Ring, and Vapor
 - no custom saved-state layer yet beyond normal host parameter persistence
 
@@ -35,11 +35,32 @@ input path. The processor differentiates notes, CCs, and controller-button
 notes internally.
 
 That keeps the host-facing wrapper simple enough for mainstream DAWs while
-preserving the practical MIDImix-style behavior.
+preserving the practical Akai MIDImix-style behavior.
+
+## Akai MIDImix control surface
+
+The intended hardware controller is the Akai MIDImix. It has eight channel
+faders, one master fader, 24 knobs in three rows, and mute/solo/record-arm
+buttons. Gremlin follows the original `flues` factory-style mapping:
+
+- channel faders control the eight macro parameters
+- the master fader controls `Master Trim`
+- the top knob row controls source and damage parameters
+- the middle knob row controls delay, stutter, tone, damping, space, and level
+- the bottom knob row remains available as host parameters and for
+  `gremlin-driver` randomisation, but is not shown on the simplified panel
+- record-arm buttons select modes and scenes
+- mute buttons act as momentary hold pads
+- solo/mute combinations trigger actions such as reseed, burst, randomise, and
+  panic
+
+The VST3 build does not currently send MIDImix LED feedback. The older LV2
+version had a separate controller output for that path; the VST3 UI mirrors
+controller activity with status parameters instead.
 
 ## UI note
 
-The UI is intentionally macro-first. Deeper breakage parameters remain exposed
-to the host and to `gremlin-driver`, but the panel keeps the common performance
-surface focused on modes, scenes, actions, macros, source controls, space
-controls, and hold pads.
+The UI is intentionally macro-first and fader-based. Deeper breakage parameters
+remain exposed to the host and to `gremlin-driver`, but the panel keeps the
+common performance surface focused on modes, scenes, actions, macros, source
+controls, time/space controls, and hold pads.

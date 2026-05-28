@@ -65,37 +65,37 @@ struct ButtonDef {
 
 constexpr std::array<SliderDef, 9> kMacroSliderDefs = {{
     {kParamMasterTrim, kInvalidParam, "Master"},
-    {kParamMacroStart + 0, kInvalidParam, "Source"},
+    {kParamMacroStart + 0, kInvalidParam, "Src"},
     {kParamMacroStart + 1, kInvalidParam, "Pitch"},
     {kParamMacroStart + 2, kInvalidParam, "Break"},
     {kParamMacroStart + 3, kInvalidParam, "Delay"},
     {kParamMacroStart + 4, kInvalidParam, "Space"},
-    {kParamMacroStart + 5, kInvalidParam, "Stutter"},
+    {kParamMacroStart + 5, kInvalidParam, "Stut"},
     {kParamMacroStart + 6, kInvalidParam, "Tone"},
-    {kParamMacroStart + 7, kInvalidParam, "Output"},
+    {kParamMacroStart + 7, kInvalidParam, "Out"},
 }};
 
 constexpr std::array<SliderDef, 9> kPrimarySliderDefs = {{
-    {1, kParamStatusStart + 1, "Damage"},
+    {1, kParamStatusStart + 1, "Dmg"},
     {2, kParamStatusStart + 2, "Chaos"},
     {3, kParamStatusStart + 3, "Noise"},
     {4, kParamStatusStart + 4, "Drift"},
-    {5, kParamStatusStart + 5, "Crunch"},
+    {5, kParamStatusStart + 5, "Crush"},
     {6, kParamStatusStart + 6, "Fold"},
     {11, kParamStatusStart + 11, "Tone"},
-    {16, kParamStatusStart + 16, "Output"},
+    {16, kParamStatusStart + 16, "Level"},
     {kInvalidParam, kInvalidParam, ""},
 }};
 
 constexpr std::array<SliderDef, 9> kDelaySliderDefs = {{
     {7, kParamStatusStart + 7, "Delay"},
-    {8, kParamStatusStart + 8, "Feedback"},
+    {8, kParamStatusStart + 8, "Fbk"},
     {9, kParamStatusStart + 9, "Warp"},
-    {10, kParamStatusStart + 10, "Stutter"},
-    {12, kParamStatusStart + 12, "Damping"},
+    {10, kParamStatusStart + 10, "Stut"},
+    {12, kParamStatusStart + 12, "Damp"},
     {13, kParamStatusStart + 13, "Space"},
-    {14, kParamStatusStart + 14, "Attack"},
-    {15, kParamStatusStart + 15, "Release"},
+    {14, kParamStatusStart + 14, "Atk"},
+    {15, kParamStatusStart + 15, "Rel"},
     {kInvalidParam, kInvalidParam, ""},
 }};
 
@@ -199,9 +199,9 @@ protected:
 
         drawBackground(width, height);
         drawHeader(pad, pad, width - pad * 2.0f, 84.0f);
-        drawButtonBands(pad, 122.0f, width - pad * 2.0f);
-        drawSliders(pad, 292.0f, width - pad * 2.0f);
-        drawMomentaries(pad, height - 108.0f, width - pad * 2.0f);
+        drawButtonBands(pad, 118.0f, width - pad * 2.0f);
+        drawSliders(pad, 282.0f, width - pad * 2.0f);
+        drawMomentaries(pad, height - 80.0f, width - pad * 2.0f);
     }
 
     bool onMouse(const MouseEvent& ev) override
@@ -442,94 +442,164 @@ private:
 
     void drawSliders(const float x, const float y, const float w)
     {
-        beginPath();
         sliderDefs_.fill(SliderDef {kInvalidParam, kInvalidParam, ""});
         sliderRects_.fill(Rect {});
 
-        roundedRect(x, y, w, 258.0f, 20.0f);
-        fillColor(18, 22, 28, 240);
+        const float gap = 14.0f;
+        const float macroW = std::min(466.0f, w * 0.39f);
+        const float sourceW = (w - macroW - gap * 2.0f) * 0.50f;
+        const float spaceW = w - macroW - sourceW - gap * 2.0f;
+        constexpr float blockH = 348.0f;
+
+        std::size_t sliderIndex = 0;
+        drawSliderBlock(x,
+                        y,
+                        macroW,
+                        blockH,
+                        "Macros",
+                        "MIDImix faders",
+                        kMacroSliderDefs.data(),
+                        9,
+                        sliderIndex,
+                        235,
+                        171,
+                        87);
+        sliderIndex += 9;
+        drawSliderBlock(x + macroW + gap,
+                        y,
+                        sourceW,
+                        blockH,
+                        "Source",
+                        "top row",
+                        kPrimarySliderDefs.data(),
+                        8,
+                        sliderIndex,
+                        103,
+                        190,
+                        157);
+        sliderIndex += 8;
+        drawSliderBlock(x + macroW + sourceW + gap * 2.0f,
+                        y,
+                        spaceW,
+                        blockH,
+                        "Time / Space",
+                        "middle row",
+                        kDelaySliderDefs.data(),
+                        8,
+                        sliderIndex,
+                        111,
+                        157,
+                        224);
+    }
+
+    void drawSliderBlock(const float x,
+                         const float y,
+                         const float w,
+                         const float h,
+                         const char* title,
+                         const char* subtitle,
+                         const SliderDef* defs,
+                         const std::size_t count,
+                         const std::size_t firstSliderIndex,
+                         const int r,
+                         const int g,
+                         const int b)
+    {
+        beginPath();
+        roundedRect(x, y, w, h, 8.0f);
+        fillColor(18, 22, 28, 242);
         fill();
         closePath();
 
-        fontSize(13.0f);
+        beginPath();
+        roundedRect(x, y, w, 3.0f, 1.5f);
+        fillColor(r, g, b, 230);
+        fill();
+        closePath();
+
+        fontSize(14.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
-        fillColor(179, 185, 194, 255);
-        text(x + 18.0f, y + 14.0f, "Performance Surface", nullptr);
+        fillColor(232, 236, 240, 255);
+        text(x + 16.0f, y + 14.0f, title, nullptr);
 
-        constexpr std::array<const char*, 3> kRowTitles = {{
-            "Master and Macros",
-            "Source",
-            "Space",
-        }};
-        const std::array<const SliderDef*, 3> rowDefs = {{
-            kMacroSliderDefs.data(),
-            kPrimarySliderDefs.data(),
-            kDelaySliderDefs.data(),
-        }};
+        fontSize(10.0f);
+        textAlign(ALIGN_RIGHT | ALIGN_TOP);
+        fillColor(133, 143, 154, 255);
+        text(x + w - 16.0f, y + 18.0f, subtitle, nullptr);
 
-        const float rowYStart = y + 42.0f;
-        const float rowGap = 68.0f;
-        const float sliderGap = 10.0f;
-        const float sliderW = (w - 36.0f - sliderGap * 8.0f) / 9.0f;
-        const float sliderH = 56.0f;
+        const float innerX = x + 16.0f;
+        const float sliderGap = 8.0f;
+        const float sliderW = (w - 32.0f - sliderGap * static_cast<float>(count - 1)) / static_cast<float>(count);
+        const float sliderY = y + 48.0f;
+        const float sliderH = h - 66.0f;
 
-        std::size_t sliderIndex = 0;
-        for (std::size_t row = 0; row < 3; ++row)
+        for (std::size_t i = 0; i < count; ++i)
         {
-            fontSize(11.0f);
-            fillColor(120, 128, 139, 255);
-            text(x + 18.0f, rowYStart + row * rowGap - 2.0f, kRowTitles[row], nullptr);
-
-            for (std::size_t column = 0; column < 9; ++column, ++sliderIndex)
-            {
-                sliderDefs_[sliderIndex] = rowDefs[row][column];
-                sliderRects_[sliderIndex] = {
-                    x + 18.0f + column * (sliderW + sliderGap),
-                    rowYStart + row * rowGap + 14.0f,
-                    sliderW,
-                    sliderH
-                };
-                drawSlider(static_cast<int>(sliderIndex), sliderDefs_[sliderIndex], sliderRects_[sliderIndex]);
-            }
+            const std::size_t sliderIndex = firstSliderIndex + i;
+            sliderDefs_[sliderIndex] = defs[i];
+            sliderRects_[sliderIndex] = {innerX + static_cast<float>(i) * (sliderW + sliderGap), sliderY, sliderW, sliderH};
+            drawSlider(static_cast<int>(sliderIndex), sliderDefs_[sliderIndex], sliderRects_[sliderIndex], r, g, b);
         }
     }
 
-    void drawSlider(const int sliderIndex, const SliderDef& def, const Rect& rect)
+    void drawSlider(const int sliderIndex, const SliderDef& def, const Rect& rect, const int r, const int g, const int b)
     {
         if (def.inputIndex == kInvalidParam)
             return;
 
         const float value = currentSliderValue(sliderIndex);
+        const float top = sliderTrackTop(rect);
+        const float bottom = sliderTrackBottom(rect);
+        const float trackHeight = bottom - top;
+        const float normalized = clampf(value, 0.0f, 1.0f);
 
         beginPath();
-        roundedRect(rect.x, rect.y, rect.w, rect.h, 10.0f);
-        fillColor(27, 32, 39, 255);
+        roundedRect(rect.x, rect.y, rect.w, rect.h, 6.0f);
+        fillColor(27, 32, 39, 235);
         fill();
         closePath();
 
+        fontSize(9.0f);
+        textAlign(ALIGN_CENTER | ALIGN_TOP);
+        fillColor(224, 228, 232, 255);
+        text(rect.x + rect.w * 0.5f, rect.y + 8.0f, def.label, nullptr);
+
         beginPath();
-        roundedRect(rect.x + 10.0f, rect.y + 26.0f, rect.w - 20.0f, rect.h - 36.0f, 6.0f);
+        roundedRect(rect.x + rect.w * 0.5f - 4.0f, top, 8.0f, trackHeight, 4.0f);
         fillColor(38, 45, 56, 255);
         fill();
         closePath();
 
-        const float fillHeight = (rect.h - 36.0f) * clampf(value, 0.0f, 1.0f);
+        const float fillHeight = trackHeight * normalized;
         beginPath();
-        roundedRect(rect.x + 10.0f, rect.y + rect.h - 10.0f - fillHeight, rect.w - 20.0f, fillHeight, 6.0f);
+        roundedRect(rect.x + rect.w * 0.5f - 4.0f, bottom - fillHeight, 8.0f, fillHeight, 4.0f);
         const Color tint = statusTint(def.statusIndex);
         fillColor(tint);
         fill();
         closePath();
 
-        fontSize(10.0f);
-        textAlign(ALIGN_CENTER | ALIGN_TOP);
-        fillColor(223, 227, 232, 255);
-        text(rect.x + rect.w * 0.5f, rect.y + 8.0f, def.label, nullptr);
+        const float handleY = bottom - fillHeight;
+        beginPath();
+        roundedRect(rect.x + 5.0f, handleY - 5.0f, rect.w - 10.0f, 10.0f, 3.0f);
+        fillColor(r, g, b, 255);
+        fill();
+        closePath();
 
         const std::string label = formatPercent(value);
-        fontSize(10.0f);
+        fontSize(9.0f);
+        textAlign(ALIGN_CENTER | ALIGN_BOTTOM);
         fillColor(153, 163, 175, 255);
-        text(rect.x + rect.w * 0.5f, rect.y + rect.h - 16.0f, label.c_str(), nullptr);
+        text(rect.x + rect.w * 0.5f, rect.y + rect.h - 8.0f, label.c_str(), nullptr);
+    }
+
+    static float sliderTrackTop(const Rect& rect)
+    {
+        return rect.y + 28.0f;
+    }
+
+    static float sliderTrackBottom(const Rect& rect)
+    {
+        return rect.y + rect.h - 26.0f;
     }
 
     Color statusTint(const uint32_t statusIndex) const
@@ -545,7 +615,7 @@ private:
     void drawMomentaries(const float x, const float y, const float w)
     {
         beginPath();
-        roundedRect(x, y, w, 84.0f, 18.0f);
+        roundedRect(x, y, w, 70.0f, 8.0f);
         fillColor(18, 22, 28, 240);
         fill();
         closePath();
@@ -553,13 +623,13 @@ private:
         fontSize(13.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
         fillColor(176, 183, 192, 255);
-        text(x + 18.0f, y + 14.0f, "Hold Pads", nullptr);
+        text(x + 18.0f, y + 12.0f, "Hold Pads", nullptr);
 
         const float gap = 10.0f;
         const float buttonW = (w - 36.0f - gap * 7.0f) / 8.0f;
         for (std::size_t i = 0; i < momentaryRects_.size(); ++i)
         {
-            momentaryRects_[i] = {x + 18.0f + i * (buttonW + gap), y + 38.0f, buttonW, 28.0f};
+            momentaryRects_[i] = {x + 18.0f + i * (buttonW + gap), y + 34.0f, buttonW, 26.0f};
             const bool active = values_[kMomentaryButtons[i].parameterIndex] >= 0.5f;
             drawButton(momentaryRects_[i], kMomentaryButtons[i], active, activeMomentary_ == static_cast<int>(i));
         }
@@ -619,7 +689,9 @@ private:
             return;
 
         const Rect& rect = sliderRects_[sliderIndex];
-        const float normalized = clampf((rect.y + rect.h - 10.0f - y) / (rect.h - 36.0f), 0.0f, 1.0f);
+        const float normalized = clampf((sliderTrackBottom(rect) - y) / (sliderTrackBottom(rect) - sliderTrackTop(rect)),
+                                        0.0f,
+                                        1.0f);
         setValueParameter(def.inputIndex, normalized);
     }
 
