@@ -1,5 +1,6 @@
 #include "gremlin_processor.hpp"
 
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -18,6 +19,25 @@ void require(const bool condition, const char* message)
         std::cerr << message << '\n';
         std::exit(1);
     }
+}
+
+bool containsMidi(const downspout::gremlin::MidiMessage* events,
+                  const std::uint32_t count,
+                  const std::uint8_t status,
+                  const std::uint8_t data1,
+                  const std::uint8_t data2)
+{
+    for (std::uint32_t i = 0; i < count; ++i)
+    {
+        if (events[i].size == 3 &&
+            events[i].data[0] == status &&
+            events[i].data[1] == data1 &&
+            events[i].data[2] == data2)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 }  // namespace
@@ -51,6 +71,28 @@ int main()
     float right[16] {};
     processor.processBlock(left, right, 16, &cc, 1);
     require(nearlyEqual(processor.getMacro(downspout::gremlin::MacroId::source), 1.0f), "gremlin macro CC mapping mismatch");
+
+    std::array<MidiMessage, Processor::kMaxOutputMidiEvents> ledEvents {};
+    std::uint32_t ledEventCount = 0;
+    processor.processBlock(left, right, 16, nullptr, 0, ledEvents.data(), &ledEventCount, ledEvents.size());
+    require(containsMidi(ledEvents.data(), ledEventCount, 0x90, downspout::gremlin::kRecArmNotes[2], 127),
+            "gremlin LED feedback should light current mode");
+
+    MidiMessage muteDown {};
+    muteDown.size = 3;
+    muteDown.data[0] = 0x90;
+    muteDown.data[1] = downspout::gremlin::kMuteNotes[0];
+    muteDown.data[2] = 127;
+    ledEventCount = 0;
+    processor.processBlock(left, right, 16, &muteDown, 1, ledEvents.data(), &ledEventCount, ledEvents.size());
+    require(containsMidi(ledEvents.data(), ledEventCount, 0x90, downspout::gremlin::kMuteNotes[0], 127),
+            "gremlin LED feedback should light held momentary");
+
+    processor.setLiveParameter(LiveParamId::mode, 4.0f);
+    ledEventCount = 0;
+    processor.processBlock(left, right, 16, nullptr, 0, ledEvents.data(), &ledEventCount, ledEvents.size());
+    require(containsMidi(ledEvents.data(), ledEventCount, 0x90, downspout::gremlin::kBankLeftNote, 127),
+            "gremlin LED feedback should indicate extended mode on bank LED");
 
     MidiMessage noteOn {};
     noteOn.size = 3;

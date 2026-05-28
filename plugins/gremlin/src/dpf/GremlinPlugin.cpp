@@ -113,6 +113,17 @@ MidiMessage toCoreMidiMessage(const MidiEvent& event)
     return message;
 }
 
+MidiEvent toDpfMidiEvent(const MidiMessage& event)
+{
+    MidiEvent midi {};
+    midi.frame = event.frame;
+    midi.size = event.size;
+    for (std::size_t i = 0; i < event.size && i < MidiEvent::kDataSize; ++i)
+        midi.data[i] = event.data[i];
+    midi.dataExt = nullptr;
+    return midi;
+}
+
 }  // namespace
 
 class GremlinPlugin : public Plugin
@@ -397,7 +408,19 @@ protected:
         for (std::uint32_t i = 0; i < coreCount; ++i)
             coreEvents[i] = toCoreMidiMessage(midiEvents[i]);
 
-        processor_.processBlock(outputs[0], outputs[1], frames, coreEvents.data(), coreCount);
+        std::array<MidiMessage, Processor::kMaxOutputMidiEvents> outputEvents {};
+        std::uint32_t outputEventCount = 0;
+        processor_.processBlock(outputs[0],
+                                outputs[1],
+                                frames,
+                                coreEvents.data(),
+                                coreCount,
+                                outputEvents.data(),
+                                &outputEventCount,
+                                static_cast<std::uint32_t>(outputEvents.size()));
+
+        for (std::uint32_t i = 0; i < outputEventCount; ++i)
+            writeMidiEvent(toDpfMidiEvent(outputEvents[static_cast<std::size_t>(i)]));
     }
 
 private:

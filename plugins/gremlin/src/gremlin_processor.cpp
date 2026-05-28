@@ -67,9 +67,17 @@ void Processor::resetToDefaults()
 
     macros_.fill(0.5f);
     momentary_.fill(false);
+    lastMuteLeds_.fill(0u);
+    lastSoloMuteLeds_.fill(0u);
+    lastRecArmLeds_.fill(0u);
+    lastBankLeds_.fill(0u);
     masterTrim_ = 0.45f;
+    soloHeld_ = false;
+    ledInitialized_ = false;
+    ledRefreshSamples_ = 0;
     status_.controllerActivity = 0.0f;
     status_.currentScene = static_cast<std::uint32_t>(SceneId::manual);
+    status_.soloHeld = false;
 }
 
 void Processor::setLiveParameter(const LiveParamId id, float value)
@@ -284,10 +292,16 @@ void Processor::processBlock(float* outLeft,
                              float* outRight,
                              const std::uint32_t frameCount,
                              const MidiMessage* midiEvents,
-                             const std::uint32_t midiEventCount)
+                             const std::uint32_t midiEventCount,
+                             MidiMessage* outputEvents,
+                             std::uint32_t* outputEventCount,
+                             const std::uint32_t outputEventCapacity)
 {
     if (outLeft == nullptr && outRight == nullptr)
         return;
+
+    if (outputEventCount != nullptr)
+        *outputEventCount = 0;
 
     const float activityDrop = static_cast<float>(frameCount) / std::max(1.0, sampleRate_ * 0.35);
     status_.controllerActivity = std::max(0.0f, status_.controllerActivity - activityDrop);
@@ -298,6 +312,9 @@ void Processor::processBlock(float* outLeft,
         std::memset(outRight, 0, frameCount * sizeof(float));
 
     applyLiveState();
+    const bool forceLedRefresh = !ledInitialized_ || ledRefreshSamples_ >= static_cast<std::uint32_t>(sampleRate_ * 0.75);
+    emitLedFeedback(outputEvents, outputEventCount, outputEventCapacity, 0, forceLedRefresh);
+    ledRefreshSamples_ = forceLedRefresh ? 0u : ledRefreshSamples_ + frameCount;
 
     std::uint32_t frame = 0;
     for (std::uint32_t i = 0; i < midiEventCount; ++i)
@@ -308,7 +325,10 @@ void Processor::processBlock(float* outLeft,
         frame = eventFrame;
 
         if (handleMidiMessage(event))
+        {
             applyLiveState();
+            emitLedFeedback(outputEvents, outputEventCount, outputEventCapacity, eventFrame, true);
+        }
     }
 
     renderRange(outLeft, outRight, frame, frameCount);
@@ -412,6 +432,7 @@ void Processor::applyLiveState()
     status_.effective[22] = glitchLength;
     status_.effective[23] = chaosRate;
     status_.effective[24] = duck;
+    status_.soloHeld = soloHeld_;
 
     engine_.setMode(live_[idx(LiveParamId::mode)]);
     engine_.setDamage(damage);
@@ -546,7 +567,15 @@ bool Processor::handleControllerButton(const std::uint8_t note, const bool press
     }
 
     if (!pressed)
+    {
+        if (note == kSoloNote)
+        {
+            soloHeld_ = false;
+            status_.controllerActivity = 1.0f;
+            return true;
+        }
         return false;
+    }
 
     const int recIndex = findIndex(kRecArmNotes, note);
     if (recIndex >= 0)
@@ -587,6 +616,12 @@ bool Processor::handleControllerButton(const std::uint8_t note, const bool press
     if (note == kBankRightNote)
     {
         cycleMode(1);
+        status_.controllerActivity = 1.0f;
+        return true;
+    }
+    if (note == kSoloNote)
+    {
+        soloHeld_ = true;
         status_.controllerActivity = 1.0f;
         return true;
     }
@@ -654,6 +689,99 @@ void Processor::panic()
     engine_.allNotesOff();
     currentNote_ = -1;
     momentary_.fill(false);
+    soloHeld_ = false;
+}
+
+void Processor::emitLedFeedback(MidiMessage* outputEvents,
+                                std::uint32_t* outputEventCount,
+                                const std::uint32_t outputEventCapacity,
+                                const std::uint32_t frame,
+                                const bool force)
+{
+    if (outputEvents == nullptr || outputEventCount == nullptr || outputEventCapacity == 0u)
+        return;
+
+    std::array<std::uint8_t, 8> muteLeds {};
+    std::array<std::uint8_t, 8> soloMuteLeds {};
+    std::array<std::uint8_t, 8> recArmLeds {};
+    std::array<std::uint8_t, 3> bankLeds {};
+
+    for (std::size_t i = 0; i < 8; ++i)
+    {
+        muteLeds[i] = momentary_[i] ? 1u : 0u;
+        soloMuteLeds[i] = soloHeld_ ? 1u : 0u;
+    }
+
+    const int mode = std::clamp(static_cast<int>(std::lround(live_[idx(LiveParamId::mode)])),
+                                0,
+                                static_cast<int>(kModeCount - 1));
+    if (mode < 4)
+    {
+        recArmLeds[static_cast<std::size_t>(mode)] = 1u;
+    }
+    else
+    {
+        bankLeds[static_cast<std::size_t>(mode - 4)] = 1u;
+    }
+    bankLeds[2] = soloHeld_ ? 1u : 0u;
+
+    if (status_.currentScene >= static_cast<std::uint32_t>(SceneId::splinter) &&
+        status_.currentScene <= static_cast<std::uint32_t>(SceneId::tunnel))
+    {
+        const std::size_t sceneLed = static_cast<std::size_t>(status_.currentScene - static_cast<std::uint32_t>(SceneId::splinter) + 4u);
+        if (sceneLed < recArmLeds.size())
+            recArmLeds[sceneLed] = 1u;
+    }
+
+    for (std::size_t i = 0; i < 8; ++i)
+    {
+        if (force || lastMuteLeds_[i] != muteLeds[i])
+        {
+            appendLedNote(outputEvents, outputEventCount, outputEventCapacity, frame, kMuteNotes[i], muteLeds[i] != 0u);
+            lastMuteLeds_[i] = muteLeds[i];
+        }
+        if (force || lastSoloMuteLeds_[i] != soloMuteLeds[i])
+        {
+            appendLedNote(outputEvents, outputEventCount, outputEventCapacity, frame, kSoloMuteNotes[i], soloMuteLeds[i] != 0u);
+            lastSoloMuteLeds_[i] = soloMuteLeds[i];
+        }
+        if (force || lastRecArmLeds_[i] != recArmLeds[i])
+        {
+            appendLedNote(outputEvents, outputEventCount, outputEventCapacity, frame, kRecArmNotes[i], recArmLeds[i] != 0u);
+            lastRecArmLeds_[i] = recArmLeds[i];
+        }
+    }
+
+    constexpr std::array<std::uint8_t, 3> kBankNotes = {{kBankLeftNote, kBankRightNote, kSoloNote}};
+    for (std::size_t i = 0; i < kBankNotes.size(); ++i)
+    {
+        if (force || lastBankLeds_[i] != bankLeds[i])
+        {
+            appendLedNote(outputEvents, outputEventCount, outputEventCapacity, frame, kBankNotes[i], bankLeds[i] != 0u);
+            lastBankLeds_[i] = bankLeds[i];
+        }
+    }
+
+    ledInitialized_ = true;
+}
+
+void Processor::appendLedNote(MidiMessage* outputEvents,
+                              std::uint32_t* outputEventCount,
+                              const std::uint32_t outputEventCapacity,
+                              const std::uint32_t frame,
+                              const std::uint8_t note,
+                              const bool lit)
+{
+    if (outputEvents == nullptr || outputEventCount == nullptr || *outputEventCount >= outputEventCapacity)
+        return;
+
+    MidiMessage& event = outputEvents[(*outputEventCount)++];
+    event.frame = frame;
+    event.size = 3;
+    event.data[0] = 0x90u;
+    event.data[1] = note;
+    event.data[2] = lit ? 127u : 0u;
+    event.data[3] = 0u;
 }
 
 void Processor::renderRange(float* outLeft,

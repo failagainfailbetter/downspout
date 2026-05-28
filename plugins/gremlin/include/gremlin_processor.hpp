@@ -18,10 +18,13 @@ struct Status {
     std::array<float, kEffectiveParamCount> effective {};
     std::uint32_t currentScene = static_cast<std::uint32_t>(SceneId::manual);
     float controllerActivity = 0.0f;
+    bool soloHeld = false;
 };
 
 class Processor {
 public:
+    static constexpr std::uint32_t kMaxOutputMidiEvents = 64;
+
     void init(double sampleRate);
     void activate();
 
@@ -44,7 +47,10 @@ public:
                       float* outRight,
                       std::uint32_t frameCount,
                       const MidiMessage* midiEvents,
-                      std::uint32_t midiEventCount);
+                      std::uint32_t midiEventCount,
+                      MidiMessage* outputEvents = nullptr,
+                      std::uint32_t* outputEventCount = nullptr,
+                      std::uint32_t outputEventCapacity = 0);
 
 private:
     void resetToDefaults();
@@ -57,6 +63,17 @@ private:
     void randomizeSource();
     void randomizeDelay();
     void panic();
+    void emitLedFeedback(MidiMessage* outputEvents,
+                         std::uint32_t* outputEventCount,
+                         std::uint32_t outputEventCapacity,
+                         std::uint32_t frame,
+                         bool force);
+    void appendLedNote(MidiMessage* outputEvents,
+                       std::uint32_t* outputEventCount,
+                       std::uint32_t outputEventCapacity,
+                       std::uint32_t frame,
+                       std::uint8_t note,
+                       bool lit);
     void renderRange(float* outLeft, float* outRight, std::uint32_t beginFrame, std::uint32_t endFrame);
     std::uint32_t nextRandom();
     float randomUnit();
@@ -69,11 +86,18 @@ private:
     std::array<float, kHiddenParamCount> hidden_ {};
     std::array<float, kMacroCount> macros_ {};
     std::array<bool, kMomentaryCount> momentary_ {};
+    std::array<std::uint8_t, 8> lastMuteLeds_ {};
+    std::array<std::uint8_t, 8> lastSoloMuteLeds_ {};
+    std::array<std::uint8_t, 8> lastRecArmLeds_ {};
+    std::array<std::uint8_t, 3> lastBankLeds_ {};
     Status status_ {};
     float masterTrim_ = 0.45f;
     std::uint32_t rngState_ = 0x4d3c2b1au;
+    std::uint32_t ledRefreshSamples_ = 0;
     int currentNote_ = -1;
     float postGain_ = 1.0f;
+    bool soloHeld_ = false;
+    bool ledInitialized_ = false;
 };
 
 }  // namespace downspout::gremlin

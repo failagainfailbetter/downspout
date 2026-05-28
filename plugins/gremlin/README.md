@@ -8,6 +8,7 @@ exposes a custom performance UI instead of relying on the original X11 panel.
 
 - synth-style VST3 with stereo audio output
 - one MIDI input that accepts both note performance and controller gestures
+- MIDI output for Akai MIDImix button LED feedback
 - custom UI with conventional fader blocks for scenes, actions, macros, focused live controls, and momentary holds
 - six sound modes: Shard, Servo, Spray, Collapse, Ring, and Vapor
 - no custom saved-state layer yet beyond normal host parameter persistence
@@ -29,10 +30,10 @@ that range.
 
 ## Important mapping decision
 
-The LV2 plugin had separate `midi_in` and `controller_in` ports plus controller
-LED feedback. The VST3 port intentionally collapses that into a single MIDI
-input path. The processor differentiates notes, CCs, and controller-button
-notes internally.
+The LV2 plugin had separate `midi_in`, `controller_in`, and controller LED
+feedback ports. The VST3 port intentionally collapses input into a single MIDI
+path and exposes one MIDI output for controller LEDs. The processor
+differentiates notes, CCs, and controller-button notes internally.
 
 That keeps the host-facing wrapper simple enough for mainstream DAWs while
 preserving the practical Akai MIDImix-style behavior.
@@ -54,9 +55,10 @@ buttons. Gremlin follows the original `flues` factory-style mapping:
 - solo/mute combinations trigger actions such as reseed, burst, randomise, and
   panic
 
-The VST3 build does not currently send MIDImix LED feedback. The older LV2
-version had a separate controller output for that path; the VST3 UI mirrors
-controller activity with status parameters instead.
+Gremlin sends MIDImix LED feedback from its VST3 MIDI output. Reaper needs the
+track hosting Gremlin to route MIDI hardware output back to the MIDImix; see
+[docs/reaper-midimix.md](docs/reaper-midimix.md) for a suggested track, send,
+and receive layout.
 
 ## UI note
 

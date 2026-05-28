@@ -14,5 +14,4 @@
 1. Host-validate MIDI controller gestures in Reaper.
 2. Decide whether saved-state text serialization is worth adding beyond host
    parameter persistence.
-3. Decide whether a second controller-output path is worth adding in a later
-   standalone or CLAP build.
+3. Host-validate MIDImix LED feedback routing in Reaper.

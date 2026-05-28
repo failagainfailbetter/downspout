@@ -24,7 +24,7 @@ Those behaviors were moved into a portable `gremlin_processor` layer in
 ## Main VST3 assumptions
 
 - collapse note and controller input into one MIDI input stream
-- do not reproduce MIDImix LED output in the first VST3 pass
+- reproduce MIDImix button LED output through one VST3 MIDI output stream
 - keep live effective-value calculation in the processor, not the UI
 - expose processor status through output parameters so the UI can mirror the
   effective state
