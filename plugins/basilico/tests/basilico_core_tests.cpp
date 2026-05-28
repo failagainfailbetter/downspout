@@ -151,11 +151,61 @@ void glideMovesTowardTarget()
         (void)engine.processStereo();
     engine.noteOn(48, 100);
     const float immediate = engine.currentFrequency();
-    for (int i = 0; i < 48000; ++i)
+    for (int i = 0; i < 144000; ++i)
         (void)engine.processStereo();
     const float settled = engine.currentFrequency();
     require(immediate < expectedFrequency(48) - 1.0f, "basilico glide should not jump immediately");
     require(std::fabs(settled - expectedFrequency(48)) < 1.0f, "basilico glide should reach target");
+}
+
+void middleGlideIsAudible()
+{
+    BasilicoEngine engine {48000.0f};
+    engine.setParameter(ParamId::glide, 0.50f);
+    engine.noteOn(36, 100);
+    for (int i = 0; i < 2048; ++i)
+        (void)engine.processStereo();
+
+    engine.noteOff(36);
+    for (int i = 0; i < 256; ++i)
+        (void)engine.processStereo();
+    engine.noteOn(48, 100);
+    for (int i = 0; i < 1024; ++i)
+        (void)engine.processStereo();
+
+    const float current = engine.currentFrequency();
+    require(current > expectedFrequency(36) + 1.0f, "basilico middle glide should move upward");
+    require(current < expectedFrequency(48) - 8.0f, "basilico middle glide should remain audible after attack");
+}
+
+void bodyChangesTone()
+{
+    BasilicoEngine dry {48000.0f};
+    dry.setParameter(ParamId::model, 0.0f);
+    dry.setParameter(ParamId::body, 0.0f);
+    dry.setParameter(ParamId::drive, 0.0f);
+    dry.noteOn(40, 104);
+
+    BasilicoEngine resonant {48000.0f};
+    resonant.setParameter(ParamId::model, 0.0f);
+    resonant.setParameter(ParamId::body, 1.0f);
+    resonant.setParameter(ParamId::drive, 0.0f);
+    resonant.noteOn(40, 104);
+
+    float difference = 0.0f;
+    float reference = 0.0f;
+    for (int i = 0; i < 12000; ++i)
+    {
+        const auto a = dry.processStereo();
+        const auto b = resonant.processStereo();
+        if (i >= 1000)
+        {
+            difference += std::fabs(a.left - b.left);
+            reference += std::fabs(a.left);
+        }
+    }
+
+    require(difference > reference * 0.30f, "basilico body should make an audible tonal difference");
 }
 
 void velocityAccentChangesOutput()
@@ -206,6 +256,8 @@ int main()
     noteOffStops();
     tracksMidiPitch();
     glideMovesTowardTarget();
+    middleGlideIsAudible();
+    bodyChangesTone();
     velocityAccentChangesOutput();
     outputCanBoost();
     extremeParametersStayFinite();

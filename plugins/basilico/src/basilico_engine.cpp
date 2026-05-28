@@ -166,6 +166,45 @@ private:
     float band_ = 0.0f;
 };
 
+class BiquadBandpass {
+public:
+    void reset()
+    {
+        x1_ = 0.0f;
+        x2_ = 0.0f;
+        y1_ = 0.0f;
+        y2_ = 0.0f;
+    }
+
+    float process(const float input, const float frequency, const float q, const float sampleRate)
+    {
+        const float safeSampleRate = std::max(1000.0f, sampleRate);
+        const float safeFrequency = std::clamp(frequency, 20.0f, safeSampleRate * 0.42f);
+        const float safeQ = std::clamp(q, 0.35f, 12.0f);
+        const float omega = kTwoPi * safeFrequency / safeSampleRate;
+        const float alpha = std::sin(omega) / (2.0f * safeQ);
+        const float a0 = 1.0f + alpha;
+        const float b0 = alpha / a0;
+        const float b2 = -alpha / a0;
+        const float a1 = (-2.0f * std::cos(omega)) / a0;
+        const float a2 = (1.0f - alpha) / a0;
+
+        const float output = b0 * input + b2 * x2_ - a1 * y1_ - a2 * y2_;
+        x2_ = x1_;
+        x1_ = input;
+        y2_ = y1_;
+        y1_ = sanitizeAudio(output);
+
+        return y1_;
+    }
+
+private:
+    float x1_ = 0.0f;
+    float x2_ = 0.0f;
+    float y1_ = 0.0f;
+    float y2_ = 0.0f;
+};
+
 struct ModelProfile {
     float oscMix = 0.75f;
     float subMix = 0.5f;
@@ -278,6 +317,8 @@ public:
         ampEnv_.reset();
         filterEnv_.reset();
         filter_.reset();
+        bodyLow_.reset();
+        bodyHigh_.reset();
         heldNotes_.clear();
         currentNote_ = -1;
         targetFrequency_ = 55.0f;
@@ -323,19 +364,21 @@ public:
         removeHeld(midiNote);
         heldNotes_.push_back(midiNote);
 
-        const bool wasActive = active_;
+        const bool canGlide = glideEnabled() && currentNote_ >= 0;
         currentNote_ = midiNote;
         targetFrequency_ = midiNoteToFrequency(midiNote);
-        if (!wasActive || legatoDisabled())
+        if (!canGlide)
         {
             currentFrequency_ = targetFrequency_;
             phase_ = 0.0f;
             subPhase_ = 0.0f;
-            ampEnv_.gateOn();
-            filterEnv_.gateOn();
             filter_.reset();
+            bodyLow_.reset();
+            bodyHigh_.reset();
         }
 
+        ampEnv_.gateOn();
+        filterEnv_.gateOn();
         active_ = true;
         velocity_ = std::clamp(static_cast<float>(velocity) / 127.0f, 0.0f, 1.0f);
         punch_ = velocity_;
@@ -416,9 +459,11 @@ public:
         advancePhase(phase_, currentFrequency_);
         advancePhase(subPhase_, currentFrequency_ * 0.5f);
 
-        const float source = main * profile.oscMix +
-                             sub * params_.values[static_cast<std::size_t>(ParamId::subLevel)] * profile.subMix +
-                             body * params_.values[static_cast<std::size_t>(ParamId::body)] * profile.bodyAmount +
+        const float bodyAmount = params_.values[static_cast<std::size_t>(ParamId::body)] * profile.bodyAmount;
+        const float dry = main * profile.oscMix +
+                          sub * params_.values[static_cast<std::size_t>(ParamId::subLevel)] * profile.subMix;
+        const float source = dry * (1.0f - bodyAmount * 0.45f) +
+                             body * bodyAmount * 1.65f +
                              transient;
 
         const float cutoff = cutoffHz(profile, filterEnv);
@@ -438,9 +483,9 @@ public:
     float sampleRate() const { return sampleRate_; }
 
 private:
-    bool legatoDisabled() const
+    bool glideEnabled() const
     {
-        return params_.values[static_cast<std::size_t>(ParamId::glide)] < 0.02f;
+        return params_.values[static_cast<std::size_t>(ParamId::glide)] >= 0.015f;
     }
 
     void syncEnvelopes()
@@ -464,7 +509,8 @@ private:
     void updateGlide()
     {
         const float glide = params_.values[static_cast<std::size_t>(ParamId::glide)];
-        const float glideSeconds = expMap(glide, 0.001f, 0.450f);
+        const float shaped = glide * glide;
+        const float glideSeconds = 0.002f + shaped * 1.250f;
         const float coefficient = glide <= 0.001f ? 1.0f : 1.0f - std::exp(-1.0f / (glideSeconds * sampleRate_));
         currentFrequency_ += (targetFrequency_ - currentFrequency_) * coefficient;
     }
@@ -493,11 +539,26 @@ private:
         }
     }
 
-    float bodyTone(const float main, const float sub, const ModelProfile& profile) const
+    float bodyTone(const float main, const float sub, const ModelProfile& profile)
     {
         const float body = params_.values[static_cast<std::size_t>(ParamId::body)];
-        const float pickup = std::sin(phase_ * kTwoPi * (1.0f + body * 0.08f));
-        return sanitizeAudio((main * 0.35f + sub * 0.55f + pickup * 0.20f) * profile.bodyAmount);
+        const float second = std::sin(phase_ * kTwoPi * 2.0f);
+        const float third = std::sin(phase_ * kTwoPi * 3.01f);
+        const float stringTone = sanitizeAudio(main * 0.55f + sub * 0.28f + second * 0.16f + third * 0.09f);
+
+        const float lowFrequency = std::clamp(72.0f + currentFrequency_ * (0.28f + body * 0.50f),
+                                              58.0f,
+                                              260.0f);
+        const float highFrequency = std::clamp(185.0f + currentFrequency_ * (1.30f + body * 1.85f),
+                                               145.0f,
+                                               1200.0f);
+        const float q = 1.1f + body * 7.5f + profile.bodyAmount * 1.8f;
+        const float low = bodyLow_.process(stringTone, lowFrequency, q, sampleRate_);
+        const float high = bodyHigh_.process(stringTone, highFrequency, q * 0.72f, sampleRate_);
+        const float hollow = low * (1.4f + body * 1.8f) - high * (0.25f + body * 0.95f);
+        const float direct = stringTone * (0.22f + (1.0f - body) * 0.42f);
+
+        return sanitizeAudio(direct + hollow);
     }
 
     float transientTone(const ModelProfile& profile) const
@@ -569,6 +630,8 @@ private:
     Envelope ampEnv_;
     Envelope filterEnv_;
     StateVariableFilter filter_;
+    BiquadBandpass bodyLow_;
+    BiquadBandpass bodyHigh_;
     std::vector<int> heldNotes_;
     int currentNote_ = -1;
     float targetFrequency_ = 55.0f;
