@@ -195,28 +195,34 @@ bool Processor::handleGridPress(const std::uint8_t note, const std::uint8_t velo
     std::size_t col = 0;
 
     bool mapped = false;
-    if (parameters_[kParamLedFeedback] >= 0.5f && noteToGrid(note, row, col))
-    {
-        inputLayout_ = LaunchpadInputLayout::programmer;
-        mapped = true;
-    }
-    else if (inputLayout_ == LaunchpadInputLayout::programmer)
+    if (parameters_[kParamLedFeedback] >= 0.5f)
     {
         mapped = noteToGrid(note, row, col);
+        if (mapped)
+            inputLayout_ = LaunchpadInputLayout::programmer;
     }
-    else if (inputLayout_ == LaunchpadInputLayout::custom)
+    else
     {
-        mapped = noteToDefaultCustomGrid(note, row, col);
-    }
-    else if (noteToDefaultCustomGrid(note, row, col))
-    {
-        inputLayout_ = LaunchpadInputLayout::custom;
-        mapped = true;
-    }
-    else if (noteToGrid(note, row, col))
-    {
-        inputLayout_ = LaunchpadInputLayout::programmer;
-        mapped = true;
+        if (inputLayout_ == LaunchpadInputLayout::programmer)
+            mapped = noteToGrid(note, row, col);
+        else if (inputLayout_ == LaunchpadInputLayout::custom)
+            mapped = noteToLinearChromaticGrid(note, row, col) || noteToDefaultCustomGrid(note, row, col);
+
+        if (!mapped && noteToLinearChromaticGrid(note, row, col))
+        {
+            inputLayout_ = LaunchpadInputLayout::custom;
+            mapped = true;
+        }
+        if (!mapped && noteToDefaultCustomGrid(note, row, col))
+        {
+            inputLayout_ = LaunchpadInputLayout::custom;
+            mapped = true;
+        }
+        if (!mapped && noteToGrid(note, row, col))
+        {
+            inputLayout_ = LaunchpadInputLayout::programmer;
+            mapped = true;
+        }
     }
 
     if (!mapped)

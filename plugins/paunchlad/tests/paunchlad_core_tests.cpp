@@ -65,17 +65,17 @@ int main()
     auto result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
     require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(2, 3)) == 1.0f,
             "paunchlad status cell should reflect triggered siren pad");
-    require(result.eventCount == 0, "paunchlad should not emit LED MIDI until LED feedback is enabled");
+    require(containsMidi(result, 0x90, gridToNote(2, 3), kLedPurple),
+            "paunchlad LED feedback should follow Luma-style programmer mode by default");
 
     float peak = 0.0f;
     for (std::size_t i = 0; i < outLeft.size(); ++i)
         peak = std::max(peak, std::max(std::fabs(outLeft[i]), std::fabs(outRight[i])));
     require(peak > 0.005f, "paunchlad siren should produce audible output");
 
-    processor.setParameter(kParamLedFeedback, 1.0f);
+    processor.setParameter(kParamLedFeedback, 0.0f);
     result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &siren, 1);
-    require(containsMidi(result, 0x90, gridToNote(2, 3), kLedPurple),
-            "paunchlad LED feedback should light triggered siren pad when enabled");
+    require(result.eventCount == 0, "paunchlad should stop emitting LED MIDI when LED feedback is disabled");
 
     processor.activate();
     processor.setParameter(kParamSirenLevel, 0.0f);
@@ -94,26 +94,17 @@ int main()
     require(loudPeak > mutedPeak + 0.005f, "paunchlad siren level parameter should change generated siren output");
 
     processor.activate();
+    processor.setParameter(kParamLedFeedback, 0.0f);
     inLeft[0] = 1.0f;
     inRight[0] = 1.0f;
     MidiMessage custom {};
     custom.size = 3;
     custom.data[0] = 0x90;
-    custom.data[1] = 36 + 2 * 4 + 3;
+    custom.data[1] = 36 + 2 * 8 + 3;
     custom.data[2] = 127;
     result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &custom, 1);
     require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(2, 3)) == 1.0f,
-            "paunchlad should map Launchpad default custom/user note mode onto the performance grid");
-
-    processor.activate();
-    MidiMessage defaultRightHalf {};
-    defaultRightHalf.size = 3;
-    defaultRightHalf.data[0] = 0x90;
-    defaultRightHalf.data[1] = 68;
-    defaultRightHalf.data[2] = 127;
-    result = processor.processBlock(inLeft.data(), inRight.data(), outLeft.data(), outRight.data(), 512, &defaultRightHalf, 1);
-    require(processor.getParameter(kParamStatusCellStart + downspout::paunchlad::cellIndex(0, 4)) == 1.0f,
-            "paunchlad should map Launchpad default custom right half notes into columns 5-8");
+            "paunchlad should map linear chromatic Launchpad-style notes when LEDs are disabled");
 
     MidiMessage echo {};
     echo.size = 3;

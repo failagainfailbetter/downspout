@@ -15,6 +15,7 @@ using downspout::paunchlad::kCellCount;
 using downspout::paunchlad::kControlParamSpecs;
 using downspout::paunchlad::kGridHeight;
 using downspout::paunchlad::kGridWidth;
+using downspout::paunchlad::gridToNote;
 using downspout::paunchlad::kParamDry;
 using downspout::paunchlad::kParamLedFeedback;
 using downspout::paunchlad::kParamPanic;
@@ -423,6 +424,14 @@ private:
 
     void triggerParameter(const std::uint32_t parameter)
     {
+        if (parameter < kCellCount)
+        {
+            const std::size_t row = parameter / kGridWidth;
+            const std::size_t col = parameter % kGridWidth;
+            sendNote(0, gridToNote(row, col), 127);
+            return;
+        }
+
         editParameter(parameter, true);
         setParameterValue(parameter, 1.0f);
         editParameter(parameter, false);

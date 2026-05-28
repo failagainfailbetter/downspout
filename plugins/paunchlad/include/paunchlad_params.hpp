@@ -45,7 +45,7 @@ inline constexpr std::array<ParamSpec, 8> kControlParamSpecs = {{
     {"siren_level", "Siren", 0.0f, 1.0f, 0.50f, false, false, false, false},
     {"spring", "Spring", 0.0f, 1.0f, 0.35f, false, false, false, false},
     {"output", "Output", 0.0f, 1.0f, 0.78f, false, false, false, false},
-    {"led_feedback", "LED Feedback", 0.0f, 1.0f, 0.0f, true, true, false, false},
+    {"led_feedback", "LED Feedback", 0.0f, 1.0f, 1.0f, true, true, false, false},
 }};
 
 inline constexpr std::array<std::uint8_t, 9> kTopButtonCCs = {{
@@ -109,6 +109,17 @@ inline constexpr std::uint8_t kLedPink = 57;
     }
 
     return false;
+}
+
+[[nodiscard]] constexpr bool noteToLinearChromaticGrid(const std::uint8_t note, std::size_t& row, std::size_t& col) noexcept
+{
+    if (note < 36u || note > 99u)
+        return false;
+
+    const std::uint8_t offset = static_cast<std::uint8_t>(note - 36u);
+    row = static_cast<std::size_t>(offset / 8u);
+    col = static_cast<std::size_t>(offset % 8u);
+    return row < kGridHeight;
 }
 
 [[nodiscard]] constexpr std::size_t cellIndex(const std::size_t row, const std::size_t col) noexcept

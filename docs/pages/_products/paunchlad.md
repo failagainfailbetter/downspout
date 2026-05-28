@@ -15,6 +15,6 @@ vocals, or live input. It combines a stereo dub delay, internal siren sweeps,
 spring-style splashes, dry dropouts, and rhythmic chops for hands-on
 performance.
 
-It works with the Launchpad's default custom/user note layout, and can
-optionally switch to LED feedback when the plugin MIDI output is routed back to
-the Launchpad rather than onward to instruments.
+It follows Luma's Launchpad control path by default: LED feedback puts the
+hardware into programmer mode, while LED-off use falls back to a simple
+chromatic grid.
