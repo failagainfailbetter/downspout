@@ -26,6 +26,7 @@ downspout-<version>-linux-x86_64-vst3.zip
 ├── basilico.vst3/
 ├── luma.vst3/
 ├── paunchlad.vst3/
+├── lifeform.vst3/
 ├── LICENSE
 └── README.md
 ```

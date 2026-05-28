@@ -34,6 +34,7 @@ plugins=(
   "basilico:basilico"
   "luma:luma"
   "paunchlad:paunchlad"
+  "lifeform:lifeform"
 )
 
 usage() {

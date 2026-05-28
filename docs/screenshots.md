@@ -74,6 +74,7 @@ Current output filenames:
 - `basilico.png`
 - `luma.png`
 - `paunchlad.png`
+- `lifeform.png`
 
 The output path can be overridden:
 
