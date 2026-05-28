@@ -212,6 +212,9 @@ The release script currently expects these bundles:
 - `gremlin.vst3`
 - `gremlin_driver.vst3`
 - `ground.vst3`
+- `floozy.vst3`
+- `basilico.vst3`
+- `luma.vst3`
 
 This list should match the bundles installed by `install.sh`; if a plugin is
 added to the local install path, release packaging should be updated in the same

@@ -72,6 +72,7 @@ Current output filenames:
 - `ground.png`
 - `floozy.png`
 - `basilico.png`
+- `luma.png`
 
 The output path can be overridden:
 

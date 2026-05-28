@@ -155,13 +155,14 @@ Progress as of 2026-05-27:
 - `ground` now exists as an original long-form MIDI bass generator with a portable form-planning core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `floozy` now ports `flues/lv2/floozy-poly` as a corrected 8-voice hybrid physical/modulation synth with a portable core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `basilico` now exists as an original monophonic bass instrument with upright, electric, dub, acid, and industrial models, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
+- `luma` now exists as an original Launchpad-oriented MIDI performance generator with pad agents, LED feedback, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `install.sh` exists as the intended build/install entrypoint for local VST deployment.
 
 Current main gap:
 
 - DPF is now vendored and all current wrapper targets build successfully.
-- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `m_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, `ground.vst3`, `floozy.vst3`, and `basilico.vst3` bundles.
-- both `install.sh` and `scripts/package-release.sh` are expected to cover the same fifteen-bundle set.
+- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `m_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, `ground.vst3`, `floozy.vst3`, `basilico.vst3`, and `luma.vst3` bundles.
+- both `install.sh` and `scripts/package-release.sh` are expected to cover the same sixteen-bundle set.
 - the main remaining gaps are host validation across the full plugin set, validating the first tagged GitHub Actions release, and pushing the shared meter/style model further up the musical stack where it improves generator behavior.
 
 ## Meter direction

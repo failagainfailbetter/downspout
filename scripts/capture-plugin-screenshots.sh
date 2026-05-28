@@ -32,6 +32,7 @@ plugins=(
   "ground:ground"
   "floozy:floozy"
   "basilico:basilico"
+  "luma:luma"
 )
 
 usage() {
