@@ -101,6 +101,14 @@ private:
     float snareEnv_ = 0.0f;
     float snareBodyPhase_ = 0.0f;
     float snareBodyHz_ = 180.0f;
+    float crashEnv_ = 0.0f;
+    float subEnv_ = 0.0f;
+    float subPhase_ = 0.0f;
+    float subHz_ = 74.0f;
+    float laserEnv_ = 0.0f;
+    float laserPhase_ = 0.0f;
+    float laserStartHz_ = 1200.0f;
+    float laserEndHz_ = 160.0f;
     float springEnv_ = 0.0f;
     float springState_ = 0.0f;
     float throwSend_ = 0.0f;

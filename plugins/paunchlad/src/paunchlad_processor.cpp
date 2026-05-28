@@ -75,6 +75,14 @@ void Processor::clearPerformance()
     snareEnv_ = 0.0f;
     snareBodyPhase_ = 0.0f;
     snareBodyHz_ = 180.0f;
+    crashEnv_ = 0.0f;
+    subEnv_ = 0.0f;
+    subPhase_ = 0.0f;
+    subHz_ = 74.0f;
+    laserEnv_ = 0.0f;
+    laserPhase_ = 0.0f;
+    laserStartHz_ = 1200.0f;
+    laserEndHz_ = 160.0f;
     springEnv_ = 0.0f;
     springState_ = 0.0f;
     throwSend_ = 0.0f;
@@ -286,10 +294,12 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         }};
         throwFrames_ = framesForBeatDivision(kBeatLengths[col]);
         delaySeconds_ = 0.10f + static_cast<float>(col) * 0.12f;
-        throwSend_ = clampValue(0.45f + strength * 0.55f, 0.0f, 1.0f);
-        throwFeedback_ = clampValue(0.18f + static_cast<float>(col) * 0.08f, 0.0f, 0.86f);
-        snareEnv_ = 0.35f + strength * 0.25f;
+        throwSend_ = clampValue(0.70f + strength * 0.45f, 0.0f, 1.0f);
+        throwFeedback_ = clampValue(0.30f + static_cast<float>(col) * 0.085f, 0.0f, 0.92f);
+        snareEnv_ = 0.65f + strength * 0.45f;
         snareBodyHz_ = 135.0f + static_cast<float>(col) * 16.0f;
+        subEnv_ = 0.45f;
+        subHz_ = 72.0f + static_cast<float>(col) * 5.0f;
         return;
     }
 
@@ -298,8 +308,9 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         chopFrames_ = framesForBeatDivision(0.25f + static_cast<float>(col) * 0.18f);
         throwFrames_ = framesForBeatDivision(0.5f + static_cast<float>(col) * 0.25f);
         delaySeconds_ = 0.12f + static_cast<float>(col) * 0.06f;
-        throwSend_ = clampValue(0.35f + strength * 0.45f, 0.0f, 1.0f);
-        throwFeedback_ = clampValue(0.20f + static_cast<float>(col) * 0.07f, 0.0f, 0.82f);
+        throwSend_ = clampValue(0.65f + strength * 0.45f, 0.0f, 1.0f);
+        throwFeedback_ = clampValue(0.28f + static_cast<float>(col) * 0.075f, 0.0f, 0.88f);
+        crashEnv_ = 0.65f + strength * 0.35f;
         return;
     }
 
@@ -308,19 +319,23 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         dropFrames_ = framesForBeatDivision(0.25f + static_cast<float>(col) * 0.25f);
         throwFrames_ = framesForBeatDivision(0.5f + static_cast<float>(col) * 0.20f);
         delaySeconds_ = 0.16f + static_cast<float>(col) * 0.06f;
-        throwSend_ = clampValue(0.30f + strength * 0.50f, 0.0f, 1.0f);
-        throwFeedback_ = clampValue(0.15f + static_cast<float>(col) * 0.06f, 0.0f, 0.75f);
+        throwSend_ = clampValue(0.58f + strength * 0.45f, 0.0f, 1.0f);
+        throwFeedback_ = clampValue(0.22f + static_cast<float>(col) * 0.07f, 0.0f, 0.84f);
+        subEnv_ = 0.90f + strength * 0.40f;
+        subHz_ = 98.0f - static_cast<float>(col) * 6.0f;
+        crashEnv_ = 0.45f;
         return;
     }
 
     if (visualRow == 4)
     {
-        springEnv_ = clampValue(0.45f + strength * 0.55f, 0.0f, 1.0f);
+        springEnv_ = clampValue(0.90f + strength * 0.75f, 0.0f, 1.7f);
         parameters_[kParamTone] = clampValue(static_cast<float>(col) / 7.0f, 0.0f, 1.0f);
         throwFrames_ = framesForBeatDivision(0.5f + static_cast<float>(col) * 0.18f);
         delaySeconds_ = 0.11f + static_cast<float>(col) * 0.05f;
-        throwSend_ = 0.35f + strength * 0.35f;
-        throwFeedback_ = 0.24f + static_cast<float>(col) * 0.05f;
+        throwSend_ = 0.62f + strength * 0.30f;
+        throwFeedback_ = 0.34f + static_cast<float>(col) * 0.055f;
+        crashEnv_ = 0.35f + strength * 0.25f;
         return;
     }
 
@@ -329,36 +344,43 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
         static constexpr std::array<float, 8> kSnareEchoLengths = {{
             0.25f, 0.375f, 0.50f, 0.75f, 1.0f, 1.5f, 2.0f, 3.0f,
         }};
-        snareEnv_ = clampValue(0.75f + strength * 0.45f, 0.0f, 1.2f);
+        snareEnv_ = clampValue(1.25f + strength * 0.75f, 0.0f, 2.0f);
         snareBodyHz_ = 150.0f + static_cast<float>(col) * 22.0f;
         throwFrames_ = framesForBeatDivision(kSnareEchoLengths[col]);
         delaySeconds_ = 0.10f + static_cast<float>(col) * 0.075f;
-        throwSend_ = clampValue(0.70f + strength * 0.35f, 0.0f, 1.0f);
-        throwFeedback_ = clampValue(0.42f + static_cast<float>(col) * 0.06f, 0.0f, 0.90f);
+        throwSend_ = clampValue(0.86f + strength * 0.30f, 0.0f, 1.0f);
+        throwFeedback_ = clampValue(0.52f + static_cast<float>(col) * 0.055f, 0.0f, 0.94f);
+        crashEnv_ = 0.55f + strength * 0.30f;
+        subEnv_ = 0.50f;
+        subHz_ = 82.0f + static_cast<float>(col) * 3.5f;
         return;
     }
 
     if (visualRow == 2)
     {
         sirenMode_ = static_cast<int>((row - 2u) * 8u + col);
-        sirenEnv_ = 1.0f;
+        sirenEnv_ = 1.65f;
         sirenSweep_ = static_cast<float>(col) / 7.0f;
+        laserEnv_ = 0.70f + strength * 0.50f;
+        laserStartHz_ = 2200.0f + static_cast<float>(col) * 250.0f;
+        laserEndHz_ = 180.0f + static_cast<float>(col) * 45.0f;
         throwFrames_ = framesForBeatDivision(1.0f + static_cast<float>(col) * 0.25f);
         delaySeconds_ = 0.18f + static_cast<float>(col) * 0.08f;
-        throwSend_ = 0.25f + strength * 0.30f;
-        throwFeedback_ = 0.28f + static_cast<float>(col) * 0.05f;
+        throwSend_ = 0.55f + strength * 0.32f;
+        throwFeedback_ = 0.38f + static_cast<float>(col) * 0.055f;
         return;
     }
 
     if (visualRow == 1)
     {
         alarmMode_ = static_cast<int>(col);
-        alarmEnv_ = 1.0f;
-        alarmRate_ = 2.6f + static_cast<float>(col) * 0.9f;
+        alarmEnv_ = 2.10f;
+        alarmRate_ = 2.0f + static_cast<float>(col) * 0.75f;
+        crashEnv_ = 0.35f;
         throwFrames_ = framesForBeatDivision(1.0f + static_cast<float>(col) * 0.30f);
         delaySeconds_ = 0.16f + static_cast<float>(col) * 0.07f;
-        throwSend_ = 0.30f + strength * 0.35f;
-        throwFeedback_ = 0.34f + static_cast<float>(col) * 0.055f;
+        throwSend_ = 0.70f + strength * 0.25f;
+        throwFeedback_ = 0.48f + static_cast<float>(col) * 0.055f;
         return;
     }
 
@@ -368,9 +390,11 @@ void Processor::triggerPad(const std::size_t row, const std::size_t col, const f
     }
     else if (col < 6)
     {
-        alarmEnv_ = 1.0f;
+        alarmEnv_ = 1.85f;
         alarmMode_ = static_cast<int>(col);
-        springEnv_ = 1.0f;
+        springEnv_ = 1.35f;
+        crashEnv_ = 1.1f;
+        subEnv_ = 1.0f;
         dropFrames_ = framesForBeatDivision(0.5f);
     }
     else
@@ -412,8 +436,9 @@ void Processor::processAudio(const float* inLeft,
                 snareBodyPhase_ -= 1.0f;
             const float body = std::sin(snareBodyPhase_ * 2.0f * kPi) * snareEnv_;
             const float crack = noise() * snareEnv_ * snareEnv_;
-            snare = body * 0.32f + crack * 0.42f;
-            snareEnv_ *= 0.986f;
+            const float clap = noise() * (snareEnv_ > 0.65f ? 1.0f : snareEnv_ * 1.5f);
+            snare = body * 0.55f + crack * 0.95f + clap * 0.32f;
+            snareEnv_ *= 0.9925f;
         }
 
         const std::size_t read = (delayWrite_ + delaySize - delaySamples) % delaySize;
@@ -428,11 +453,23 @@ void Processor::processAudio(const float* inLeft,
         const float throwAmount = throwFrames_ > 0 ? throwSend_ : 0.0f;
         const float freeze = freezeFrames_ > 0 ? 1.0f : 0.0f;
         const float feedback = std::min(0.985f, baseFeedback + throwFeedback_ + freeze * 0.30f);
-        const float send = parameters_[kParamWet] * 0.20f + throwAmount;
+        float sub = 0.0f;
+        if (subEnv_ > 0.0001f)
+        {
+            subHz_ = std::max(34.0f, subHz_ * 0.99996f);
+            subPhase_ += subHz_ / static_cast<float>(sampleRate_);
+            if (subPhase_ >= 1.0f)
+                subPhase_ -= 1.0f;
+            sub = std::sin(subPhase_ * 2.0f * kPi) * subEnv_;
+            subEnv_ *= 0.9988f;
+        }
 
-        delayLeft_[delayWrite_] = (inputL + snare * 0.80f) * send + delayR * feedback;
-        delayRight_[delayWrite_] = (inputR + snare * 0.65f) * send + delayL * feedback;
-        delayWrite_ = (delayWrite_ + 1u) % delaySize;
+        float crash = 0.0f;
+        if (crashEnv_ > 0.0001f)
+        {
+            crash = noise() * crashEnv_;
+            crashEnv_ *= 0.9945f;
+        }
 
         float siren = 0.0f;
         if (sirenEnv_ > 0.0001f)
@@ -448,9 +485,22 @@ void Processor::processAudio(const float* inLeft,
                 sirenPhase_ -= 1.0f;
             const float sine = std::sin(sirenPhase_ * 2.0f * kPi);
             const float square = sirenPhase_ < 0.5f ? 1.0f : -1.0f;
-            siren = (sirenMode_ % 3 == 0 ? sine : (sine * 0.62f + square * 0.38f)) *
-                    sirenEnv_ * parameters_[kParamSirenLevel] * 0.38f;
-            sirenEnv_ *= 0.9995f;
+            siren = (sirenMode_ % 3 == 0 ? sine : (sine * 0.58f + square * 0.42f)) *
+                    sirenEnv_ * parameters_[kParamSirenLevel] * 0.82f;
+            sirenEnv_ *= 0.99972f;
+        }
+
+        float laser = 0.0f;
+        if (laserEnv_ > 0.0001f)
+        {
+            const float progress = clampValue(1.0f - laserEnv_, 0.0f, 1.0f);
+            const float hz = laserStartHz_ + (laserEndHz_ - laserStartHz_) * progress;
+            laserPhase_ += hz / static_cast<float>(sampleRate_);
+            if (laserPhase_ >= 1.0f)
+                laserPhase_ -= 1.0f;
+            const float saw = laserPhase_ * 2.0f - 1.0f;
+            laser = (saw * 0.65f + std::sin(laserPhase_ * 2.0f * kPi) * 0.35f) * laserEnv_ * 0.75f;
+            laserEnv_ *= 0.9968f;
         }
 
         float alarm = 0.0f;
@@ -467,28 +517,46 @@ void Processor::processAudio(const float* inLeft,
                 sirenPhase_ -= 1.0f;
             const float square = sirenPhase_ < 0.5f ? 1.0f : -1.0f;
             const float sine = std::sin(sirenPhase_ * 2.0f * kPi);
-            alarm = (square * 0.55f + sine * 0.45f) * gate * alarmEnv_ *
-                    parameters_[kParamSirenLevel] * 0.46f;
-            alarmEnv_ *= 0.9992f;
+            alarm = (square * 0.58f + sine * 0.42f) * gate * alarmEnv_ *
+                    parameters_[kParamSirenLevel] * 0.95f;
+            alarmEnv_ *= 0.99965f;
         }
 
         float spring = 0.0f;
         if (springEnv_ > 0.0001f)
         {
             springState_ = springState_ * 0.78f + noise() * springEnv_;
-            spring = springState_ * parameters_[kParamSpring] * 0.18f;
-            springEnv_ *= 0.9965f;
+            spring = springState_ * parameters_[kParamSpring] * 0.78f;
+            springEnv_ *= 0.9978f;
         }
 
         float dryGain = parameters_[kParamDry];
         if (dropFrames_ > 0)
-            dryGain *= 0.08f;
+            dryGain *= 0.015f;
         if (chopFrames_ > 0 && ((chopFrames_ / 900u) % 2u) == 0u)
-            dryGain *= 0.20f;
+            dryGain *= 0.04f;
+
+        float mangledInputL = inputL * dryGain;
+        float mangledInputR = inputR * dryGain;
+        if (throwFrames_ > 0)
+        {
+            const float drive = 1.0f + throwAmount * 2.5f;
+            mangledInputL = std::tanh(mangledInputL * drive) / std::max(1.0f, drive * 0.55f);
+            mangledInputR = std::tanh(mangledInputR * drive) / std::max(1.0f, drive * 0.55f);
+        }
+
+        const float send = parameters_[kParamWet] * 0.28f + throwAmount;
+        const float generatedForDelay = snare * 0.95f + siren * 0.45f + laser * 0.40f +
+                                        alarm * 0.55f + spring * 0.90f + crash * 0.75f + sub * 0.30f;
+        delayLeft_[delayWrite_] = (inputL + generatedForDelay) * send + delayR * feedback;
+        delayRight_[delayWrite_] = (inputR + generatedForDelay * 0.88f) * send + delayL * feedback;
+        delayWrite_ = (delayWrite_ + 1u) % delaySize;
 
         const float wetGain = parameters_[kParamWet] * (0.25f + throwAmount * 1.3f);
-        const float outL = (inputL * dryGain + delayL * wetGain + snare * 0.42f + siren + alarm + spring) * outputGain;
-        const float outR = (inputR * dryGain + delayR * wetGain + snare * 0.36f + siren * 0.92f + alarm * 0.86f - spring) * outputGain;
+        const float outL = (mangledInputL + delayL * wetGain + snare * 1.15f + siren + laser +
+                            alarm + spring + crash * 0.85f + sub * 0.80f) * outputGain;
+        const float outR = (mangledInputR + delayR * wetGain + snare * 0.98f + siren * 0.86f - laser * 0.74f +
+                            alarm * 0.90f - spring + crash * 0.65f + sub * 0.72f) * outputGain;
 
         if (outLeft != nullptr)
             outLeft[frame] = std::tanh(outL);
