@@ -35,14 +35,44 @@ Side buttons `19` through `89` load seed patterns.
 
 ## MIDI Mapping
 
+Each beat emits MIDI from the current board first, then calculates the next
+Game of Life generation. That means the notes you hear belong to the visible
+pattern before it evolves.
+
 In `Voices` mode, low, middle, and high rows are sent to adjacent MIDI channels
 starting from `Base Channel`. The default base channel is `4`, because
 Launchpad programmer-mode LED updates use MIDI channels 1-3 for static,
 flashing, and pulsing colours. In `Single` mode all notes use the base channel.
 In `Drums` mode living cells emit a compact GM-style drum palette.
 
+Melodic pitch mapping:
+
+- column chooses the main scale degree;
+- odd rows add two scale degrees;
+- each pair of rows shifts octave;
+- `Root` and `Scale` choose the note set.
+
+Velocity comes from the `Velocity` control, with small lifts for higher rows,
+the current generation column, and newly born cells. Drum mode uses the palette
+`36, 38, 42, 46, 45, 50, 39, 51`.
+
 The plugin has no audio I/O. Route its MIDI output to an instrument track, and
 route the same MIDI output back to the Launchpad if you want hardware LEDs.
+
+## LED Mapping
+
+Grid LEDs use static programmer-mode colours:
+
+- dead cells: off
+- newly born live cells: white
+- live rows 0-1: blue
+- live rows 2-4: green
+- live rows 5-6: orange
+- live row 7: purple
+
+Side buttons show seed selection: the selected seed is pink, other seeds are
+dim. Top buttons show their action groups, with the run button turning yellow
+when stopped and the logo/panic button red.
 
 `Panic` sends the same programmer-mode SysEx used by the `padseq` LV2 plugin,
 then sends a bulk Launchpad LED clear message covering the 8x8 grid, side

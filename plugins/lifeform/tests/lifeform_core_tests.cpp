@@ -156,6 +156,28 @@ int main()
     processor.activate();
     processor.setParameter(kParamLedFeedback, 0.0f);
     processor.setParameter(kParamRunning, 0.0f);
+    for (std::uint32_t i = 0; i < 64; ++i)
+        processor.setParameter(kParamCellStart + i, 0.0f);
+    processor.setParameter(kParamCellStart + static_cast<std::uint32_t>(cellIndex(0, 7)), 1.0f);
+    processor.setParameter(kParamCellStart + static_cast<std::uint32_t>(cellIndex(0, 0)), 1.0f);
+    processor.setParameter(kParamCellStart + static_cast<std::uint32_t>(cellIndex(0, 1)), 1.0f);
+    processor.setParameter(kParamRunning, 1.0f);
+    processor.setParameter(kParamClockMode, 2.0f);
+    result = processor.processBlock(512, transport, nullptr, 0);
+    require(processor.getParameter(kParamStatusCellStart + cellIndex(7, 0)) == 1.0f,
+            "lifeform wrapped blinker should birth through the top edge");
+    require(processor.getParameter(kParamStatusCellStart + cellIndex(0, 0)) == 1.0f,
+            "lifeform wrapped blinker should keep the edge center");
+    require(processor.getParameter(kParamStatusCellStart + cellIndex(1, 0)) == 1.0f,
+            "lifeform wrapped blinker should birth through the bottom edge");
+    require(processor.getParameter(kParamStatusCellStart + cellIndex(0, 7)) == 0.0f,
+            "lifeform wrapped blinker should clear the wrapped left arm");
+    require(processor.getParameter(kParamStatusCellStart + cellIndex(0, 1)) == 0.0f,
+            "lifeform wrapped blinker should clear the wrapped right arm");
+
+    processor.activate();
+    processor.setParameter(kParamLedFeedback, 0.0f);
+    processor.setParameter(kParamRunning, 0.0f);
     MidiMessage press {};
     press.size = 3;
     press.data[0] = 0x90;

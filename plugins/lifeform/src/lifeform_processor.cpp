@@ -712,13 +712,12 @@ int Processor::liveNeighborCount(const std::size_t row, const std::size_t col) c
         {
             if (dr == 0 && dc == 0)
                 continue;
-            const int rr = static_cast<int>(row) + dr;
-            const int cc = static_cast<int>(col) + dc;
-            if (rr >= 0 && rr < static_cast<int>(kGridHeight) && cc >= 0 && cc < static_cast<int>(kGridWidth) &&
-                cells_[cellIndex(static_cast<std::size_t>(rr), static_cast<std::size_t>(cc))])
-            {
+            const auto rr = static_cast<std::size_t>((static_cast<int>(row) + dr + static_cast<int>(kGridHeight)) %
+                                                     static_cast<int>(kGridHeight));
+            const auto cc = static_cast<std::size_t>((static_cast<int>(col) + dc + static_cast<int>(kGridWidth)) %
+                                                     static_cast<int>(kGridWidth));
+            if (cells_[cellIndex(rr, cc)])
                 ++count;
-            }
         }
     }
     return count;
