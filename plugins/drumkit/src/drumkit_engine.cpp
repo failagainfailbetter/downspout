@@ -283,6 +283,7 @@ void Engine::applyParameter(const std::uint32_t index, const float value)
     case kParamKickDrive: kick_->setDrive(value); break;
     case kParamKickPunch: kick_->setPunch(value); break;
     case kParamKickLevel: kick_->setLevel(value); break;
+    case kParamKickTransient: kick_->setTransient(value); break;
     case kParamSnareTone: snare_->setTone(value); break;
     case kParamSnareSnap: snare_->setSnap(value); break;
     case kParamSnareLevel: snare_->setLevel(value); break;

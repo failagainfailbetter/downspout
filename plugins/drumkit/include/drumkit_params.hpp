@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cmath>
 
 namespace downspout::drumkit {
 
@@ -69,6 +71,7 @@ enum ParameterId : std::uint32_t {
     kParamBashMute,
     kParamCowbellMute,
     kParamClaveMute,
+    kParamKickTransient,
     kParameterCount
 };
 
@@ -153,7 +156,14 @@ inline constexpr std::array<ParameterSpec, kParameterCount> kParameterSpecs = {{
     {"Bash Mute", "bash_mute", 0.0f, 1.0f, 0.0f, true},
     {"Cowbell Mute", "cowbell_mute", 0.0f, 1.0f, 0.0f, true},
     {"Clave Mute", "clave_mute", 0.0f, 1.0f, 0.0f, true},
+    {"Kick Transient", "kick_transient", 0.0f, 1.0f, 0.0f, false},
 }};
+
+[[nodiscard]] inline float normalizedKickPitchToHz(const float value)
+{
+    const float clamped = std::clamp(value, 0.0f, 1.0f);
+    return 60.0f * std::pow(250.0f / 60.0f, clamped);
+}
 
 inline constexpr std::array<InstrumentSpec, kInstrumentCount> kInstrumentSpecs = {{
     {InstrumentId::Kick, "Kick", "KICK", 36, kParamKickLevel, kParamKickMute},

@@ -10,6 +10,9 @@ Mapping decisions:
 - The two LV2 audio outputs map to one stereo DPF output group.
 - LV2 control ports 2-44 map to DPF automatable parameters 0-42 in the same semantic order.
 - Added mute parameters are appended after the inherited controls to keep the original parameter block traceable.
+- The kick transient amount is appended after the mute parameters. It is a
+  Downspout-only extension, defaulting to zero so existing drumkit patches keep
+  the inherited kick tone unless the new slider is raised.
 - The LV2 X11 UI was not ported. The DPF UI is new and intentionally separates mixer actions from voice editing.
 
 UI decisions:
@@ -23,6 +26,9 @@ UI decisions:
 - Master crush, drive, reverb, and gain live in a separate panel because they
   affect the shared bus and remain active even when individual voices are
   muted.
+- The kick pitch slider remains stored as the inherited normalized value, but
+  the custom UI formats it through the same 60-250 Hz exponential mapping used
+  by the portable kick voice.
 
 Resource behavior:
 

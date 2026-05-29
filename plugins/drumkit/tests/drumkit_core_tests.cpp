@@ -49,6 +49,23 @@ void mutedKickDoesNotTrigger()
     assert(renderEnergy(engine, 512) > 0.01f);
 }
 
+void kickTransientAddsAttackEnergy()
+{
+    downspout::drumkit::Engine dry {48000.0f};
+    dry.setParameter(downspout::drumkit::kParamMasterReverb, 0.0f);
+    dry.setParameter(downspout::drumkit::kParamKickTransient, 0.0f);
+    noteOn(dry, 36);
+    const float dryAttack = renderEnergy(dry, 96);
+
+    downspout::drumkit::Engine transient {48000.0f};
+    transient.setParameter(downspout::drumkit::kParamMasterReverb, 0.0f);
+    transient.setParameter(downspout::drumkit::kParamKickTransient, 1.0f);
+    noteOn(transient, 36);
+    const float transientAttack = renderEnergy(transient, 96);
+
+    assert(transientAttack > dryAttack * 1.2f);
+}
+
 void closedHatChokesOpenHatEvenWhenClosedHatMuted()
 {
     downspout::drumkit::Engine engine {48000.0f};
@@ -80,6 +97,7 @@ int main()
 {
     kickRendersAudio();
     mutedKickDoesNotTrigger();
+    kickTransientAddsAttackEnergy();
     closedHatChokesOpenHatEvenWhenClosedHatMuted();
     allNotesOffStopsVoices();
 

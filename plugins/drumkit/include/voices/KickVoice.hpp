@@ -1,10 +1,11 @@
 // KickVoice.hpp
-// Kick drum synthesis with pitch envelope, sine oscillator, distortion, and punch
-// Parameters: Pitch (60-250Hz start), Decay (50-1500ms), Drive (1-10×), Punch (click amount)
+// Kick drum synthesis with pitch envelope, sine oscillator, transient noise, distortion, and punch
+// Parameters: Pitch (60-250Hz start), Decay (50-1500ms), Drive (1-10×), Punch (click amount), Transient (pink burst)
 
 #ifndef KICK_VOICE_HPP
 #define KICK_VOICE_HPP
 
+#include "../drumkit_params.hpp"
 #include "../modules/PitchEnvelope.hpp"
 #include "../modules/ADEnvelope.hpp"
 #include "../modules/Distortion.hpp"
@@ -39,6 +40,12 @@ private:
     float decayTime;     // Envelope decay time (seconds)
     float driveAmount;   // Distortion drive
     float punchAmount;   // Click enhancement amount
+    float transientAmount; // Pink-noise transient amount
+    float transientEnv;   // Exponential transient envelope
+    float transientDecay; // Per-sample transient envelope decay
+    float pink0;          // Pink-noise filter state
+    float pink1;
+    float pink2;
     float level;         // Output level
 
     // Velocity
@@ -50,6 +57,14 @@ private:
     static float expoMap(float value, float min, float max) {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
         return min * std::pow(max / min, clamped);
+    }
+
+    float processPinkNoise() {
+        const float white = noise.process();
+        pink0 = 0.99765f * pink0 + white * 0.0990460f;
+        pink1 = 0.96300f * pink1 + white * 0.2965164f;
+        pink2 = 0.57000f * pink2 + white * 1.0526913f;
+        return (pink0 + pink1 + pink2 + white * 0.1848f) * 0.16f;
     }
 
 public:
@@ -67,6 +82,12 @@ public:
         , decayTime(0.3f)
         , driveAmount(1.0f)
         , punchAmount(0.15f)
+        , transientAmount(0.0f)
+        , transientEnv(0.0f)
+        , transientDecay(std::exp(-1.0f / (sampleRate * 0.012f)))
+        , pink0(0.0f)
+        , pink1(0.0f)
+        , pink2(0.0f)
         , level(1.0f)
         , velocity(1.0f)
     {
@@ -85,7 +106,7 @@ public:
      * Maps to starting pitch 60-250 Hz
      */
     void setPitch(float value) {
-        pitchStart = expoMap(value, 60.0f, 250.0f);
+        pitchStart = normalizedKickPitchToHz(value);
         pitchEnv.setStartFreq(pitchStart);
         pitchEnv.setEndFreq(pitchEnd);
     }
@@ -119,6 +140,13 @@ public:
         punchAmount = std::clamp(value, 0.0f, 1.0f);
     }
 
+    /**
+     * Set pink-noise transient amount (normalized 0-1)
+     */
+    void setTransient(float value) {
+        transientAmount = std::clamp(value, 0.0f, 1.0f);
+    }
+
     void setLevel(float value) {
         level = std::clamp(value, 0.0f, 1.5f);
     }
@@ -133,6 +161,8 @@ public:
 
         pitchEnv.trigger();
         ampEnv.trigger();
+        transientEnv = 1.0f;
+        pink0 = pink1 = pink2 = 0.0f;
         dcBlocker.reset();
     }
 
@@ -155,6 +185,14 @@ public:
         }
 
         float sample = std::sin(phase);
+
+        if (transientEnv > 0.0001f) {
+            if (transientAmount > 0.001f) {
+                const float transient = processPinkNoise() * transientEnv * transientAmount * velocity;
+                sample += transient * 0.65f;
+            }
+            transientEnv *= transientDecay;
+        }
 
         // Apply distortion
         sample = distortion.process(sample);
@@ -191,6 +229,8 @@ public:
         pitchEnv.reset();
         dcBlocker.reset();
         phase = 0.0f;
+        transientEnv = 0.0f;
+        pink0 = pink1 = pink2 = 0.0f;
     }
 };
 

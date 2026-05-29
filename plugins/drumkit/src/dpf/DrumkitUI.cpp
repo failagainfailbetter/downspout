@@ -38,6 +38,7 @@ using downspout::drumkit::kParamKickDecay;
 using downspout::drumkit::kParamKickDrive;
 using downspout::drumkit::kParamKickPitch;
 using downspout::drumkit::kParamKickPunch;
+using downspout::drumkit::kParamKickTransient;
 using downspout::drumkit::kParamMasterDrive;
 using downspout::drumkit::kParamMasterGain;
 using downspout::drumkit::kParamMasterReverb;
@@ -49,6 +50,7 @@ using downspout::drumkit::kParamTom1Decay;
 using downspout::drumkit::kParamTom1Pitch;
 using downspout::drumkit::kParamTom2Decay;
 using downspout::drumkit::kParamTom2Pitch;
+using downspout::drumkit::normalizedKickPitchToHz;
 
 constexpr std::size_t kMaxVoiceControls = 6;
 constexpr std::size_t kMasterControlCount = 4;
@@ -97,7 +99,7 @@ constexpr std::array<Color, kInstrumentCount> kInstrumentColors = {{
 }};
 
 constexpr std::array<VoiceControls, kInstrumentCount> kVoiceControls = {{
-    {InstrumentId::Kick, {{{kParamKickPitch, "Pitch"}, {kParamKickDecay, "Decay"}, {kParamKickDrive, "Drive"}, {kParamKickPunch, "Punch"}, {0, ""}, {0, ""}}}, 4},
+    {InstrumentId::Kick, {{{kParamKickPitch, "Pitch"}, {kParamKickDecay, "Decay"}, {kParamKickDrive, "Drive"}, {kParamKickPunch, "Punch"}, {kParamKickTransient, "Transient"}, {0, ""}}}, 5},
     {InstrumentId::Clap, {{{kParamClapDensity, "Density"}, {kParamClapTone, "Tone"}, {0, ""}, {0, ""}, {0, ""}, {0, ""}}}, 2},
     {InstrumentId::Snare, {{{kParamSnareTone, "Tone"}, {kParamSnareSnap, "Snap"}, {0, ""}, {0, ""}, {0, ""}, {0, ""}}}, 2},
     {InstrumentId::Crash, {{{kParamCrashBrightness, "Bright"}, {kParamCrashDecay, "Decay"}, {0, ""}, {0, ""}, {0, ""}, {0, ""}}}, 2},
@@ -136,6 +138,8 @@ constexpr std::array<ControlDef, kMasterControlCount> kMasterControls = {{
     const auto& spec = kParameterSpecs[parameter];
     if (spec.boolean)
         std::snprintf(buffer, sizeof(buffer), "%s", value >= 0.5f ? "on" : "off");
+    else if (parameter == kParamKickPitch)
+        std::snprintf(buffer, sizeof(buffer), "%.0f Hz", normalizedKickPitchToHz(value));
     else if (spec.maximum <= 1.0f)
         std::snprintf(buffer, sizeof(buffer), "%d%%", static_cast<int>(std::lround(value * 100.0f)));
     else
