@@ -35,6 +35,12 @@ enum class OutputMode : std::uint32_t {
     count,
 };
 
+enum class EmitMode : std::uint32_t {
+    lean = 0,
+    full,
+    count,
+};
+
 inline constexpr std::uint32_t kParamCellStart = 0;
 inline constexpr std::uint32_t kParamRootNote = 64;
 inline constexpr std::uint32_t kParamScale = 65;
@@ -52,9 +58,10 @@ inline constexpr std::uint32_t kParamClear = 76;
 inline constexpr std::uint32_t kParamSeed = 77;
 inline constexpr std::uint32_t kParamStep = 78;
 inline constexpr std::uint32_t kParamPanic = 79;
-inline constexpr std::uint32_t kParamStatusActive = 80;
-inline constexpr std::uint32_t kParamStatusGeneration = 81;
-inline constexpr std::uint32_t kParamStatusCellStart = 82;
+inline constexpr std::uint32_t kParamEmitMode = 80;
+inline constexpr std::uint32_t kParamStatusActive = 81;
+inline constexpr std::uint32_t kParamStatusGeneration = 82;
+inline constexpr std::uint32_t kParamStatusCellStart = 83;
 inline constexpr std::uint32_t kParameterCount = kParamStatusCellStart + static_cast<std::uint32_t>(kCellCount);
 
 inline constexpr std::array<const char*, static_cast<std::size_t>(ScaleId::count)> kScaleNames = {{
@@ -77,6 +84,11 @@ inline constexpr std::array<const char*, static_cast<std::size_t>(OutputMode::co
     "Voices",
     "Single",
     "Drums",
+}};
+
+inline constexpr std::array<const char*, static_cast<std::size_t>(EmitMode::count)> kEmitModeNames = {{
+    "Lean",
+    "Full",
 }};
 
 inline constexpr std::array<std::uint8_t, 9> kTopButtonCCs = {{

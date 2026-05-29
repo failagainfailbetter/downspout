@@ -12,6 +12,7 @@ START_NAMESPACE_DISTRHO
 namespace {
 
 using downspout::lifeform::ClockMode;
+using downspout::lifeform::EmitMode;
 using downspout::lifeform::MidiMessage;
 using downspout::lifeform::OutputMode;
 using downspout::lifeform::ProcessResult;
@@ -20,12 +21,14 @@ using downspout::lifeform::ScaleId;
 using downspout::lifeform::TransportSnapshot;
 using downspout::lifeform::kCellCount;
 using downspout::lifeform::kClockModeNames;
+using downspout::lifeform::kEmitModeNames;
 using downspout::lifeform::kOutputModeNames;
 using downspout::lifeform::kParamBaseChannel;
 using downspout::lifeform::kParamCellStart;
 using downspout::lifeform::kParamClear;
 using downspout::lifeform::kParamClockMode;
 using downspout::lifeform::kParamDensity;
+using downspout::lifeform::kParamEmitMode;
 using downspout::lifeform::kParamGate;
 using downspout::lifeform::kParamLedFeedback;
 using downspout::lifeform::kParamMutation;
@@ -64,6 +67,11 @@ ParameterEnumerationValue kOutputEnumValues[] = {
     {0.0f, kOutputModeNames[0]},
     {1.0f, kOutputModeNames[1]},
     {2.0f, kOutputModeNames[2]},
+};
+
+ParameterEnumerationValue kEmitEnumValues[] = {
+    {0.0f, kEmitModeNames[0]},
+    {1.0f, kEmitModeNames[1]},
 };
 
 MidiMessage toCoreMidiMessage(const MidiEvent& event)
@@ -247,6 +255,18 @@ protected:
             parameter.enumValues.count = static_cast<uint8_t>(std::size(kOutputEnumValues));
             parameter.enumValues.restrictedMode = true;
             parameter.enumValues.values = kOutputEnumValues;
+            parameter.enumValues.deleteLater = false;
+            break;
+        case kParamEmitMode:
+            parameter.name = "Emit";
+            parameter.symbol = "emit";
+            parameter.hints |= kParameterIsInteger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = static_cast<float>(static_cast<int>(EmitMode::count) - 1);
+            parameter.ranges.def = 0.0f;
+            parameter.enumValues.count = static_cast<uint8_t>(std::size(kEmitEnumValues));
+            parameter.enumValues.restrictedMode = true;
+            parameter.enumValues.values = kEmitEnumValues;
             parameter.enumValues.deleteLater = false;
             break;
         case kParamBaseChannel:

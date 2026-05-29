@@ -11,6 +11,8 @@ LV2 port.
 - With valid host BBT transport, beat boundaries come from the host.
 - Without host BBT, `Auto` falls back to a free 120 BPM clock.
 - Living cells emit notes before the next generation is calculated.
+- `Emit` defaults to `Lean`, which caps dense musical output at eight note-ons
+  per generation; `Full` emits every living cell.
 - Newly born cells receive a velocity lift and white Launchpad LEDs for one
   generation.
 
@@ -29,6 +31,9 @@ The first mapping is deliberately simple and playable:
 
 Implementation details:
 
+- `Lean` emit mode prioritizes newly born cells, then scans columns starting at
+  `generation % 8` until eight notes have been emitted;
+- `Full` emit mode preserves the original all-living-cells output;
 - melodic degree is `col + (row % 2) * 2`;
 - octave shift is `(row / 2) - 1`;
 - selected scale intervals are added to `Root Note`;

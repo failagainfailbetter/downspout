@@ -6,6 +6,8 @@
 namespace downspout::lifeform {
 namespace {
 
+inline constexpr std::uint32_t kLeanMaxNotesPerGeneration = 8;
+
 template <typename T>
 [[nodiscard]] T clampValue(const T value, const T minimum, const T maximum) noexcept
 {
@@ -85,6 +87,7 @@ float Processor::parameterDefault(const std::uint32_t index) const noexcept
     case kParamDensity: return 0.34f;
     case kParamClockMode: return 0.0f;
     case kParamOutputMode: return 0.0f;
+    case kParamEmitMode: return 0.0f;
     case kParamBaseChannel: return 4.0f;
     case kParamLedFeedback: return 1.0f;
     case kParamRunning: return 1.0f;
@@ -120,6 +123,9 @@ void Processor::setParameter(const std::uint32_t index, float value)
         break;
     case kParamOutputMode:
         value = static_cast<float>(clampValue(static_cast<int>(std::lround(value)), 0, static_cast<int>(OutputMode::count) - 1));
+        break;
+    case kParamEmitMode:
+        value = static_cast<float>(clampValue(static_cast<int>(std::lround(value)), 0, static_cast<int>(EmitMode::count) - 1));
         break;
     case kParamBaseChannel:
         value = static_cast<float>(clampValue(static_cast<int>(std::lround(value)), 1, 16));
@@ -465,15 +471,7 @@ void Processor::scheduleFreeGenerations(std::array<std::uint32_t, 32>& frames,
 
 void Processor::runGeneration(ProcessResult& result, const std::uint32_t frame)
 {
-    for (std::size_t row = 0; row < kGridHeight; ++row)
-    {
-        for (std::size_t col = 0; col < kGridWidth; ++col)
-        {
-            const std::size_t index = cellIndex(row, col);
-            if (cells_[index])
-                emitCell(result, frame, row, col, born_[index]);
-        }
-    }
+    emitCurrentCells(result, frame);
 
     std::array<bool, kCellCount> next {};
     std::array<bool, kCellCount> nextBorn {};
@@ -499,6 +497,53 @@ void Processor::runGeneration(ProcessResult& result, const std::uint32_t frame)
         parameters_[i] = cells_[i] ? 1.0f : 0.0f;
     ++generation_;
     updateStatus();
+}
+
+void Processor::emitCurrentCells(ProcessResult& result, const std::uint32_t frame)
+{
+    const int emitMode = static_cast<int>(std::lround(parameters_[kParamEmitMode]));
+    if (emitMode == static_cast<int>(EmitMode::full))
+    {
+        for (std::size_t row = 0; row < kGridHeight; ++row)
+        {
+            for (std::size_t col = 0; col < kGridWidth; ++col)
+            {
+                const std::size_t index = cellIndex(row, col);
+                if (cells_[index])
+                    emitCell(result, frame, row, col, born_[index]);
+            }
+        }
+        return;
+    }
+
+    std::uint32_t emitted = 0;
+    for (std::size_t row = 0; row < kGridHeight && emitted < kLeanMaxNotesPerGeneration; ++row)
+    {
+        for (std::size_t col = 0; col < kGridWidth && emitted < kLeanMaxNotesPerGeneration; ++col)
+        {
+            const std::size_t index = cellIndex(row, col);
+            if (cells_[index] && born_[index])
+            {
+                emitCell(result, frame, row, col, true);
+                ++emitted;
+            }
+        }
+    }
+
+    const std::size_t startCol = static_cast<std::size_t>(generation_ % kGridWidth);
+    for (std::size_t colOffset = 0; colOffset < kGridWidth && emitted < kLeanMaxNotesPerGeneration; ++colOffset)
+    {
+        const std::size_t col = (startCol + colOffset) % kGridWidth;
+        for (std::size_t row = 0; row < kGridHeight && emitted < kLeanMaxNotesPerGeneration; ++row)
+        {
+            const std::size_t index = cellIndex(row, col);
+            if (cells_[index] && !born_[index])
+            {
+                emitCell(result, frame, row, col, false);
+                ++emitted;
+            }
+        }
+    }
 }
 
 void Processor::emitCell(ProcessResult& result,

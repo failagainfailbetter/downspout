@@ -30,6 +30,21 @@ bool containsNoteOn(const downspout::lifeform::ProcessResult& result)
     return false;
 }
 
+std::uint32_t countNoteOns(const downspout::lifeform::ProcessResult& result)
+{
+    std::uint32_t count = 0;
+    for (std::uint32_t i = 0; i < result.eventCount; ++i)
+    {
+        if (result.events[i].size == 3 &&
+            (result.events[i].data[0] & 0xf0u) == 0x90u &&
+            result.events[i].data[2] > 0u)
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
 bool containsMidi(const downspout::lifeform::ProcessResult& result,
                   const std::uint8_t status,
                   const std::uint8_t data1,
@@ -111,6 +126,7 @@ int main()
     using downspout::lifeform::gridToNote;
     using downspout::lifeform::kParamCellStart;
     using downspout::lifeform::kParamClockMode;
+    using downspout::lifeform::kParamEmitMode;
     using downspout::lifeform::kParamLedFeedback;
     using downspout::lifeform::kParamPanic;
     using downspout::lifeform::kParamRunning;
@@ -152,6 +168,29 @@ int main()
             "lifeform blinker should rotate to row 4");
     require(processor.getParameter(kParamStatusCellStart + cellIndex(3, 2)) == 0.0f,
             "lifeform blinker should clear left arm");
+
+    processor.activate();
+    processor.setParameter(kParamLedFeedback, 0.0f);
+    processor.setParameter(kParamRunning, 0.0f);
+    for (std::uint32_t i = 0; i < 64; ++i)
+        processor.setParameter(kParamCellStart + i, 1.0f);
+    processor.setParameter(kParamRunning, 1.0f);
+    processor.setParameter(kParamClockMode, 2.0f);
+    result = processor.processBlock(512, transport, nullptr, 0);
+    require(countNoteOns(result) == 8,
+            "lifeform lean emit mode should limit dense patterns to eight musical note-ons");
+
+    processor.activate();
+    processor.setParameter(kParamLedFeedback, 0.0f);
+    processor.setParameter(kParamRunning, 0.0f);
+    processor.setParameter(kParamEmitMode, 1.0f);
+    for (std::uint32_t i = 0; i < 64; ++i)
+        processor.setParameter(kParamCellStart + i, 1.0f);
+    processor.setParameter(kParamRunning, 1.0f);
+    processor.setParameter(kParamClockMode, 2.0f);
+    result = processor.processBlock(512, transport, nullptr, 0);
+    require(countNoteOns(result) == 64,
+            "lifeform full emit mode should preserve all-cell musical output");
 
     processor.activate();
     processor.setParameter(kParamLedFeedback, 0.0f);

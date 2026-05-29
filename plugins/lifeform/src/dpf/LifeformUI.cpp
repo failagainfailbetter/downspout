@@ -13,6 +13,7 @@ namespace {
 
 using downspout::lifeform::kCellCount;
 using downspout::lifeform::kClockModeNames;
+using downspout::lifeform::kEmitModeNames;
 using downspout::lifeform::kGridHeight;
 using downspout::lifeform::kGridWidth;
 using downspout::lifeform::kOutputModeNames;
@@ -20,6 +21,7 @@ using downspout::lifeform::kParamBaseChannel;
 using downspout::lifeform::kParamClear;
 using downspout::lifeform::kParamClockMode;
 using downspout::lifeform::kParamDensity;
+using downspout::lifeform::kParamEmitMode;
 using downspout::lifeform::kParamGate;
 using downspout::lifeform::kParamLedFeedback;
 using downspout::lifeform::kParamMutation;
@@ -86,6 +88,8 @@ constexpr std::array<SliderDef, 6> kSliders = {{
         return kClockModeNames[static_cast<std::size_t>(clampi(selected, 0, static_cast<int>(kClockModeNames.size()) - 1))];
     if (index == kParamOutputMode)
         return kOutputModeNames[static_cast<std::size_t>(clampi(selected, 0, static_cast<int>(kOutputModeNames.size()) - 1))];
+    if (index == kParamEmitMode)
+        return kEmitModeNames[static_cast<std::size_t>(clampi(selected, 0, static_cast<int>(kEmitModeNames.size()) - 1))];
     return "";
 }
 
@@ -223,7 +227,7 @@ private:
     std::array<bool, kParameterCount> touched_ {};
     std::array<Rect, kCellCount> padRects_ {};
     std::array<Rect, kSliders.size()> sliderRects_ {};
-    std::array<Rect, 3> selectorRects_ {};
+    std::array<Rect, 4> selectorRects_ {};
     Rect runRect_ {};
     Rect stepRect_ {};
     Rect randomRect_ {};
@@ -368,14 +372,14 @@ private:
 
     void drawSelectors(const float x, const float y, const float w)
     {
-        constexpr std::array<std::uint32_t, 3> kSelectorParams = {{
-            kParamScale, kParamClockMode, kParamOutputMode,
+        constexpr std::array<std::uint32_t, 4> kSelectorParams = {{
+            kParamScale, kParamClockMode, kParamOutputMode, kParamEmitMode,
         }};
-        constexpr std::array<const char*, 3> kSelectorLabels = {{
-            "Scale", "Clock", "Output",
+        constexpr std::array<const char*, 4> kSelectorLabels = {{
+            "Scale", "Clock", "Output", "Emit",
         }};
 
-        const float boxW = (w - 16.0f) / 3.0f;
+        const float boxW = (w - 24.0f) / 4.0f;
         for (std::size_t i = 0; i < kSelectorParams.size(); ++i)
         {
             const Rect rect {x + static_cast<float>(i) * (boxW + 8.0f), y, boxW, 74.0f};
@@ -490,10 +494,14 @@ private:
 
     void cycleSelector(const std::size_t index)
     {
-        const std::uint32_t parameter = index == 0 ? kParamScale : (index == 1 ? kParamClockMode : kParamOutputMode);
+        const std::uint32_t parameter = index == 0 ? kParamScale :
+                                        index == 1 ? kParamClockMode :
+                                        index == 2 ? kParamOutputMode :
+                                                     kParamEmitMode;
         const int count = index == 0 ? static_cast<int>(kScaleNames.size()) :
                           index == 1 ? static_cast<int>(kClockModeNames.size()) :
-                                       static_cast<int>(kOutputModeNames.size());
+                          index == 2 ? static_cast<int>(kOutputModeNames.size()) :
+                                       static_cast<int>(kEmitModeNames.size());
         const int current = static_cast<int>(std::lround(values_[parameter]));
         commitParameter(parameter, static_cast<float>((current + 1) % count));
     }

@@ -12,7 +12,7 @@ generation, and living cells emit MIDI before the board evolves.
 - `Random` fills the grid using the `Density` control.
 - `Clear` empties the board.
 - `LED` enables Launchpad feedback.
-- `Scale`, `Root`, and `Output` choose how cells become notes.
+- `Scale`, `Root`, `Output`, and `Emit` choose how cells become notes.
 - `Mutation` adds a small amount of random cellular drift.
 
 ## Launchpad Controls
@@ -44,6 +44,11 @@ starting from `Base Channel`. The default base channel is `4`, because
 Launchpad programmer-mode LED updates use MIDI channels 1-3 for static,
 flashing, and pulsing colours. In `Single` mode all notes use the base channel.
 In `Drums` mode living cells emit a compact GM-style drum palette.
+
+`Emit` defaults to `Lean`, which limits dense generations to eight musical
+note-ons per beat so host transport playback does not receive a large burst of
+simultaneous MIDI. `Full` restores the original behavior where every living
+cell emits a note on each generation.
 
 Melodic pitch mapping:
 

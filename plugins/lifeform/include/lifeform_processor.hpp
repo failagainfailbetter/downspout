@@ -77,6 +77,7 @@ private:
                                  std::uint32_t frameCount,
                                  double bpm);
     void runGeneration(ProcessResult& result, std::uint32_t frame);
+    void emitCurrentCells(ProcessResult& result, std::uint32_t frame);
     void emitCell(ProcessResult& result,
                   std::uint32_t frame,
                   std::size_t row,
