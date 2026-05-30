@@ -70,6 +70,12 @@ struct ButtonDef {
     const char* label;
 };
 
+struct SliderGroup {
+    const char* title;
+    std::size_t first;
+    std::size_t count;
+};
+
 constexpr const char* kScaleNames[] = {
     "Minor", "Major", "Dorian", "Phrygian", "Pent Minor", "Blues",
     "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom",
@@ -85,21 +91,28 @@ constexpr const char* kChannelNames[] = {
     "9", "10", "11", "12", "13", "14", "15", "16"
 };
 
-constexpr std::array<SliderDef, 14> kSliders = {{
+constexpr std::array<SliderDef, 15> kSliders = {{
     {kParamRootNote, "Root", 0.0f, 127.0f, true},
-    {kParamLengthBeats, "Length", 4.0f, 64.0f, true},
-    {kParamPhraseLength, "Phrase Bars", 1.0f, 8.0f, true},
-    {kParamDensity, "Density", 0.0f, 1.0f, false},
-    {kParamStructure, "Structure", 0.0f, 1.0f, false},
-    {kParamFollow, "Follow", 0.0f, 1.0f, false},
+    {kParamRegister, "Register", 0.0f, 4.0f, true},
     {kParamRange, "Range", 0.0f, 1.0f, false},
     {kParamLeap, "Leap", 0.0f, 1.0f, false},
-    {kParamRest, "Rest", 0.0f, 1.0f, false},
-    {kParamCadence, "Cadence", 0.0f, 1.0f, false},
     {kParamHold, "Hold", 0.0f, 1.0f, false},
     {kParamAccent, "Accent", 0.0f, 1.0f, false},
-    {kParamRegister, "Register", 0.0f, 4.0f, true},
+    {kParamDensity, "Density", 0.0f, 1.0f, false},
+    {kParamRest, "Rest", 0.0f, 1.0f, false},
+    {kParamStructure, "Structure", 0.0f, 1.0f, false},
+    {kParamCadence, "Cadence", 0.0f, 1.0f, false},
+    {kParamFollow, "Follow", 0.0f, 1.0f, false},
+    {kParamVary, "Vary", 0.0f, 100.0f, true},
+    {kParamLengthBeats, "Length", 4.0f, 64.0f, true},
+    {kParamPhraseLength, "Phrase", 1.0f, 8.0f, true},
     {kParamSeed, "Seed", 1.0f, 65535.0f, true},
+}};
+
+constexpr std::array<SliderGroup, 3> kSliderGroups = {{
+    {"Pitch", 0, 6},
+    {"Phrase", 6, 6},
+    {"Pattern", 12, 3},
 }};
 
 constexpr std::array<SelectorDef, 6> kSelectors = {{
@@ -170,6 +183,7 @@ public:
         values_[kParamRest] = 0.24f;
         values_[kParamCadence] = 0.55f;
         values_[kParamSeed] = 1.0f;
+        values_[kParamVary] = 0.0f;
 
        #ifdef DGL_NO_SHARED_RESOURCES
         createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
@@ -194,8 +208,8 @@ protected:
         const float pad = 22.0f;
         drawBackground(width, height);
         drawHeader(pad, pad, width - pad * 2.0f, 78.0f);
-        drawSliders(pad, 118.0f, width * 0.62f - pad * 1.5f, height - 140.0f);
-        drawStructurePanel(width * 0.62f + pad * 0.5f, 118.0f, width * 0.38f - pad * 1.5f, height - 140.0f);
+        drawSliders(pad, 118.0f, width * 0.68f - pad * 1.5f, height - 140.0f);
+        drawStructurePanel(width * 0.68f + pad * 0.5f, 118.0f, width * 0.32f - pad * 1.5f, height - 140.0f);
         if (openSelector_ >= 0) {
             drawSelectorMenu(openSelector_);
         }
@@ -224,7 +238,7 @@ protected:
         for (std::size_t i = 0; i < sliderRects_.size(); ++i) {
             if (sliderRects_[i].contains(x, y)) {
                 draggingSlider_ = static_cast<int>(i);
-                updateSlider(static_cast<int>(i), x);
+                updateSlider(static_cast<int>(i), x, y);
                 return true;
             }
         }
@@ -250,7 +264,7 @@ protected:
     bool onMotion(const MotionEvent& ev) override
     {
         if (draggingSlider_ >= 0) {
-            updateSlider(draggingSlider_, static_cast<float>(ev.pos.getX()));
+            updateSlider(draggingSlider_, static_cast<float>(ev.pos.getX()), static_cast<float>(ev.pos.getY()));
             return true;
         }
         return false;
@@ -316,16 +330,34 @@ private:
         fontSize(16.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
         fillColor(230, 235, 231, 255);
-        text(x + 18.0f, y + 16.0f, "Line Shape", nullptr);
+        text(x + 18.0f, y + 16.0f, "Line Controls", nullptr);
 
-        const float rowH = 32.0f;
-        const float gap = 8.0f;
-        float rowY = y + 54.0f;
-        for (std::size_t i = 0; i < kSliders.size(); ++i) {
-            const Rect rect {x + 18.0f, rowY, w - 36.0f, rowH};
-            sliderRects_[i] = rect;
-            drawSlider(kSliders[i], rect);
-            rowY += rowH + gap;
+        const float innerX = x + 18.0f;
+        const float innerW = w - 36.0f;
+        const float topY = y + 54.0f;
+        const float rowGap = 28.0f;
+        const float rowH = (h - 86.0f - rowGap) * 0.5f;
+        drawSliderGroup(kSliderGroups[0], innerX, topY, innerW, rowH);
+        drawSliderGroup(kSliderGroups[1], innerX, topY + rowH + rowGap, innerW * 0.73f, rowH);
+        drawSliderGroup(kSliderGroups[2], innerX + innerW * 0.76f, topY + rowH + rowGap, innerW * 0.24f, rowH);
+    }
+
+    void drawSliderGroup(const SliderGroup& group, float x, float y, float w, float h)
+    {
+        fontSize(12.0f);
+        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        fillColor(139, 152, 153, 255);
+        text(x, y, group.title, nullptr);
+
+        const float gap = 10.0f;
+        const float cellW = (w - gap * static_cast<float>(group.count - 1)) / static_cast<float>(group.count);
+        const float cellY = y + 22.0f;
+        const float cellH = h - 22.0f;
+        for (std::size_t offset = 0; offset < group.count; ++offset) {
+            const std::size_t sliderIndex = group.first + offset;
+            const Rect rect {x + static_cast<float>(offset) * (cellW + gap), cellY, cellW, cellH};
+            sliderRects_[sliderIndex] = rect;
+            drawSlider(kSliders[sliderIndex], rect);
         }
     }
 
@@ -361,29 +393,36 @@ private:
         const std::string textValue = formatValue(def, value);
 
         fontSize(12.0f);
-        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        textAlign(ALIGN_CENTER | ALIGN_TOP);
         fillColor(207, 216, 213, 255);
-        text(rect.x, rect.y - 1.0f, def.label, nullptr);
+        text(rect.x + rect.w * 0.5f, rect.y, def.label, nullptr);
 
-        textAlign(ALIGN_RIGHT | ALIGN_TOP);
+        textAlign(ALIGN_CENTER | ALIGN_TOP);
         fillColor(140, 204, 188, 255);
-        text(rect.x + rect.w, rect.y - 1.0f, textValue.c_str(), nullptr);
+        text(rect.x + rect.w * 0.5f, rect.y + 17.0f, textValue.c_str(), nullptr);
 
-        const float barY = rect.y + 19.0f;
+        const float trackW = 12.0f;
+        const float trackX = rect.x + rect.w * 0.5f - trackW * 0.5f;
+        const float trackY = rect.y + 42.0f;
+        const float trackH = std::max(36.0f, rect.h - 52.0f);
+        const float fillH = std::max(8.0f, trackH * norm);
+        const float fillY = trackY + trackH - fillH;
+        const float knobY = trackY + trackH * (1.0f - norm);
+
         beginPath();
-        roundedRect(rect.x, barY, rect.w, 10.0f, 5.0f);
+        roundedRect(trackX, trackY, trackW, trackH, 6.0f);
         fillColor(37, 44, 47, 255);
         fill();
         closePath();
 
         beginPath();
-        roundedRect(rect.x, barY, std::max(8.0f, rect.w * norm), 10.0f, 5.0f);
+        roundedRect(trackX, fillY, trackW, fillH, 6.0f);
         fillColor(100, 184, 166, 235);
         fill();
         closePath();
 
         beginPath();
-        roundedRect(rect.x + rect.w * norm - 5.0f, barY - 4.0f, 10.0f, 18.0f, 5.0f);
+        roundedRect(rect.x + 10.0f, knobY - 5.0f, rect.w - 20.0f, 10.0f, 5.0f);
         fillColor(236, 241, 237, 255);
         fill();
         closePath();
@@ -483,14 +522,16 @@ private:
         return true;
     }
 
-    void updateSlider(int sliderIndex, float x)
+    void updateSlider(int sliderIndex, float, float y)
     {
         if (sliderIndex < 0 || sliderIndex >= static_cast<int>(kSliders.size())) {
             return;
         }
         const SliderDef& def = kSliders[sliderIndex];
         const Rect& rect = sliderRects_[sliderIndex];
-        const float norm = clampf((x - rect.x) / rect.w, 0.0f, 1.0f);
+        const float trackY = rect.y + 42.0f;
+        const float trackH = std::max(36.0f, rect.h - 52.0f);
+        const float norm = clampf(1.0f - ((y - trackY) / trackH), 0.0f, 1.0f);
         float value = def.min + norm * (def.max - def.min);
         if (def.integer) {
             value = std::round(value);
