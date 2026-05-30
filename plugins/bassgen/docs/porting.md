@@ -25,11 +25,11 @@ Current `downspout`-specific port note:
   note 36, and use a bipolar follow/dodge amount to either suppress matching
   bass onsets or inject a short bass note on matching input hits;
 - Jazz is implemented as an appended genre value for state compatibility. It
-  uses the existing scale vocabulary rather than adding new scales: Major,
-  Dorian, Mixolydian, Lydian, Blues, Harmonic Minor, Melodic Minor, and Whole
-  Tone already cover the practical chord-scale colors needed by the current
-  root/degree-based generator. The genre adds ii-V-I-turnaround roots and
-  walking beat anchors instead of new scale IDs.
+  adds ii-V-I-turnaround roots and walking beat anchors. Jazz color scales were
+  also appended after the existing scale IDs: Altered, Half-Whole Diminished,
+  Whole-Half Diminished, Bebop Dominant, Bebop Major, and Bebop Minor. These
+  are currently selectable pitch vocabularies; the next step is to use them
+  intentionally from explicit Jazz chord roles, especially over dominant bars.
 
 Likely reusable source modules:
 

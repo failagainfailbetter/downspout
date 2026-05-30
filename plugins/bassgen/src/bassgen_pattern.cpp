@@ -23,6 +23,13 @@ enum class StepRole : std::uint8_t {
     primary
 };
 
+enum class JazzChordRole : std::uint8_t {
+    two = 0,
+    five,
+    one,
+    turnaround
+};
+
 constexpr int kScaleMinor[] = {0, 2, 3, 5, 7, 8, 10};
 constexpr int kScaleMajor[] = {0, 2, 4, 5, 7, 9, 11};
 constexpr int kScaleDorian[] = {0, 2, 3, 5, 7, 9, 10};
@@ -37,6 +44,12 @@ constexpr int kScalePhrygianDominant[] = {0, 1, 4, 5, 7, 8, 10};
 constexpr int kScaleLydian[] = {0, 2, 4, 6, 7, 9, 11};
 constexpr int kScaleMelodicMinor[] = {0, 2, 3, 5, 7, 9, 11};
 constexpr int kScaleWholeTone[] = {0, 2, 4, 6, 8, 10};
+constexpr int kScaleAltered[] = {0, 1, 3, 4, 6, 8, 10};
+constexpr int kScaleHalfWholeDiminished[] = {0, 1, 3, 4, 6, 7, 9, 10};
+constexpr int kScaleWholeHalfDiminished[] = {0, 2, 3, 5, 6, 8, 9, 11};
+constexpr int kScaleBebopDominant[] = {0, 2, 4, 5, 7, 9, 10, 11};
+constexpr int kScaleBebopMajor[] = {0, 2, 4, 5, 7, 8, 9, 11};
+constexpr int kScaleBebopMinor[] = {0, 2, 3, 4, 5, 7, 9, 10};
 
 constexpr ScaleDef kScales[] = {
     {kScaleMinor, 7},
@@ -53,6 +66,12 @@ constexpr ScaleDef kScales[] = {
     {kScaleLydian, 7},
     {kScaleMelodicMinor, 7},
     {kScaleWholeTone, 6},
+    {kScaleAltered, 7},
+    {kScaleHalfWholeDiminished, 8},
+    {kScaleWholeHalfDiminished, 8},
+    {kScaleBebopDominant, 8},
+    {kScaleBebopMajor, 8},
+    {kScaleBebopMinor, 8},
 };
 
 [[nodiscard]] float clampf(float value, float minValue, float maxValue) {
@@ -179,17 +198,61 @@ constexpr ScaleDef kScales[] = {
     return best;
 }
 
-[[nodiscard]] int jazzProgressionRootForBar(const int barIndex, const int degreeCount) {
+[[nodiscard]] JazzChordRole jazzChordRoleForBar(const int barIndex) {
+    switch (((barIndex % 4) + 4) % 4) {
+    case 0: return JazzChordRole::two;
+    case 1: return JazzChordRole::five;
+    case 2: return JazzChordRole::one;
+    case 3: return JazzChordRole::turnaround;
+    default: return JazzChordRole::one;
+    }
+}
+
+[[nodiscard]] int jazzProgressionRootForRole(const JazzChordRole role, const int degreeCount) {
     const int two = std::min(1, degreeCount - 1);
     const int five = std::min(4, degreeCount - 1);
     const int six = std::min(5, degreeCount - 1);
 
-    switch (((barIndex % 4) + 4) % 4) {
-    case 0: return two;
-    case 1: return five;
-    case 2: return 0;
-    case 3: return six;
+    switch (role) {
+    case JazzChordRole::two: return two;
+    case JazzChordRole::five: return five;
+    case JazzChordRole::one: return 0;
+    case JazzChordRole::turnaround: return six;
     default: return 0;
+    }
+}
+
+[[nodiscard]] int jazzProgressionRootForBar(const int barIndex, const int degreeCount) {
+    return jazzProgressionRootForRole(jazzChordRoleForBar(barIndex), degreeCount);
+}
+
+[[nodiscard]] int jazzChordToneDegreeForBeat(const JazzChordRole role,
+                                             const int root,
+                                             const int beatIndex,
+                                             Rng& rng) {
+    if (beatIndex == 0) {
+        return root;
+    }
+
+    switch (role) {
+    case JazzChordRole::two:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.64f ? root + 2 : root + 6;
+        return rng.nextFloat() < 0.68f ? root + 4 : root + 1;
+
+    case JazzChordRole::five:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? root + 2 : root + 6;
+        return rng.nextFloat() < 0.62f ? root + 4 : root + 1;
+
+    case JazzChordRole::one:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? root + 2 : root + 5;
+        return rng.nextFloat() < 0.66f ? root + 4 : root + 6;
+
+    case JazzChordRole::turnaround:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.52f ? root + 2 : root + 6;
+        return rng.nextFloat() < 0.58f ? root + 4 : root + 1;
+
+    default:
+        return root;
     }
 }
 
@@ -231,24 +294,13 @@ constexpr ScaleDef kScales[] = {
     const bool barPickup = pattern.stepsPerBar > 0 &&
         stepInBar >= (pattern.stepsPerBar - std::max(1, pattern.stepsPerBeat / 2));
 
+    const JazzChordRole role = jazzChordRoleForBar(barIndex);
     if (lateBeat || barPickup) {
         return clampi(jazzApproachDegree(rng, nextRootBase, previousDegree, span), 0, span * 3 - 1);
     }
 
-    if (beatStart && beatIndex == 0) {
-        return clampi(root, 0, span * 3 - 1);
-    }
-
-    if (beatStart && (beatIndex % 2) == 1) {
-        const int third = root + 2;
-        const int fifth = root + 4;
-        return clampi(rng.nextFloat() < 0.58f ? third : fifth, 0, span * 3 - 1);
-    }
-
     if (beatStart) {
-        const int fifth = root + 4;
-        const int seventh = root + 6;
-        return clampi(rng.nextFloat() < 0.64f ? fifth : seventh, 0, span * 3 - 1);
+        return clampi(jazzChordToneDegreeForBeat(role, root, beatIndex, rng), 0, span * 3 - 1);
     }
 
     const int direction = rng.nextFloat() < 0.65f ? 1 : -1;

@@ -24,9 +24,11 @@ Implementation status:
   changes;
 - the core now has explicit style controls for simple, reel, waltz, jig, and
   slip-jig phrasing on top of the shared meter model;
-- scale choices now include Lydian, Melodic Minor, and Whole Tone in addition
-  to the original minor/major/modal/pentatonic/blues options. These were
-  appended to the scale enum to preserve existing saved-state values;
+- scale choices now include Lydian, Melodic Minor, Whole Tone, Altered,
+  Half-Whole Diminished, Whole-Half Diminished, Bebop Dominant, Bebop Major,
+  and Bebop Minor in addition to the original minor/major/modal/pentatonic/
+  blues options. These were appended to the scale enum to preserve existing
+  saved-state values;
 - the appended Jazz genre biases rhythm toward walking beat anchors and maps
   four-bar phrases across ii-V-I-turnaround roots using the selected scale;
 - incoming MIDI follow/dodge controls are wired through the wrapper, core, and

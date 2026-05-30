@@ -34,6 +34,15 @@ int relativePitchClass(const int note, const int rootNote) {
     return (note - rootNote + 1200) % 12;
 }
 
+bool pitchClassInSet(const int pitchClass, const int* values, const int count) {
+    for (int index = 0; index < count; ++index) {
+        if (values[index] == pitchClass) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool patternsDiffer(const PatternState& left, const PatternState& right) {
     if (left.eventCount != right.eventCount ||
         left.patternSteps != right.patternSteps ||
@@ -202,15 +211,51 @@ void testJazzGenreOutlinesTwoFiveOne() {
     const NoteEvent* two = eventStartingAt(pattern, 0);
     const NoteEvent* five = eventStartingAt(pattern, 16);
     const NoteEvent* one = eventStartingAt(pattern, 32);
+    const NoteEvent* turnaround = eventStartingAt(pattern, 48);
 
     assert(two != nullptr);
     assert(five != nullptr);
     assert(one != nullptr);
+    assert(turnaround != nullptr);
     assert(relativePitchClass(two->note, controls.rootNote) == 2);
     assert(relativePitchClass(five->note, controls.rootNote) == 7);
     assert(relativePitchClass(one->note, controls.rootNote) == 0);
+    assert(relativePitchClass(turnaround->note, controls.rootNote) == 9);
     assert(hasEventStartingAt(pattern, 4));
     assert(hasEventStartingAt(pattern, 8));
+}
+
+void testJazzScaleIdsAreAppended() {
+    assert(static_cast<int>(ScaleId::minor) == 0);
+    assert(static_cast<int>(ScaleId::wholeTone) == 13);
+    assert(static_cast<int>(ScaleId::altered) == 14);
+    assert(static_cast<int>(ScaleId::halfWholeDiminished) == 15);
+    assert(static_cast<int>(ScaleId::wholeHalfDiminished) == 16);
+    assert(static_cast<int>(ScaleId::bebopDominant) == 17);
+    assert(static_cast<int>(ScaleId::bebopMajor) == 18);
+    assert(static_cast<int>(ScaleId::bebopMinor) == 19);
+    assert(static_cast<int>(ScaleId::count) == 20);
+}
+
+void testBebopDominantScaleConstrainsGeneratedNotes() {
+    Controls controls;
+    controls.seed = 1001u;
+    controls.genre = GenreId::jazz;
+    controls.scale = ScaleId::bebopDominant;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.82f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    static constexpr int kAllowed[] = {0, 2, 4, 5, 7, 9, 10, 11};
+    assert(pattern.eventCount > 0);
+    for (int index = 0; index < pattern.eventCount; ++index) {
+        const int pc = relativePitchClass(pattern.events[index].note, controls.rootNote);
+        assert(pitchClassInSet(pc, kAllowed, 8));
+    }
 }
 
 void testStateSanitization() {
@@ -557,6 +602,8 @@ int main() {
     testVariationMutatesAfterLoopThreshold();
     testExplicitStyleModesChangePatternShape();
     testJazzGenreOutlinesTwoFiveOne();
+    testJazzScaleIdsAreAppended();
+    testBebopDominantScaleConstrainsGeneratedNotes();
     testStateSanitization();
     testEngineRewindResyncAndStopNoteOff();
     testEngineBoundaryEndThenStartScheduling();

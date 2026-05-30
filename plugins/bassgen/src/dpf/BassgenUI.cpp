@@ -82,7 +82,8 @@ constexpr SliderDef kSliders[] = {
 constexpr const char* kScaleNames[] = {
     "Minor", "Major", "Dorian", "Phrygian", "Pent Minor", "Blues",
     "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom",
-    "Lydian", "Mel Minor", "Whole Tone"
+    "Lydian", "Mel Minor", "Whole Tone", "Altered", "Half-Whole Dim",
+    "Whole-Half Dim", "Bebop Dom", "Bebop Major", "Bebop Minor"
 };
 
 constexpr const char* kGenreNames[] = {
@@ -103,7 +104,7 @@ constexpr const char* kChannelNames[] = {
 };
 
 constexpr SelectorDef kSelectors[] = {
-    {kParamScale, "Scale", kScaleNames, 14},
+    {kParamScale, "Scale", kScaleNames, 20},
     {kParamGenre, "Genre", kGenreNames, 9},
     {kParamStyleMode, "Style", kStyleNames, 6},
     {kParamSubdivision, "Subdivision", kSubdivisionNames, 3},
@@ -323,7 +324,7 @@ private:
     int draggingSlider_ = -1;
     int openSelector_ = -1;
 
-    static constexpr float kSelectorItemHeight = 30.0f;
+    static constexpr float kSelectorItemHeight = 24.0f;
 
     void drawBackground(float width, float height)
     {
@@ -544,11 +545,8 @@ private:
     void drawOpenSelectorMenu(int selectorIndex)
     {
         const SelectorDef& def = kSelectors[selectorIndex];
-        const Rect& base = selectorRects_[selectorIndex];
         const int selected = clampi(static_cast<int>(std::lround(values_[def.index])), 0, def.count - 1);
-
-        const float menuH = static_cast<float>(def.count) * kSelectorItemHeight;
-        const Rect menuRect = {base.x, base.y + base.h + 6.0f, base.w, menuH};
+        const Rect menuRect = selectorMenuRect(selectorIndex);
 
         beginPath();
         roundedRect(menuRect.x, menuRect.y, menuRect.w, menuRect.h, 14.0f);
@@ -569,7 +567,7 @@ private:
                 closePath();
             }
 
-            fontSize(13.0f);
+            fontSize(12.0f);
             textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
             fillColor(236, 240, 243, 255);
             text(menuRect.x + 14.0f, rowY + kSelectorItemHeight * 0.5f + 1.0f, def.items[i], nullptr);
@@ -586,7 +584,7 @@ private:
         }
 
         const SelectorDef& def = kSelectors[openSelector_];
-        const Rect menuRect = {base.x, base.y + base.h + 6.0f, base.w, static_cast<float>(def.count) * kSelectorItemHeight};
+        const Rect menuRect = selectorMenuRect(openSelector_);
         if (!menuRect.contains(x, y)) {
             return false;
         }
@@ -596,6 +594,19 @@ private:
         openSelector_ = -1;
         repaint();
         return true;
+    }
+
+    [[nodiscard]] Rect selectorMenuRect(int selectorIndex) const
+    {
+        const SelectorDef& def = kSelectors[selectorIndex];
+        const Rect& base = selectorRects_[selectorIndex];
+        const float menuH = static_cast<float>(def.count) * kSelectorItemHeight;
+        const float margin = 14.0f;
+        float menuY = base.y + base.h + 6.0f;
+        if (menuY + menuH > static_cast<float>(getHeight()) - margin) {
+            menuY = std::max(margin, static_cast<float>(getHeight()) - margin - menuH);
+        }
+        return {base.x, menuY, base.w, menuH};
     }
 
     void triggerButton(int buttonIndex)
