@@ -30,6 +30,14 @@ enum class JazzChordRole : std::uint8_t {
     turnaround
 };
 
+enum class JazzDominantColor : std::uint8_t {
+    mixolydian = 0,
+    altered,
+    halfWholeDiminished,
+    wholeTone,
+    bebopDominant
+};
+
 constexpr int kScaleMinor[] = {0, 2, 3, 5, 7, 8, 10};
 constexpr int kScaleMajor[] = {0, 2, 4, 5, 7, 9, 11};
 constexpr int kScaleDorian[] = {0, 2, 3, 5, 7, 9, 10};
@@ -102,6 +110,15 @@ constexpr ScaleDef kScales[] = {
     return controls.seed ^
            (static_cast<std::uint32_t>(static_cast<int>(controls.styleMode) + 1) * 2246822519u) ^
            (static_cast<std::uint32_t>(generationSerial) * 2654435761u);
+}
+
+[[nodiscard]] std::uint32_t mixU32(std::uint32_t value) {
+    value ^= value >> 16;
+    value *= 2246822519u;
+    value ^= value >> 13;
+    value *= 3266489917u;
+    value ^= value >> 16;
+    return value;
 }
 
 [[nodiscard]] int chooseDegree(Rng& rng, GenreId genre, bool strongBeat, int prevDegree) {
@@ -262,12 +279,38 @@ constexpr ScaleDef kScales[] = {
     }
 }
 
-[[nodiscard]] ScaleDef jazzColorScaleForRole(const JazzChordRole role) {
+[[nodiscard]] JazzDominantColor jazzDominantColorForBar(const Controls& controls,
+                                                        const PatternState& pattern,
+                                                        const int barIndex) {
+    const std::uint32_t seed =
+        mixU32(controls.seed ^
+               (static_cast<std::uint32_t>(barIndex + 1) * 374761393u) ^
+               (static_cast<std::uint32_t>(pattern.generationSerial + 1) * 668265263u));
+    const std::uint32_t choice = seed % 100u;
+
+    if (choice < 30u) return JazzDominantColor::bebopDominant;
+    if (choice < 52u) return JazzDominantColor::altered;
+    if (choice < 73u) return JazzDominantColor::halfWholeDiminished;
+    if (choice < 88u) return JazzDominantColor::wholeTone;
+    return JazzDominantColor::mixolydian;
+}
+
+[[nodiscard]] ScaleDef jazzColorScaleForRole(const JazzChordRole role,
+                                             const JazzDominantColor dominantColor) {
     switch (role) {
     case JazzChordRole::two:
     case JazzChordRole::turnaround:
         return {kScaleDorian, 7};
     case JazzChordRole::five:
+        switch (dominantColor) {
+        case JazzDominantColor::altered: return {kScaleAltered, 7};
+        case JazzDominantColor::halfWholeDiminished: return {kScaleHalfWholeDiminished, 8};
+        case JazzDominantColor::wholeTone: return {kScaleWholeTone, 6};
+        case JazzDominantColor::bebopDominant: return {kScaleBebopDominant, 8};
+        case JazzDominantColor::mixolydian:
+        default:
+            break;
+        }
         return {kScaleMixolydian, 7};
     case JazzChordRole::one:
         return {kScaleLydian, 7};
@@ -278,6 +321,7 @@ constexpr ScaleDef kScales[] = {
 
 [[nodiscard]] int jazzRoleChordInterval(const JazzChordRole role,
                                         const int beatIndex,
+                                        const JazzDominantColor dominantColor,
                                         Rng& rng) {
     if (beatIndex == 0) {
         return 0;
@@ -289,9 +333,25 @@ constexpr ScaleDef kScales[] = {
         return rng.nextFloat() < 0.68f ? 7 : 2;
 
     case JazzChordRole::five:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 10;
-        if (rng.nextFloat() < 0.26f) return rng.nextFloat() < 0.5f ? 1 : 8;
-        return rng.nextFloat() < 0.62f ? 7 : 2;
+        switch (dominantColor) {
+        case JazzDominantColor::altered:
+            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.56f ? 4 : 10;
+            return rng.nextFloat() < 0.34f ? 1 : (rng.nextFloat() < 0.5f ? 3 : 8);
+        case JazzDominantColor::halfWholeDiminished:
+            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.56f ? 4 : 10;
+            return rng.nextFloat() < 0.34f ? 1 : (rng.nextFloat() < 0.5f ? 6 : 9);
+        case JazzDominantColor::wholeTone:
+            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.56f ? 4 : 10;
+            return rng.nextFloat() < 0.38f ? 6 : (rng.nextFloat() < 0.5f ? 8 : 2);
+        case JazzDominantColor::bebopDominant:
+            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 10;
+            return rng.nextFloat() < 0.36f ? 11 : (rng.nextFloat() < 0.62f ? 7 : 2);
+        case JazzDominantColor::mixolydian:
+        default:
+            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 10;
+            if (rng.nextFloat() < 0.26f) return rng.nextFloat() < 0.5f ? 1 : 8;
+            return rng.nextFloat() < 0.62f ? 7 : 2;
+        }
 
     case JazzChordRole::one:
         if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 9;
@@ -355,9 +415,10 @@ constexpr ScaleDef kScales[] = {
 
 [[nodiscard]] int jazzNearestPaletteNote(const Controls& controls,
                                          const JazzChordRole role,
+                                         const JazzDominantColor dominantColor,
                                          const int previousNote,
                                          Rng& rng) {
-    const ScaleDef scale = jazzColorScaleForRole(role);
+    const ScaleDef scale = jazzColorScaleForRole(role, dominantColor);
     const int chordRoot = jazzChordRootSemitoneForRole(role);
     int bestAbove = -1;
     int bestBelow = -1;
@@ -411,6 +472,9 @@ constexpr ScaleDef kScales[] = {
         stepInBar >= (pattern.stepsPerBar - std::max(1, pattern.stepsPerBeat / 2));
 
     const JazzChordRole role = jazzChordRoleForBar(barIndex);
+    const JazzDominantColor dominantColor = role == JazzChordRole::five
+        ? jazzDominantColorForBar(controls, pattern, barIndex)
+        : JazzDominantColor::mixolydian;
     if (lateBeat || barPickup) {
         const JazzChordRole nextRole = jazzChordRoleForBar(barIndex + 1);
         const int target = jazzChordRootSemitoneForRole(nextRole);
@@ -420,11 +484,11 @@ constexpr ScaleDef kScales[] = {
     }
 
     if (beatStart) {
-        const int interval = jazzChordRootSemitoneForRole(role) + jazzRoleChordInterval(role, beatIndex, rng);
+        const int interval = jazzChordRootSemitoneForRole(role) + jazzRoleChordInterval(role, beatIndex, dominantColor, rng);
         return noteFromSemitoneOffset(controls, interval, previousNote);
     }
 
-    return jazzNearestPaletteNote(controls, role, previousNote, rng);
+    return jazzNearestPaletteNote(controls, role, dominantColor, previousNote, rng);
 }
 
 [[nodiscard]] int jazzDegreeForEvent(const PatternState& pattern,

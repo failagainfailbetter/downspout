@@ -251,6 +251,26 @@ void testJazzRoleColorsUseModalChordTones() {
     assert(relativePitchClass(oneBeatThree->note, controls.rootNote) == 6);
 }
 
+void testJazzDominantBarCanUseAlteredColor() {
+    Controls controls;
+    controls.seed = 5u;
+    controls.genre = GenreId::jazz;
+    controls.scale = ScaleId::major;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.82f;
+    controls.hold = 0.25f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    const NoteEvent* dominantColorTone = eventStartingAt(pattern, 24);
+
+    assert(dominantColorTone != nullptr);
+    assert(relativePitchClass(dominantColorTone->note, controls.rootNote) == 8);
+}
+
 void testJazzScaleIdsAreAppended() {
     assert(static_cast<int>(ScaleId::minor) == 0);
     assert(static_cast<int>(ScaleId::wholeTone) == 13);
@@ -629,6 +649,7 @@ int main() {
     testExplicitStyleModesChangePatternShape();
     testJazzGenreOutlinesTwoFiveOne();
     testJazzRoleColorsUseModalChordTones();
+    testJazzDominantBarCanUseAlteredColor();
     testJazzScaleIdsAreAppended();
     testBebopDominantScaleConstrainsGeneratedNotes();
     testStateSanitization();

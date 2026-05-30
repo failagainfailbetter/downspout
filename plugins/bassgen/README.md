@@ -31,8 +31,10 @@ Implementation status:
   saved-state values;
 - the appended Jazz genre biases rhythm toward walking beat anchors and maps
   four-bar phrases across ii-V-I-turnaround roots, with role-specific Dorian,
-  Mixolydian/altered, and Major/Lydian color for ordinary scales while keeping
-  explicitly selected Jazz color scales constrained to their chosen vocabulary;
+  Mixolydian/altered, and Major/Lydian color for ordinary scales. Dominant
+  bars choose from Mixolydian, altered, half-whole diminished, whole-tone, and
+  bebop dominant material while explicitly selected Jazz color scales remain
+  constrained to their chosen vocabulary;
 - incoming MIDI follow/dodge controls are wired through the wrapper, core, and
   UI.
 

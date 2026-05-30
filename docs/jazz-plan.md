@@ -23,7 +23,7 @@ reuse the same ideas after the bass behavior is stable.
       bars.
 - [x] Prefer Dorian-style tones over ii, Mixolydian/altered tones over V, and
       Major/Lydian tones over I.
-- [ ] Add dominant-bar color selection for altered, diminished, whole-tone,
+- [x] Add dominant-bar color selection for altered, diminished, whole-tone,
       and bebop dominant material.
 - [ ] Target chord tones explicitly on strong beats, especially roots, thirds,
       fifths, and sevenths.
@@ -45,6 +45,6 @@ Append the following scale choices to `bassgen`:
 - Bebop Major
 - Bebop Minor
 
-These scales are useful immediately as selectable pitch vocabularies. They will
-become more musically meaningful once Jazz bars carry explicit chord roles and
-dominant bars can choose altered/diminished colors intentionally.
+These scales are useful immediately as selectable pitch vocabularies. Jazz bars
+now carry explicit chord roles, and dominant bars can choose altered,
+diminished, whole-tone, or bebop dominant color internally.
