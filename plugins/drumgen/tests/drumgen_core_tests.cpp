@@ -92,6 +92,16 @@ bool hasHit(const PatternState& pattern, const LaneId lane, const int step) {
     return pattern.lanes[static_cast<int>(lane)].steps[step].velocity > 0;
 }
 
+int countHits(const PatternState& pattern, const LaneId lane) {
+    int count = 0;
+    for (int step = 0; step < pattern.totalSteps; ++step) {
+        if (hasHit(pattern, lane, step)) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
 void testDeterministicGeneration() {
     Controls controls;
     controls.seed = 12345u;
@@ -292,6 +302,29 @@ void testJazzGenrePinsSwingRideShape() {
     assert(hasHit(pattern, LaneId::openHat, 12));
     assert(hasHit(pattern, LaneId::snare, 6));
     assert(hasHit(pattern, LaneId::snare, 10));
+}
+
+void testCrashCymbalsStaySparseByDefault() {
+    Controls controls;
+    controls.seed = 919u;
+    controls.genre = GenreId::rock;
+    controls.bars = 4;
+    controls.resolution = ResolutionId::sixteenth;
+    controls.density = 0.74f;
+    controls.variation = 0.65f;
+    controls.fill = 0.35f;
+    controls.metalAmt = 0.26f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, false);
+
+    assert(countHits(pattern, LaneId::crash) <= 2);
+    for (int bar = 1; bar < pattern.bars - 1; ++bar) {
+        const int barStart = bar * pattern.stepsPerBar;
+        for (int step = 0; step < pattern.stepsPerBar; ++step) {
+            assert(!hasHit(pattern, LaneId::crash, barStart + step));
+        }
+    }
 }
 
 void testRefreshBarKeepsOtherBars() {
@@ -667,6 +700,7 @@ int main() {
     testAmenGenrePinsBreakSignature();
     testHipHopGenrePinsSparseBackbeat();
     testJazzGenrePinsSwingRideShape();
+    testCrashCymbalsStaySparseByDefault();
     testRefreshBarKeepsOtherBars();
     testRefreshFillBarTargetsChosenBar();
     testTransportHelpers();

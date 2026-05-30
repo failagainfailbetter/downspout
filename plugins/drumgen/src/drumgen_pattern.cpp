@@ -467,8 +467,8 @@ struct StylePulseInfo {
         break;
 
     case LANE_CRASH:
-        if (beatIndex == 0 && beatStart) return 0.18f + 0.18f * metal;
-        if (fillBar && finalPulse && beatStart) return 0.12f + 0.20f * fill * metal;
+        if (beatIndex == 0 && beatStart) return 0.06f + 0.08f * metal;
+        if (fillBar && finalPulse && beatStart) return 0.04f + 0.10f * fill * metal;
         break;
 
     case LANE_CLOSED_HAT:
@@ -550,8 +550,8 @@ struct StylePulseInfo {
         break;
 
     case LANE_CRASH:
-        if (beatOne && beatStart) return 0.18f + 0.16f * metal;
-        if (fillBar && beatThree && beatStart) return 0.10f + 0.18f * fill * metal;
+        if (beatOne && beatStart) return 0.06f + 0.08f * metal;
+        if (fillBar && beatThree && beatStart) return 0.04f + 0.10f * fill * metal;
         break;
 
     case LANE_CLOSED_HAT:
@@ -672,8 +672,8 @@ struct StylePulseInfo {
         break;
 
     case LANE_CRASH:
-        if (beatStart && primaryPulse) return 0.18f + 0.18f * metal;
-        if (fillBar && finalPulse && beatStart) return 0.12f + 0.18f * fill * metal;
+        if (beatStart && primaryPulse) return 0.06f + 0.08f * metal;
+        if (fillBar && finalPulse && beatStart) return 0.04f + 0.10f * fill * metal;
         break;
 
     case LANE_CLOSED_HAT:
@@ -859,10 +859,10 @@ struct StylePulseInfo {
 
     case LANE_CRASH:
         if (beatStart && beatIndex == 0) {
-            return (barIndex == 0 ? 0.34f : 0.16f) + 0.18f * metal;
+            return (barIndex == 0 ? 0.14f : 0.03f) + 0.06f * metal;
         }
         if (fillBar && beatStart && beatIndex >= q2Beat) {
-            return 0.08f + 0.18f * fill * (0.55f + 0.45f * metal);
+            return 0.03f + 0.08f * fill * (0.55f + 0.45f * metal);
         }
         break;
 
@@ -1095,7 +1095,7 @@ struct StylePulseInfo {
             : (controls.genre == GENRE_JAZZ ? 1.6f : 1.0f)) * density * macro * (0.4f + 0.6f * variation);
         break;
     case LANE_CRASH:
-        desiredHits = fillBar ? (0.3f + 1.2f * fill * macro) : (0.15f + 0.35f * macro);
+        desiredHits = fillBar ? (0.08f + 0.45f * fill * macro) : (0.02f + 0.10f * macro);
         break;
     case LANE_CLOSED_HAT:
         desiredHits = (stepsPerBar * (isBreakbeatFamily(controls.genre)
@@ -1158,7 +1158,7 @@ struct StylePulseInfo {
     case LANE_SNARE:
         return 0.10f + 0.32f * controls.variation * controls.backbeatAmt;
     case LANE_CRASH:
-        return 0.10f + 0.28f * controls.variation * controls.metalAmt + (fillBar ? 0.16f : 0.0f);
+        return 0.03f + 0.10f * controls.variation * controls.metalAmt + (fillBar ? 0.06f : 0.0f);
     case LANE_CLOSED_HAT:
         return 0.24f + 0.52f * controls.variation * controls.hatAmt;
     case LANE_OPEN_HAT:
@@ -1718,6 +1718,9 @@ void cleanupPattern(PatternState& pattern, const Controls& controls) {
 
     for (int bar = 0; bar < pattern.bars; ++bar) {
         const int barStart = bar * stepsPerBar;
+        const bool sectionStart = bar == 0;
+        const bool fillResolution = bar == pattern.bars - 1;
+        const int maxCrashHits = (sectionStart || fillResolution || controls.metalAmt > 0.70f) ? 1 : 0;
         int crashHits = 0;
         int bashHits = 0;
         for (int step = 0; step < stepsPerBar && (barStart + step) < pattern.totalSteps; ++step) {
@@ -1725,7 +1728,7 @@ void cleanupPattern(PatternState& pattern, const Controls& controls) {
             DrumStepCell& bash = pattern.lanes[LANE_BASH].steps[barStart + step];
             if (crash.velocity > 0) {
                 crashHits += 1;
-                if (crashHits > 2) {
+                if (crashHits > maxCrashHits) {
                     crash.velocity = 0;
                     crash.flags = 0;
                 }
