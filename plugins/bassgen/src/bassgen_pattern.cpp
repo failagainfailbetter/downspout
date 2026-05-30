@@ -177,6 +177,23 @@ constexpr ScaleDef kScales[] = {
     return clampi(base + interval, 0, 127);
 }
 
+[[nodiscard]] int noteFromSemitoneOffset(const Controls& controls,
+                                         const int semitoneOffset,
+                                         const int previousNote) {
+    const int base = controls.rootNote + registerOffset(controls.reg);
+    int best = clampi(base + semitoneOffset, 0, 127);
+    int bestDistance = std::abs(best - previousNote);
+    for (int octave = -2; octave <= 4; ++octave) {
+        const int candidate = clampi(base + semitoneOffset + octave * 12, 0, 127);
+        const int distance = std::abs(candidate - previousNote);
+        if (distance < bestDistance) {
+            best = candidate;
+            bestDistance = distance;
+        }
+    }
+    return best;
+}
+
 [[nodiscard]] int scaleDegreeCount(const Controls& controls) {
     return kScales[static_cast<int>(controls.scale)].count;
 }
@@ -226,6 +243,69 @@ constexpr ScaleDef kScales[] = {
     return jazzProgressionRootForRole(jazzChordRoleForBar(barIndex), degreeCount);
 }
 
+[[nodiscard]] bool jazzUsesSelectedScaleVocabulary(const ScaleId scale) {
+    return scale == ScaleId::altered ||
+           scale == ScaleId::halfWholeDiminished ||
+           scale == ScaleId::wholeHalfDiminished ||
+           scale == ScaleId::bebopDominant ||
+           scale == ScaleId::bebopMajor ||
+           scale == ScaleId::bebopMinor;
+}
+
+[[nodiscard]] int jazzChordRootSemitoneForRole(const JazzChordRole role) {
+    switch (role) {
+    case JazzChordRole::two: return 2;
+    case JazzChordRole::five: return 7;
+    case JazzChordRole::one: return 0;
+    case JazzChordRole::turnaround: return 9;
+    default: return 0;
+    }
+}
+
+[[nodiscard]] ScaleDef jazzColorScaleForRole(const JazzChordRole role) {
+    switch (role) {
+    case JazzChordRole::two:
+    case JazzChordRole::turnaround:
+        return {kScaleDorian, 7};
+    case JazzChordRole::five:
+        return {kScaleMixolydian, 7};
+    case JazzChordRole::one:
+        return {kScaleLydian, 7};
+    default:
+        return {kScaleMajor, 7};
+    }
+}
+
+[[nodiscard]] int jazzRoleChordInterval(const JazzChordRole role,
+                                        const int beatIndex,
+                                        Rng& rng) {
+    if (beatIndex == 0) {
+        return 0;
+    }
+
+    switch (role) {
+    case JazzChordRole::two:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.64f ? 3 : 10;
+        return rng.nextFloat() < 0.68f ? 7 : 2;
+
+    case JazzChordRole::five:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 10;
+        if (rng.nextFloat() < 0.26f) return rng.nextFloat() < 0.5f ? 1 : 8;
+        return rng.nextFloat() < 0.62f ? 7 : 2;
+
+    case JazzChordRole::one:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 9;
+        return rng.nextFloat() < 0.72f ? 7 : 6;
+
+    case JazzChordRole::turnaround:
+        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.52f ? 3 : 10;
+        return rng.nextFloat() < 0.58f ? 7 : 2;
+
+    default:
+        return 0;
+    }
+}
+
 [[nodiscard]] int jazzChordToneDegreeForBeat(const JazzChordRole role,
                                              const int root,
                                              const int beatIndex,
@@ -271,6 +351,80 @@ constexpr ScaleDef kScales[] = {
         return below;
     }
     return above;
+}
+
+[[nodiscard]] int jazzNearestPaletteNote(const Controls& controls,
+                                         const JazzChordRole role,
+                                         const int previousNote,
+                                         Rng& rng) {
+    const ScaleDef scale = jazzColorScaleForRole(role);
+    const int chordRoot = jazzChordRootSemitoneForRole(role);
+    int bestAbove = -1;
+    int bestBelow = -1;
+    int bestAny = noteFromSemitoneOffset(controls, chordRoot, previousNote);
+    int bestAnyDistance = std::abs(bestAny - previousNote);
+
+    for (int octave = -2; octave <= 4; ++octave) {
+        for (int i = 0; i < scale.count; ++i) {
+            const int offset = chordRoot + scale.intervals[i] + octave * 12;
+            const int candidate = clampi(controls.rootNote + registerOffset(controls.reg) + offset, 0, 127);
+            if (candidate == previousNote) {
+                continue;
+            }
+            const int distance = std::abs(candidate - previousNote);
+            if (distance < bestAnyDistance) {
+                bestAny = candidate;
+                bestAnyDistance = distance;
+            }
+            if (candidate > previousNote && (bestAbove < 0 || candidate < bestAbove)) {
+                bestAbove = candidate;
+            }
+            if (candidate < previousNote && (bestBelow < 0 || candidate > bestBelow)) {
+                bestBelow = candidate;
+            }
+        }
+    }
+
+    const bool moveUp = rng.nextFloat() < 0.58f;
+    if (moveUp && bestAbove >= 0) {
+        return bestAbove;
+    }
+    if (!moveUp && bestBelow >= 0) {
+        return bestBelow;
+    }
+    return bestAny;
+}
+
+[[nodiscard]] int jazzRoleColoredNoteForEvent(const PatternState& pattern,
+                                              const Controls& controls,
+                                              Rng& rng,
+                                              const NoteEvent& event,
+                                              const int previousNote) {
+    const int barIndex = pattern.stepsPerBar > 0 ? event.startStep / pattern.stepsPerBar : 0;
+    const int stepInBar = pattern.stepsPerBar > 0 ? event.startStep % pattern.stepsPerBar : 0;
+    const int beatIndex = pattern.stepsPerBeat > 0 ? stepInBar / pattern.stepsPerBeat : 0;
+    const int stepInBeat = pattern.stepsPerBeat > 0 ? stepInBar % pattern.stepsPerBeat : 0;
+    const bool beatStart = stepInBeat == 0;
+    const int lastBeat = std::max(0, pattern.meter.numerator - 1);
+    const bool lateBeat = beatIndex >= lastBeat;
+    const bool barPickup = pattern.stepsPerBar > 0 &&
+        stepInBar >= (pattern.stepsPerBar - std::max(1, pattern.stepsPerBeat / 2));
+
+    const JazzChordRole role = jazzChordRoleForBar(barIndex);
+    if (lateBeat || barPickup) {
+        const JazzChordRole nextRole = jazzChordRoleForBar(barIndex + 1);
+        const int target = jazzChordRootSemitoneForRole(nextRole);
+        const int targetNote = noteFromSemitoneOffset(controls, target, previousNote);
+        const int approach = targetNote <= previousNote ? targetNote - 1 : targetNote + (rng.nextFloat() < 0.72f ? -1 : 1);
+        return clampi(approach, 0, 127);
+    }
+
+    if (beatStart) {
+        const int interval = jazzChordRootSemitoneForRole(role) + jazzRoleChordInterval(role, beatIndex, rng);
+        return noteFromSemitoneOffset(controls, interval, previousNote);
+    }
+
+    return jazzNearestPaletteNote(controls, role, previousNote, rng);
 }
 
 [[nodiscard]] int jazzDegreeForEvent(const PatternState& pattern,
@@ -969,6 +1123,7 @@ void generateRhythm(PatternState& pattern,
 
 void generateNotes(PatternState& pattern, const Controls& controls, Rng& rng) {
     int prevDegree = 0;
+    int prevJazzNote = controls.rootNote + registerOffset(controls.reg);
     std::array<int, 4> sabbathCell {0, 4, 6, 0};
     int sabbathCellLen = 0;
     if (controls.genre == GenreId::sabbath) {
@@ -981,13 +1136,19 @@ void generateNotes(PatternState& pattern, const Controls& controls, Rng& rng) {
         const StepRole role = stepRoleFor(pattern, controls, event.startStep);
         const bool strong = role == StepRole::primary;
         const bool secondaryAccent = role == StepRole::secondary;
-        const int degree = controls.genre == GenreId::jazz
-            ? jazzDegreeForEvent(pattern, controls, rng, event, prevDegree)
-            : (controls.genre == GenreId::sabbath)
-                ? sabbathCellDegree(pattern, rng, sabbathCell, sabbathCellLen, index)
-                : chooseDegree(rng, controls.genre, strong, prevDegree);
-        prevDegree = degree;
-        event.note = noteFromDegree(controls, degree);
+        if (controls.genre == GenreId::jazz && !jazzUsesSelectedScaleVocabulary(controls.scale)) {
+            event.note = jazzRoleColoredNoteForEvent(pattern, controls, rng, event, prevJazzNote);
+            prevJazzNote = event.note;
+        } else {
+            const int degree = controls.genre == GenreId::jazz
+                ? jazzDegreeForEvent(pattern, controls, rng, event, prevDegree)
+                : (controls.genre == GenreId::sabbath)
+                    ? sabbathCellDegree(pattern, rng, sabbathCell, sabbathCellLen, index)
+                    : chooseDegree(rng, controls.genre, strong, prevDegree);
+            prevDegree = degree;
+            event.note = noteFromDegree(controls, degree);
+            prevJazzNote = event.note;
+        }
 
         const int baseVelocity = 86;
         const int accentBoost = strong

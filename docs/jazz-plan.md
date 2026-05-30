@@ -21,7 +21,7 @@ reuse the same ideas after the bass behavior is stable.
 - [x] Add tests pinning appended scale IDs and generated pitch membership.
 - [x] Introduce an internal Jazz chord-role model for ii, V, I, and turnaround
       bars.
-- [ ] Prefer Dorian-style tones over ii, Mixolydian/altered tones over V, and
+- [x] Prefer Dorian-style tones over ii, Mixolydian/altered tones over V, and
       Major/Lydian tones over I.
 - [ ] Add dominant-bar color selection for altered, diminished, whole-tone,
       and bebop dominant material.

@@ -225,6 +225,32 @@ void testJazzGenreOutlinesTwoFiveOne() {
     assert(hasEventStartingAt(pattern, 8));
 }
 
+void testJazzRoleColorsUseModalChordTones() {
+    Controls controls;
+    controls.seed = 909u;
+    controls.genre = GenreId::jazz;
+    controls.scale = ScaleId::major;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.82f;
+    controls.hold = 0.25f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    const NoteEvent* twoBeatTwo = eventStartingAt(pattern, 4);
+    const NoteEvent* fiveBeatTwo = eventStartingAt(pattern, 20);
+    const NoteEvent* oneBeatThree = eventStartingAt(pattern, 40);
+
+    assert(twoBeatTwo != nullptr);
+    assert(fiveBeatTwo != nullptr);
+    assert(oneBeatThree != nullptr);
+    assert(relativePitchClass(twoBeatTwo->note, controls.rootNote) == 5);
+    assert(relativePitchClass(fiveBeatTwo->note, controls.rootNote) == 11);
+    assert(relativePitchClass(oneBeatThree->note, controls.rootNote) == 6);
+}
+
 void testJazzScaleIdsAreAppended() {
     assert(static_cast<int>(ScaleId::minor) == 0);
     assert(static_cast<int>(ScaleId::wholeTone) == 13);
@@ -602,6 +628,7 @@ int main() {
     testVariationMutatesAfterLoopThreshold();
     testExplicitStyleModesChangePatternShape();
     testJazzGenreOutlinesTwoFiveOne();
+    testJazzRoleColorsUseModalChordTones();
     testJazzScaleIdsAreAppended();
     testBebopDominantScaleConstrainsGeneratedNotes();
     testStateSanitization();
