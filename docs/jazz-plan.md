@@ -32,6 +32,7 @@ reuse the same ideas after the bass behavior is stable.
       model proves useful.
 - [x] Mirror useful Jazz scales into the other plugins that already expose
       scale selectors.
+- [x] Make Cadence's custom UI expose the expanded scale list explicitly.
 
 ## First implementation slice
 

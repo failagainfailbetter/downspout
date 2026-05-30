@@ -189,6 +189,7 @@ protected:
             parameter.enumValues.count = static_cast<uint8_t>(std::size(kScaleEnumValues));
             parameter.enumValues.restrictedMode = true;
             parameter.enumValues.values = kScaleEnumValues;
+            parameter.enumValues.deleteLater = false;
             break;
         case kParamCycleBars:
             parameter.name = "Cycle Bars";

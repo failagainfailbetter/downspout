@@ -79,6 +79,7 @@ constexpr const char* kScaleNames[21] = {
     "Lydian", "Mel Min", "Whole", "Altered", "H-W Dim", "W-H Dim",
     "Bebop Dom", "Bebop Maj", "Bebop Min"
 };
+constexpr int kScaleCount = 21;
 
 constexpr const char* kGranularityNames[3] = {
     "Beat", "Half Bar", "Bar"
@@ -124,7 +125,7 @@ constexpr const char* kToggleNames[2] = {
         std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kNoteNames, 12, static_cast<int>(std::lround(value))));
         break;
     case kParamScale:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kScaleNames, 21, static_cast<int>(std::lround(value))));
+        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kScaleNames, kScaleCount, static_cast<int>(std::lround(value))));
         break;
     case kParamCycleBars:
         std::snprintf(buffer, sizeof(buffer), "%d", static_cast<int>(std::lround(value)));
@@ -228,6 +229,9 @@ protected:
         drawHeader(pad, pad, width - pad * 2.0f, 84.0f);
         drawControlGroups(pad, pad + 104.0f, width - pad * 2.0f, height - 220.0f);
         drawFooter(pad, height - 94.0f, width - pad * 2.0f, 72.0f);
+
+        if (scaleMenuOpen_)
+            drawScaleMenu();
     }
 
     bool onMouse(const MouseEvent& ev) override
@@ -243,6 +247,13 @@ protected:
             return false;
         }
 
+        if (scaleMenuOpen_) {
+            if (handleScaleMenuPress(x, y))
+                return true;
+            scaleMenuOpen_ = false;
+            repaint();
+        }
+
         if (learnButtonRect_.contains(x, y)) {
             triggerLearn();
             return true;
@@ -250,6 +261,12 @@ protected:
 
         for (std::size_t i = 0; i < sliderRects_.size(); ++i) {
             if (sliderRects_[i].contains(x, y)) {
+                if (kSliders[i].index == kParamScale) {
+                    activeSlider_ = -1;
+                    scaleMenuOpen_ = true;
+                    repaint();
+                    return true;
+                }
                 activeSlider_ = static_cast<int>(i);
                 updateSliderFromY(activeSlider_, y);
                 return true;
@@ -289,6 +306,7 @@ private:
     Rect learnButtonRect_ {};
     int activeSlider_ = -1;
     int learnPulse_ = 0;
+    bool scaleMenuOpen_ = false;
 
     void drawBackground(const float width, const float height)
     {
@@ -438,6 +456,43 @@ private:
         fillColor(187, 193, 202, 255);
         const std::string label = formatValueLabel(def.index, value);
         text(rect.x + rect.w * 0.5f, rect.y + rect.h - 18.0f, label.c_str(), nullptr);
+
+        if (def.index == kParamScale) {
+            fontSize(10.0f);
+            fillColor(238, 183, 72, 230);
+            text(rect.x + rect.w * 0.5f, rect.y + rect.h - 4.0f, "v", nullptr);
+        }
+    }
+
+    void drawScaleMenu()
+    {
+        const Rect menu = scaleMenuRect();
+        constexpr float itemH = 22.0f;
+        const int selected = clampi(static_cast<int>(std::lround(values_[kParamScale])), 0, kScaleCount - 1);
+
+        beginPath();
+        roundedRect(menu.x, menu.y, menu.w, menu.h, 10.0f);
+        fillColor(15, 18, 24, 252);
+        fill();
+        strokeColor(238, 183, 72, 210);
+        strokeWidth(1.2f);
+        stroke();
+        closePath();
+
+        fontSize(12.0f);
+        textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
+        for (int i = 0; i < kScaleCount; ++i) {
+            const Rect row {menu.x + 6.0f, menu.y + 4.0f + static_cast<float>(i) * itemH, menu.w - 12.0f, itemH};
+            if (i == selected) {
+                beginPath();
+                roundedRect(row.x, row.y + 1.0f, row.w, row.h - 2.0f, 6.0f);
+                fillColor(238, 183, 72, 48);
+                fill();
+                closePath();
+            }
+            fillColor(i == selected ? 247 : 215, i == selected ? 206 : 220, i == selected ? 128 : 228, 255);
+            text(row.x + 10.0f, row.y + row.h * 0.5f + 1.0f, kScaleNames[i], nullptr);
+        }
     }
 
     void drawFooter(const float x, const float y, const float w, const float h)
@@ -527,6 +582,34 @@ private:
         if (def.integer)
             value = std::round(value);
         setParameter(def.index, value);
+    }
+
+    [[nodiscard]] Rect scaleMenuRect() const
+    {
+        constexpr float itemH = 22.0f;
+        constexpr float menuW = 206.0f;
+        constexpr float menuH = 8.0f + itemH * static_cast<float>(kScaleCount);
+        const Rect& anchor = sliderRects_[sliderIndexForParameter(kParamScale)];
+        float x = anchor.x + anchor.w * 0.5f - menuW * 0.5f;
+        float y = anchor.y + 4.0f;
+        x = clampf(x, 14.0f, static_cast<float>(getWidth()) - menuW - 14.0f);
+        y = clampf(y, 14.0f, static_cast<float>(getHeight()) - menuH - 14.0f);
+        return {x, y, menuW, menuH};
+    }
+
+    bool handleScaleMenuPress(const float x, const float y)
+    {
+        const Rect menu = scaleMenuRect();
+        if (!menu.contains(x, y))
+            return false;
+
+        constexpr float itemH = 22.0f;
+        const int index = static_cast<int>((y - menu.y - 4.0f) / itemH);
+        if (index >= 0 && index < kScaleCount) {
+            scaleMenuOpen_ = false;
+            setParameter(kParamScale, static_cast<float>(index));
+        }
+        return true;
     }
 
     void nudgeSlider(const int sliderIndex, const float direction)
