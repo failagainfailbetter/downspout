@@ -38,6 +38,12 @@ constexpr int kScalePhrygianDominant[] = {0, 1, 4, 5, 7, 8, 10};
 constexpr int kScaleLydian[] = {0, 2, 4, 6, 7, 9, 11};
 constexpr int kScaleMelodicMinor[] = {0, 2, 3, 5, 7, 9, 11};
 constexpr int kScaleWholeTone[] = {0, 2, 4, 6, 8, 10};
+constexpr int kScaleAltered[] = {0, 1, 3, 4, 6, 8, 10};
+constexpr int kScaleHalfWholeDiminished[] = {0, 1, 3, 4, 6, 7, 9, 10};
+constexpr int kScaleWholeHalfDiminished[] = {0, 2, 3, 5, 6, 8, 9, 11};
+constexpr int kScaleBebopDominant[] = {0, 2, 4, 5, 7, 9, 10, 11};
+constexpr int kScaleBebopMajor[] = {0, 2, 4, 5, 7, 8, 9, 11};
+constexpr int kScaleBebopMinor[] = {0, 2, 3, 4, 5, 7, 9, 10};
 
 constexpr ScaleDef kScales[] = {
     {kScaleMinor, 7},
@@ -54,6 +60,12 @@ constexpr ScaleDef kScales[] = {
     {kScaleLydian, 7},
     {kScaleMelodicMinor, 7},
     {kScaleWholeTone, 6},
+    {kScaleAltered, 7},
+    {kScaleHalfWholeDiminished, 8},
+    {kScaleWholeHalfDiminished, 8},
+    {kScaleBebopDominant, 8},
+    {kScaleBebopMajor, 8},
+    {kScaleBebopMinor, 8},
 };
 
 [[nodiscard]] float clampf(const float value, const float minValue, const float maxValue)

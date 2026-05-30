@@ -18,6 +18,12 @@ enum class ScaleId : std::uint32_t {
     pentatonic,
     blues,
     phrygianDominant,
+    altered,
+    halfWholeDiminished,
+    wholeHalfDiminished,
+    bebopDominant,
+    bebopMajor,
+    bebopMinor,
     count,
 };
 
@@ -72,6 +78,12 @@ inline constexpr std::array<const char*, static_cast<std::size_t>(ScaleId::count
     "Pentatonic",
     "Blues",
     "Phryg Dom",
+    "Altered",
+    "Half-Whole Dim",
+    "Whole-Half Dim",
+    "Bebop Dom",
+    "Bebop Major",
+    "Bebop Minor",
 }};
 
 inline constexpr std::array<const char*, static_cast<std::size_t>(ClockMode::count)> kClockModeNames = {{

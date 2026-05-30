@@ -30,8 +30,8 @@ reuse the same ideas after the bass behavior is stable.
 - [ ] Add approach-tone and enclosure behavior around chord tones.
 - [ ] Decide whether the UI needs a simple `Jazz Color` control after the core
       model proves useful.
-- [ ] Consider mirroring useful Jazz scales into `melgen` and `counterpointer`
-      after `bassgen` behavior is tested in a host.
+- [x] Mirror useful Jazz scales into the other plugins that already expose
+      scale selectors.
 
 ## First implementation slice
 

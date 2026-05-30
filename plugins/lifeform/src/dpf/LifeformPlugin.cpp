@@ -55,6 +55,12 @@ ParameterEnumerationValue kScaleEnumValues[] = {
     {4.0f, kScaleNames[4]},
     {5.0f, kScaleNames[5]},
     {6.0f, kScaleNames[6]},
+    {7.0f, kScaleNames[7]},
+    {8.0f, kScaleNames[8]},
+    {9.0f, kScaleNames[9]},
+    {10.0f, kScaleNames[10]},
+    {11.0f, kScaleNames[11]},
+    {12.0f, kScaleNames[12]},
 };
 
 ParameterEnumerationValue kClockEnumValues[] = {

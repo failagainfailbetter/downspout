@@ -34,6 +34,12 @@ enum class ScaleId : std::int32_t {
     lydian,
     melodicMinor,
     wholeTone,
+    altered,
+    halfWholeDiminished,
+    wholeHalfDiminished,
+    bebopDominant,
+    bebopMajor,
+    bebopMinor,
     count
 };
 

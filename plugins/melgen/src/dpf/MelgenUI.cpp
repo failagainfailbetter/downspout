@@ -79,7 +79,8 @@ struct SliderGroup {
 constexpr const char* kScaleNames[] = {
     "Minor", "Major", "Dorian", "Phrygian", "Pent Minor", "Blues",
     "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom",
-    "Lydian", "Mel Minor", "Whole Tone"
+    "Lydian", "Mel Minor", "Whole Tone", "Altered", "Half-Whole Dim",
+    "Whole-Half Dim", "Bebop Dom", "Bebop Major", "Bebop Minor"
 };
 
 constexpr const char* kSubdivisionNames[] = {"1/8", "1/16", "1/16T"};
@@ -116,7 +117,7 @@ constexpr std::array<SliderGroup, 3> kSliderGroups = {{
 }};
 
 constexpr std::array<SelectorDef, 6> kSelectors = {{
-    {kParamScale, "Scale", kScaleNames, 14},
+    {kParamScale, "Scale", kScaleNames, 20},
     {kParamPeriod, "Period", kPeriodNames, 6},
     {kParamContour, "Contour", kContourNames, 6},
     {kParamAnswer, "Answer", kAnswerNames, 6},

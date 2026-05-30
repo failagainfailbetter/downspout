@@ -41,6 +41,30 @@ constexpr const char* kStateKeyControls = "controls";
 constexpr const char* kStateKeyProgression = "progression";
 constexpr const char* kStateKeyVariation = "variation";
 
+ParameterEnumerationValue kScaleEnumValues[] = {
+    {0.0f, "Chrom"},
+    {1.0f, "Major"},
+    {2.0f, "Nat Min"},
+    {3.0f, "Harm Min"},
+    {4.0f, "Pent Maj"},
+    {5.0f, "Pent Min"},
+    {6.0f, "Blues"},
+    {7.0f, "Dorian"},
+    {8.0f, "Mixolyd"},
+    {9.0f, "Phryg"},
+    {10.0f, "Locrian"},
+    {11.0f, "Phryg Dom"},
+    {12.0f, "Lydian"},
+    {13.0f, "Mel Min"},
+    {14.0f, "Whole"},
+    {15.0f, "Altered"},
+    {16.0f, "H-W Dim"},
+    {17.0f, "W-H Dim"},
+    {18.0f, "Bebop Dom"},
+    {19.0f, "Bebop Maj"},
+    {20.0f, "Bebop Min"},
+};
+
 using CoreControls = downspout::cadence::Controls;
 using CoreEngineState = downspout::cadence::EngineState;
 using CoreTransport = downspout::cadence::TransportSnapshot;
@@ -162,6 +186,9 @@ protected:
             parameter.ranges.min = 0.0f;
             parameter.ranges.max = static_cast<float>(downspout::cadence::SCALE_COUNT - 1);
             parameter.ranges.def = static_cast<float>(downspout::cadence::SCALE_NAT_MINOR);
+            parameter.enumValues.count = static_cast<uint8_t>(std::size(kScaleEnumValues));
+            parameter.enumValues.restrictedMode = true;
+            parameter.enumValues.values = kScaleEnumValues;
             break;
         case kParamCycleBars:
             parameter.name = "Cycle Bars";

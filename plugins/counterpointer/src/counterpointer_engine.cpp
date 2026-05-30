@@ -51,6 +51,12 @@ static const int kScaleMixolydian[] = {0, 2, 4, 5, 7, 9, 10};
 static const int kScaleLydian[] = {0, 2, 4, 6, 7, 9, 11};
 static const int kScaleMelodicMinor[] = {0, 2, 3, 5, 7, 9, 11};
 static const int kScaleWholeTone[] = {0, 2, 4, 6, 8, 10};
+static const int kScaleAltered[] = {0, 1, 3, 4, 6, 8, 10};
+static const int kScaleHalfWholeDiminished[] = {0, 1, 3, 4, 6, 7, 9, 10};
+static const int kScaleWholeHalfDiminished[] = {0, 2, 3, 5, 6, 8, 9, 11};
+static const int kScaleBebopDominant[] = {0, 2, 4, 5, 7, 9, 10, 11};
+static const int kScaleBebopMajor[] = {0, 2, 4, 5, 7, 8, 9, 11};
+static const int kScaleBebopMinor[] = {0, 2, 3, 4, 5, 7, 9, 10};
 
 static const ScaleDef kScales[SCALE_COUNT] = {
     {kScaleChromatic, 12},
@@ -64,7 +70,13 @@ static const ScaleDef kScales[SCALE_COUNT] = {
     {kScaleMixolydian, 7},
     {kScaleLydian, 7},
     {kScaleMelodicMinor, 7},
-    {kScaleWholeTone, 6}
+    {kScaleWholeTone, 6},
+    {kScaleAltered, 7},
+    {kScaleHalfWholeDiminished, 8},
+    {kScaleWholeHalfDiminished, 8},
+    {kScaleBebopDominant, 8},
+    {kScaleBebopMajor, 8},
+    {kScaleBebopMinor, 8}
 };
 
 int wrap12(const int value)
