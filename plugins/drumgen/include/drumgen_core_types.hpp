@@ -30,6 +30,7 @@ enum class GenreId : std::int32_t {
     amen,
     jungle,
     hipHop,
+    jazz,
     count
 };
 

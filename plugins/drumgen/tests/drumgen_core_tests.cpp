@@ -263,6 +263,37 @@ void testHipHopGenrePinsSparseBackbeat() {
     assert(hasHit(pattern, LaneId::openHat, 6));
 }
 
+void testJazzGenrePinsSwingRideShape() {
+    Controls controls;
+    controls.seed = 818u;
+    controls.genre = GenreId::jazz;
+    controls.bars = 1;
+    controls.resolution = ResolutionId::sixteenth;
+    controls.density = 0.42f;
+    controls.variation = 0.25f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, false);
+
+    assert(pattern.stepsPerBar == 16);
+    assert(hasHit(pattern, LaneId::kick, 0));
+    assert(hasHit(pattern, LaneId::kick, 4));
+    assert(hasHit(pattern, LaneId::kick, 8));
+    assert(hasHit(pattern, LaneId::kick, 12));
+    assert(hasHit(pattern, LaneId::closedHat, 0));
+    assert(hasHit(pattern, LaneId::closedHat, 3));
+    assert(hasHit(pattern, LaneId::closedHat, 4));
+    assert(hasHit(pattern, LaneId::closedHat, 7));
+    assert(hasHit(pattern, LaneId::closedHat, 8));
+    assert(hasHit(pattern, LaneId::closedHat, 11));
+    assert(hasHit(pattern, LaneId::closedHat, 12));
+    assert(hasHit(pattern, LaneId::closedHat, 15));
+    assert(hasHit(pattern, LaneId::openHat, 4));
+    assert(hasHit(pattern, LaneId::openHat, 12));
+    assert(hasHit(pattern, LaneId::snare, 6));
+    assert(hasHit(pattern, LaneId::snare, 10));
+}
+
 void testRefreshBarKeepsOtherBars() {
     Controls controls;
     controls.seed = 313u;
@@ -635,6 +666,7 @@ int main() {
     testExplicitStyleModesChangePatternShape();
     testAmenGenrePinsBreakSignature();
     testHipHopGenrePinsSparseBackbeat();
+    testJazzGenrePinsSwingRideShape();
     testRefreshBarKeepsOtherBars();
     testRefreshFillBarTargetsChosenBar();
     testTransportHelpers();

@@ -27,6 +27,8 @@ Implementation status:
 - scale choices now include Lydian, Melodic Minor, and Whole Tone in addition
   to the original minor/major/modal/pentatonic/blues options. These were
   appended to the scale enum to preserve existing saved-state values;
+- the appended Jazz genre biases rhythm toward walking beat anchors and maps
+  four-bar phrases across ii-V-I-turnaround roots using the selected scale;
 - incoming MIDI follow/dodge controls are wired through the wrapper, core, and
   UI.
 

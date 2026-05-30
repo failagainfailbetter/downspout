@@ -30,9 +30,8 @@ Implementation status:
 - the wrapper now exposes explicit `Auto`, `Straight`, `Reel`, `Waltz`, `Jig`,
   and `Slip Jig` style modes so users can force rhythmic vocabulary instead of
   relying only on meter-derived auto behavior;
-- genres now include Breakbeat, Amen, Jungle, and Hip Hop alongside the earlier
-  straight, rock, funk, techno, house, drum and bass, half-time, Latin, jazz,
-  and minimal options.
+- genres now include Breakbeat, Amen, Jungle, Hip Hop, and Jazz alongside the
+  earlier Rock, Disco, Shuffle, Electro, Dub, Motorik, Bossa, and Afro options.
 
 Recommended next steps:
 

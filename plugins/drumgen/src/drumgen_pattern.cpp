@@ -24,6 +24,7 @@ constexpr auto GENRE_BREAKBEAT = GenreId::breakbeat;
 constexpr auto GENRE_AMEN = GenreId::amen;
 constexpr auto GENRE_JUNGLE = GenreId::jungle;
 constexpr auto GENRE_HIPHOP = GenreId::hipHop;
+constexpr auto GENRE_JAZZ = GenreId::jazz;
 
 constexpr auto RESOLUTION_8TH = ResolutionId::eighth;
 constexpr auto RESOLUTION_16TH = ResolutionId::sixteenth;
@@ -770,6 +771,10 @@ struct StylePulseInfo {
             if ((onQ1 || onQ2) && offbeat) return 0.22f + 0.22f * kick;
             if (onQ3 && lateSub) return 0.14f + 0.16f * controls.variation;
             break;
+        case GENRE_JAZZ:
+            if (beatStart) return 0.34f + 0.34f * kick;
+            if (lateSub && (onQ1 || onQ3)) return 0.06f + 0.10f * controls.variation;
+            break;
         case GENRE_DISCO:
         case GENRE_MOTORIK:
             if (beatStart) return 0.86f + 0.12f * kick;
@@ -819,6 +824,7 @@ struct StylePulseInfo {
             case GENRE_AMEN:
             case GENRE_JUNGLE: return 0.88f + 0.10f * backbeat;
             case GENRE_HIPHOP: return 0.82f + 0.12f * backbeat;
+            case GENRE_JAZZ: return 0.38f + 0.18f * backbeat;
             case GENRE_DISCO: return 0.76f + 0.18f * backbeat;
             case GENRE_ELECTRO: return 0.72f + 0.18f * backbeat;
             case GENRE_DUB: return 0.64f + 0.16f * backbeat;
@@ -827,6 +833,7 @@ struct StylePulseInfo {
         }
         if (isBreakbeatFamily(controls.genre) && lateSub) return 0.16f + 0.20f * controls.variation * backbeat;
         if (controls.genre == GENRE_HIPHOP && lateSub && (onQ1 || onQ3)) return 0.08f + 0.08f * controls.variation;
+        if (controls.genre == GENRE_JAZZ && (offbeat || lateSub)) return 0.10f + 0.18f * controls.variation * backbeat;
         if (fillBar && beatIndex >= q2Beat && lateSub) return 0.08f + 0.24f * fill * backbeat;
         if (controls.genre == GENRE_AFRO && offbeat) return 0.08f + 0.10f * controls.variation;
         if (controls.genre == GENRE_SHUFFLE && lateSub) return 0.06f + 0.10f * controls.variation;
@@ -839,6 +846,7 @@ struct StylePulseInfo {
             case GENRE_AMEN:
             case GENRE_JUNGLE: return 0.10f + 0.14f * backbeat;
             case GENRE_HIPHOP: return 0.10f + 0.18f * backbeat;
+            case GENRE_JAZZ: return 0.03f + 0.05f * backbeat;
             case GENRE_DISCO: return 0.78f + 0.16f * backbeat;
             case GENRE_ELECTRO: return 0.52f + 0.20f * backbeat;
             case GENRE_DUB: return 0.18f + 0.14f * backbeat;
@@ -859,6 +867,17 @@ struct StylePulseInfo {
         break;
 
     case LANE_CLOSED_HAT:
+        if (controls.genre == GENRE_JAZZ) {
+            if (stepsPerBeat == 3) {
+                if (subIndex == 0) return 0.78f + 0.16f * hat;
+                if (subIndex == 2) return 0.58f + 0.20f * hat;
+                return 0.08f + 0.10f * controls.variation;
+            }
+            if (beatStart) return 0.74f + 0.14f * hat;
+            if (offbeat) return 0.48f + 0.22f * hat;
+            if (lateSub) return 0.14f + 0.12f * controls.variation;
+            return 0.08f + 0.10f * controls.variation;
+        }
         if (stepsPerBeat == 3) {
             if (subIndex == 0) return 0.70f + 0.18f * hat;
             if (subIndex == 2) return 0.54f + 0.20f * hat;
@@ -886,12 +905,14 @@ struct StylePulseInfo {
             case GENRE_AMEN:
             case GENRE_JUNGLE: return 0.22f + 0.24f * hat;
             case GENRE_HIPHOP: return 0.10f + 0.12f * hat;
+            case GENRE_JAZZ: return 0.12f + 0.12f * hat;
             case GENRE_DISCO:
             case GENRE_MOTORIK: return 0.34f + 0.32f * hat;
             case GENRE_DUB: return 0.14f + 0.18f * hat;
             default: return 0.18f + 0.20f * hat;
             }
         }
+        if (controls.genre == GENRE_JAZZ && backbeatStart) return 0.18f + 0.20f * hat;
         if (fillBar && onQ3 && lateSub) return 0.16f + 0.14f * fill;
         break;
 
@@ -1059,15 +1080,19 @@ struct StylePulseInfo {
     case LANE_KICK:
         desiredHits = 1.0f + ((controls.genre == GENRE_DISCO || controls.genre == GENRE_MOTORIK)
             ? 3.0f
-            : (isBreakbeatFamily(controls.genre) ? 2.4f : (controls.genre == GENRE_HIPHOP ? 1.2f : 1.6f))) * density * macro;
+            : (isBreakbeatFamily(controls.genre)
+                ? 2.4f
+                : (controls.genre == GENRE_HIPHOP ? 1.2f : (controls.genre == GENRE_JAZZ ? 2.2f : 1.6f)))) * density * macro;
         break;
     case LANE_CLAP:
         desiredHits = ((controls.genre == GENRE_DISCO || controls.genre == GENRE_ELECTRO)
             ? 1.6f
-            : (isBreakbeatFamily(controls.genre) ? 0.45f : 0.8f)) * density * macro;
+            : (isBreakbeatFamily(controls.genre) ? 0.45f : (controls.genre == GENRE_JAZZ ? 0.12f : 0.8f))) * density * macro;
         break;
     case LANE_SNARE:
-        desiredHits = 1.0f + (isBreakbeatFamily(controls.genre) ? 1.8f : 1.0f) * density * macro * (0.4f + 0.6f * variation);
+        desiredHits = 1.0f + (isBreakbeatFamily(controls.genre)
+            ? 1.8f
+            : (controls.genre == GENRE_JAZZ ? 1.6f : 1.0f)) * density * macro * (0.4f + 0.6f * variation);
         break;
     case LANE_CRASH:
         desiredHits = fillBar ? (0.3f + 1.2f * fill * macro) : (0.15f + 0.35f * macro);
@@ -1075,11 +1100,16 @@ struct StylePulseInfo {
     case LANE_CLOSED_HAT:
         desiredHits = (stepsPerBar * (isBreakbeatFamily(controls.genre)
             ? (0.34f + 0.58f * density * macro)
-            : (controls.genre == GENRE_HIPHOP ? (0.16f + 0.42f * density * macro) : (0.20f + 0.55f * density * macro)))) +
+            : (controls.genre == GENRE_HIPHOP
+                ? (0.16f + 0.42f * density * macro)
+                : (controls.genre == GENRE_JAZZ
+                    ? (0.32f + 0.40f * density * macro)
+                    : (0.20f + 0.55f * density * macro))))) +
             (stepsPerBar >= 16 ? 1.5f : 0.0f);
         break;
     case LANE_OPEN_HAT:
-        desiredHits = (isBreakbeatFamily(controls.genre) ? 0.7f : 0.4f) + 1.5f * density * macro;
+        desiredHits = (isBreakbeatFamily(controls.genre) ? 0.7f : (controls.genre == GENRE_JAZZ ? 0.6f : 0.4f)) +
+            1.5f * density * macro;
         break;
     case LANE_LOW_TOM:
     case LANE_HIGH_TOM:
@@ -1315,6 +1345,18 @@ void applyGenreSignatureToBar(PatternState& pattern, const Controls& controls, c
     const int barStart = barIndex * pattern.stepsPerBar;
 
     switch (controls.genre) {
+    case GENRE_JAZZ:
+        for (int slot = 0; slot < 16; slot += 4) {
+            setSlotHit(pattern, barStart, LANE_KICK, slot, 66 + (slot == 0 ? 8 : 0), slot == 0 ? STEP_FLAG_ACCENT : 0);
+            setSlotHit(pattern, barStart, LANE_CLOSED_HAT, slot, 82 + (slot == 0 ? 8 : 0), slot == 0 ? STEP_FLAG_ACCENT : 0);
+            setSlotHit(pattern, barStart, LANE_CLOSED_HAT, slot + 3, 70, 0);
+        }
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 4, 68, 0);
+        setSlotHit(pattern, barStart, LANE_OPEN_HAT, 12, 72, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 6, 62, 0);
+        setSlotHit(pattern, barStart, LANE_SNARE, 10, 58, 0);
+        break;
+
     case GENRE_AMEN:
         applyBackbeatBreakHats(pattern, barStart, controls, false);
         setSlotHit(pattern, barStart, LANE_KICK, 0, 122, STEP_FLAG_ACCENT);
@@ -1376,7 +1418,7 @@ void applyGenreSignatureToBar(PatternState& pattern, const Controls& controls, c
 
 void applyGenreSignature(PatternState& pattern, const Controls& controls) {
     if (controls.styleMode != StyleModeId::autoMode ||
-        (!isBreakbeatFamily(controls.genre) && controls.genre != GENRE_HIPHOP)) {
+        (!isBreakbeatFamily(controls.genre) && controls.genre != GENRE_HIPHOP && controls.genre != GENRE_JAZZ)) {
         return;
     }
 
@@ -1456,6 +1498,7 @@ void applyFillOverlayToBar(PatternState& pattern,
     case GENRE_ROCK:
     case GENRE_SHUFFLE:
     case GENRE_HIPHOP:
+    case GENRE_JAZZ:
         motif = rng.nextInt(0, 1);
         break;
     case GENRE_DISCO:

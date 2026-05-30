@@ -21,6 +21,19 @@ bool hasEventStartingAt(const PatternState& pattern, const int step) {
     return false;
 }
 
+const NoteEvent* eventStartingAt(const PatternState& pattern, const int step) {
+    for (int index = 0; index < pattern.eventCount; ++index) {
+        if (pattern.events[index].startStep == step) {
+            return &pattern.events[index];
+        }
+    }
+    return nullptr;
+}
+
+int relativePitchClass(const int note, const int rootNote) {
+    return (note - rootNote + 1200) % 12;
+}
+
 bool patternsDiffer(const PatternState& left, const PatternState& right) {
     if (left.eventCount != right.eventCount ||
         left.patternSteps != right.patternSteps ||
@@ -167,6 +180,37 @@ void testExplicitStyleModesChangePatternShape() {
 
     assert(hasEventStartingAt(jig, 12));
     assert(patternsDiffer(jig, straight));
+}
+
+void testJazzGenreOutlinesTwoFiveOne() {
+    Controls controls;
+    controls.seed = 909u;
+    controls.genre = GenreId::jazz;
+    controls.scale = ScaleId::major;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.82f;
+    controls.hold = 0.25f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    assert(pattern.stepsPerBar == 16);
+    assert(pattern.patternSteps == 64);
+
+    const NoteEvent* two = eventStartingAt(pattern, 0);
+    const NoteEvent* five = eventStartingAt(pattern, 16);
+    const NoteEvent* one = eventStartingAt(pattern, 32);
+
+    assert(two != nullptr);
+    assert(five != nullptr);
+    assert(one != nullptr);
+    assert(relativePitchClass(two->note, controls.rootNote) == 2);
+    assert(relativePitchClass(five->note, controls.rootNote) == 7);
+    assert(relativePitchClass(one->note, controls.rootNote) == 0);
+    assert(hasEventStartingAt(pattern, 4));
+    assert(hasEventStartingAt(pattern, 8));
 }
 
 void testStateSanitization() {
@@ -512,6 +556,7 @@ int main() {
     testTransportHelpers();
     testVariationMutatesAfterLoopThreshold();
     testExplicitStyleModesChangePatternShape();
+    testJazzGenreOutlinesTwoFiveOne();
     testStateSanitization();
     testEngineRewindResyncAndStopNoteOff();
     testEngineBoundaryEndThenStartScheduling();

@@ -30,9 +30,11 @@ Current wrapper choice:
 - the portable pattern core now uses shared meter data for more than bar size:
   `6/8`, `9/8`, `12/8`, and `3/4` get pulse-aware anchor and fill landmarks
   instead of only scaled `4/4` quarter-slot logic;
-- the genre set now includes `Breakbeat`, `Amen`, `Jungle`, and `Hip Hop`.
-  The breakbeat-family genres use core-side signature overlays for syncopated
-  kicks, backbeat snares, ghost snares, and denser hat/open-hat figures while
-  leaving explicit non-auto style modes in control;
+- the genre set now includes `Breakbeat`, `Amen`, `Jungle`, `Hip Hop`, and
+  `Jazz`. The breakbeat-family genres use core-side signature overlays for
+  syncopated kicks, backbeat snares, ghost snares, and denser hat/open-hat
+  figures; Jazz uses a core-side swing ride shape with feathered quarter-note
+  kick and light snare comping while leaving explicit non-auto style modes in
+  control;
 - the port preserves exact control/state behavior first and still leaves any
   preview-grid UI as follow-up work after host validation.

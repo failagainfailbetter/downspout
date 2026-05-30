@@ -101,6 +101,12 @@ constexpr ScaleDef kScales[] = {
             if (roll < 0.90f) return 6;
             return 1;
         }
+        if (genre == GenreId::jazz) {
+            if (roll < 0.48f) return 0;
+            if (roll < 0.70f) return 4;
+            if (roll < 0.88f) return 2;
+            return 6;
+        }
         if (roll < 0.45f) return 0;
         if (roll < 0.70f) return 4;
         if (roll < 0.82f) return 2;
@@ -119,6 +125,12 @@ constexpr ScaleDef kScales[] = {
         if (roll < 0.74f) return 6;
         if (roll < 0.86f) return 1;
         return (roll < 0.93f) ? prevDegree : 3;
+    case GenreId::jazz:
+        if (roll < 0.34f) return clampi(prevDegree + 1, 0, 9);
+        if (roll < 0.58f) return clampi(prevDegree - 1, 0, 9);
+        if (roll < 0.78f) return 4;
+        if (roll < 0.90f) return 2;
+        return 6;
     case GenreId::acid:
         if (roll < 0.25f) return prevDegree;
         if (roll < 0.55f) return clampi(prevDegree + rng.nextInt(-1, 1), 0, 6);
@@ -144,6 +156,103 @@ constexpr ScaleDef kScales[] = {
     const int interval = scale.intervals[degree] + 12 * octave;
     const int base = controls.rootNote + registerOffset(controls.reg);
     return clampi(base + interval, 0, 127);
+}
+
+[[nodiscard]] int scaleDegreeCount(const Controls& controls) {
+    return kScales[static_cast<int>(controls.scale)].count;
+}
+
+[[nodiscard]] int nearestEquivalentDegree(const int baseDegree, const int previousDegree, const int degreeCount) {
+    int best = baseDegree;
+    int bestDistance = std::abs(baseDegree - previousDegree);
+    for (int octave = -1; octave <= 3; ++octave) {
+        const int candidate = baseDegree + octave * degreeCount;
+        if (candidate < 0) {
+            continue;
+        }
+        const int distance = std::abs(candidate - previousDegree);
+        if (distance < bestDistance) {
+            best = candidate;
+            bestDistance = distance;
+        }
+    }
+    return best;
+}
+
+[[nodiscard]] int jazzProgressionRootForBar(const int barIndex, const int degreeCount) {
+    const int two = std::min(1, degreeCount - 1);
+    const int five = std::min(4, degreeCount - 1);
+    const int six = std::min(5, degreeCount - 1);
+
+    switch (((barIndex % 4) + 4) % 4) {
+    case 0: return two;
+    case 1: return five;
+    case 2: return 0;
+    case 3: return six;
+    default: return 0;
+    }
+}
+
+[[nodiscard]] int jazzApproachDegree(Rng& rng,
+                                     const int targetBaseDegree,
+                                     const int previousDegree,
+                                     const int degreeCount) {
+    int target = nearestEquivalentDegree(targetBaseDegree, previousDegree, degreeCount);
+    if (target <= previousDegree && targetBaseDegree == 0) {
+        target += degreeCount;
+    }
+
+    const int below = std::max(0, target - 1);
+    const int above = target + 1;
+    if (rng.nextFloat() < 0.72f) {
+        return below;
+    }
+    return above;
+}
+
+[[nodiscard]] int jazzDegreeForEvent(const PatternState& pattern,
+                                     const Controls& controls,
+                                     Rng& rng,
+                                     const NoteEvent& event,
+                                     const int previousDegree) {
+    const int degreeCount = scaleDegreeCount(controls);
+    const int span = std::max(1, degreeCount);
+    const int barIndex = pattern.stepsPerBar > 0 ? event.startStep / pattern.stepsPerBar : 0;
+    const int stepInBar = pattern.stepsPerBar > 0 ? event.startStep % pattern.stepsPerBar : 0;
+    const int beatIndex = pattern.stepsPerBeat > 0 ? stepInBar / pattern.stepsPerBeat : 0;
+    const int stepInBeat = pattern.stepsPerBeat > 0 ? stepInBar % pattern.stepsPerBeat : 0;
+    const bool beatStart = stepInBeat == 0;
+
+    const int rootBase = jazzProgressionRootForBar(barIndex, span);
+    const int root = nearestEquivalentDegree(rootBase, previousDegree, span);
+    const int nextRootBase = jazzProgressionRootForBar(barIndex + 1, span);
+    const int lastBeat = std::max(0, pattern.meter.numerator - 1);
+    const bool lateBeat = beatIndex >= lastBeat;
+    const bool barPickup = pattern.stepsPerBar > 0 &&
+        stepInBar >= (pattern.stepsPerBar - std::max(1, pattern.stepsPerBeat / 2));
+
+    if (lateBeat || barPickup) {
+        return clampi(jazzApproachDegree(rng, nextRootBase, previousDegree, span), 0, span * 3 - 1);
+    }
+
+    if (beatStart && beatIndex == 0) {
+        return clampi(root, 0, span * 3 - 1);
+    }
+
+    if (beatStart && (beatIndex % 2) == 1) {
+        const int third = root + 2;
+        const int fifth = root + 4;
+        return clampi(rng.nextFloat() < 0.58f ? third : fifth, 0, span * 3 - 1);
+    }
+
+    if (beatStart) {
+        const int fifth = root + 4;
+        const int seventh = root + 6;
+        return clampi(rng.nextFloat() < 0.64f ? fifth : seventh, 0, span * 3 - 1);
+    }
+
+    const int direction = rng.nextFloat() < 0.65f ? 1 : -1;
+    return clampi(previousDegree + direction, 0, span * 3 - 1);
 }
 
 [[nodiscard]] ::downspout::Meter resolveMeter(const ::downspout::Meter& meter) {
@@ -453,6 +562,7 @@ constexpr ScaleDef kScales[] = {
     case GenreId::ambient: return strong ? 0.90f : 0.45f;
     case GenreId::funk: return strong ? 0.84f : 1.28f;
     case GenreId::sabbath: return strong ? 1.22f : 0.52f;
+    case GenreId::jazz: return strong ? 1.35f : 0.26f;
     default: return 1.0f;
     }
 }
@@ -576,6 +686,24 @@ void reinforceStyleAnchors(std::array<bool, kMaxPatternSteps>& onset,
     }
 }
 
+void reinforceJazzWalkingBeats(std::array<bool, kMaxPatternSteps>& onset,
+                               const PatternState& pattern,
+                               const Controls& controls,
+                               Rng& rng) {
+    if (controls.genre != GenreId::jazz ||
+        pattern.stepsPerBeat <= 0 ||
+        pattern.patternSteps <= 0) {
+        return;
+    }
+
+    const float beatProbability = clampf(0.58f + controls.density * 0.38f, 0.58f, 0.98f);
+    for (int step = 0; step < pattern.patternSteps; step += pattern.stepsPerBeat) {
+        if (step == 0 || rng.nextFloat() < beatProbability) {
+            onset[step] = true;
+        }
+    }
+}
+
 [[nodiscard]] int nextOnsetStep(const std::array<bool, kMaxPatternSteps>& onset, int patternSteps, int step) {
     for (int index = step + 1; index < patternSteps; ++index) {
         if (onset[index]) {
@@ -601,6 +729,9 @@ void reinforceStyleAnchors(std::array<bool, kMaxPatternSteps>& onset,
         break;
     case GenreId::sabbath:
         holdBias = clampf(holdBias * 1.35f + 0.12f, 0.0f, 1.0f);
+        break;
+    case GenreId::jazz:
+        holdBias *= 0.58f;
         break;
     default:
         break;
@@ -763,6 +894,7 @@ void generateRhythm(PatternState& pattern,
     } else {
         reinforceStyleAnchors(onset, pattern, controls, rng);
     }
+    reinforceJazzWalkingBeats(onset, pattern, controls, rng);
 
     for (int step = 0; step < pattern.patternSteps && pattern.eventCount < kMaxEvents; ++step) {
         if (!onset[step]) {
@@ -797,9 +929,11 @@ void generateNotes(PatternState& pattern, const Controls& controls, Rng& rng) {
         const StepRole role = stepRoleFor(pattern, controls, event.startStep);
         const bool strong = role == StepRole::primary;
         const bool secondaryAccent = role == StepRole::secondary;
-        const int degree = (controls.genre == GenreId::sabbath)
-            ? sabbathCellDegree(pattern, rng, sabbathCell, sabbathCellLen, index)
-            : chooseDegree(rng, controls.genre, strong, prevDegree);
+        const int degree = controls.genre == GenreId::jazz
+            ? jazzDegreeForEvent(pattern, controls, rng, event, prevDegree)
+            : (controls.genre == GenreId::sabbath)
+                ? sabbathCellDegree(pattern, rng, sabbathCell, sabbathCellLen, index)
+                : chooseDegree(rng, controls.genre, strong, prevDegree);
         prevDegree = degree;
         event.note = noteFromDegree(controls, degree);
 
