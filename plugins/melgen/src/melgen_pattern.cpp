@@ -132,6 +132,83 @@ constexpr ScaleDef kScales[] = {
     return clampi(controls.rootNote + registerOffset(controls.reg) + interval, 0, 127);
 }
 
+[[nodiscard]] bool isJazzColorScale(const ScaleId scale)
+{
+    switch (scale) {
+    case ScaleId::dorian:
+    case ScaleId::mixolydian:
+    case ScaleId::lydian:
+    case ScaleId::melodicMinor:
+    case ScaleId::altered:
+    case ScaleId::halfWholeDiminished:
+    case ScaleId::wholeHalfDiminished:
+    case ScaleId::bebopDominant:
+    case ScaleId::bebopMajor:
+    case ScaleId::bebopMinor:
+        return true;
+    case ScaleId::minor:
+    case ScaleId::major:
+    case ScaleId::phrygian:
+    case ScaleId::pentMinor:
+    case ScaleId::blues:
+    case ScaleId::harmonicMinor:
+    case ScaleId::pentMajor:
+    case ScaleId::locrian:
+    case ScaleId::phrygianDominant:
+    case ScaleId::wholeTone:
+    case ScaleId::count:
+        break;
+    }
+    return false;
+}
+
+[[nodiscard]] int applyColorToNote(Rng& rng,
+                                   const Controls& controls,
+                                   const PatternState& pattern,
+                                   const int startStep,
+                                   const int baseNote,
+                                   const int nextNote,
+                                   const bool protectCadence)
+{
+    const float color = clampf(controls.color, 0.0f, 1.0f);
+    if (color <= 0.001f || protectCadence) {
+        return baseNote;
+    }
+
+    const int beatSteps = std::max(1, pattern.stepsPerBeat);
+    const bool weakStep = (startStep % beatSteps) != 0;
+    float chance = color * (weakStep ? 0.34f : 0.07f);
+    if (nextNote >= 0) {
+        chance += color * 0.16f;
+    }
+    if (isJazzColorScale(controls.scale)) {
+        chance += color * 0.08f;
+    }
+
+    if (rng.nextFloat() >= clampf(chance, 0.0f, 0.82f)) {
+        return baseNote;
+    }
+
+    int note = baseNote;
+    if (nextNote >= 0 && color > 0.40f) {
+        if (baseNote < nextNote) {
+            note = nextNote - 1;
+        } else if (baseNote > nextNote) {
+            note = nextNote + 1;
+        } else {
+            note = nextNote + (rng.nextFloat() < 0.5f ? -1 : 1);
+        }
+
+        if (color > 0.78f && weakStep && rng.nextFloat() < 0.35f) {
+            note = nextNote + (note < nextNote ? 1 : -1);
+        }
+    } else {
+        note += rng.nextFloat() < 0.5f ? -1 : 1;
+    }
+
+    return clampi(note, 0, 127);
+}
+
 [[nodiscard]] int phraseLengthStepsFor(const Controls& controls, const PatternState& pattern)
 {
     const int bars = clampi(controls.phraseLengthBars, 1, 8);
@@ -216,7 +293,8 @@ void appendMotifEvent(Motif& motif, const MotifEvent& event)
                                    const int maxDegree)
 {
     const float structure = clampf(controls.structure, 0.0f, 1.0f);
-    const float leapChance = clampf(controls.leap * (1.15f - structure * 0.55f), 0.0f, 1.0f);
+    const float color = clampf(controls.color, 0.0f, 1.0f);
+    const float leapChance = clampf(controls.leap * (1.15f - structure * 0.55f) + color * 0.08f, 0.0f, 1.0f);
     int degree = previous;
 
     if (rng.nextFloat() < leapChance) {
@@ -225,11 +303,19 @@ void appendMotifEvent(Motif& motif, const MotifEvent& event)
     } else {
         const int direction = target > previous ? 1 : (target < previous ? -1 : 0);
         const int wander = rng.nextInt(-1, 1);
-        degree += rng.nextFloat() < structure ? direction : wander;
+        if (rng.nextFloat() < color * 0.18f) {
+            degree += rng.nextFloat() < 0.5f ? -1 : 1;
+        } else {
+            degree += rng.nextFloat() < structure ? direction : wander;
+        }
     }
 
     if (rng.nextFloat() < structure * 0.35f) {
         degree = static_cast<int>(std::lround(static_cast<float>(degree) * 0.7f + static_cast<float>(target) * 0.3f));
+    }
+
+    if (rng.nextFloat() < color * (1.0f - structure) * 0.20f) {
+        degree += rng.nextInt(-2, 2);
     }
 
     return clampi(degree, 0, maxDegree);
@@ -283,7 +369,7 @@ void appendMotifEvent(Motif& motif, const MotifEvent& event)
     const int shift = controls.answer == AnswerId::transpose ? rng.nextInt(1, 3) :
         (role == PhraseRole::answer ? 2 : 0);
     const bool invert = controls.answer == AnswerId::invert || (role == PhraseRole::answer && rng.nextFloat() < controls.structure * 0.25f);
-    const float mutation = clampf(1.0f - controls.structure, 0.0f, 1.0f);
+    const float mutation = clampf(1.0f - controls.structure + controls.color * 0.25f, 0.0f, 1.0f);
     const int center = maxDegree / 2;
 
     for (int i = 0; i < motif.eventCount; ++i) {
@@ -341,7 +427,7 @@ void applyCadence(const Controls& controls, Motif& motif, const PhraseRole role)
     }
 }
 
-void realizeMotif(PatternState& pattern, const Controls& controls, const Motif& motif, const int phraseStart)
+void realizeMotif(PatternState& pattern, const Controls& controls, const Motif& motif, const int phraseStart, Rng& rng)
 {
     for (int i = 0; i < motif.eventCount; ++i) {
         const MotifEvent& event = motif.events[i];
@@ -349,7 +435,11 @@ void realizeMotif(PatternState& pattern, const Controls& controls, const Motif& 
         if (start >= pattern.patternSteps) {
             continue;
         }
-        appendEvent(pattern, start, event.durationSteps, noteFromDegree(controls, event.degree), event.velocity);
+        const int baseNote = noteFromDegree(controls, event.degree);
+        const int nextNote = i + 1 < motif.eventCount ? noteFromDegree(controls, motif.events[i + 1].degree) : -1;
+        const bool protectCadence = i == motif.eventCount - 1 && controls.cadence > 0.20f;
+        const int note = applyColorToNote(rng, controls, pattern, event.startStep, baseNote, nextNote, protectCadence);
+        appendEvent(pattern, start, event.durationSteps, note, event.velocity);
     }
 }
 
@@ -386,6 +476,7 @@ Controls clampControls(const Controls& raw)
     controls.leap = clampf(controls.leap, 0.0f, 1.0f);
     controls.rest = clampf(controls.rest, 0.0f, 1.0f);
     controls.cadence = clampf(controls.cadence, 0.0f, 1.0f);
+    controls.color = clampf(controls.color, 0.0f, 1.0f);
     controls.vary = clampf(controls.vary, 0.0f, 1.0f);
     controls.follow = clampf(controls.follow, 0.0f, 1.0f);
     controls.seed = std::max<std::uint32_t>(1u, controls.seed);
@@ -411,6 +502,7 @@ bool structuralControlsChanged(const Controls& a, const Controls& b)
            a.leap != b.leap ||
            a.rest != b.rest ||
            a.cadence != b.cadence ||
+           a.color != b.color ||
            a.seed != b.seed;
 }
 
@@ -514,13 +606,15 @@ void regeneratePattern(PatternState& pattern,
             if (regenNotes) {
                 const ScaleDef& scale = kScales[static_cast<int>(controls.scale)];
                 const int maxDegree = clampi(scale.count - 1 + static_cast<int>(std::lround(controls.range * 17.0f)), 3, scale.count * 4 - 1);
-                event.note = noteFromDegree(controls, rng.nextInt(0, maxDegree));
+                const int baseNote = noteFromDegree(controls, rng.nextInt(0, maxDegree));
+                const int nextNote = i + 1 < previous.eventCount ? previous.events[i + 1].note : -1;
+                event.note = applyColorToNote(rng, controls, pattern, event.startStep, baseNote, nextNote, false);
             }
             pattern.events[i] = event;
         }
     } else {
         for (int phrase = 0; phrase < phraseCount; ++phrase) {
-            realizeMotif(pattern, controls, motifs[phrase], pattern.phrases[phrase].startStep);
+            realizeMotif(pattern, controls, motifs[phrase], pattern.phrases[phrase].startStep, rng);
         }
     }
 
@@ -545,7 +639,9 @@ void partialNoteMutation(PatternState& pattern, const Controls& rawControls, con
     const float chance = clampf(strength, 0.0f, 1.0f);
     for (int i = 0; i < pattern.eventCount; ++i) {
         if (rng.nextFloat() < chance) {
-            pattern.events[i].note = noteFromDegree(controls, rng.nextInt(0, maxDegree));
+            const int baseNote = noteFromDegree(controls, rng.nextInt(0, maxDegree));
+            const int nextNote = i + 1 < pattern.eventCount ? pattern.events[i + 1].note : -1;
+            pattern.events[i].note = applyColorToNote(rng, controls, pattern, pattern.events[i].startStep, baseNote, nextNote, false);
             pattern.events[i].velocity = clampi(pattern.events[i].velocity + rng.nextInt(-10, 10), 1, 127);
         }
     }

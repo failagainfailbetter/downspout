@@ -15,7 +15,10 @@ state can preserve the musical form that produced the events.
 
 The first implementation does not model chord progressions. Cadence behavior is
 scale-degree based, with strong endings gravitating toward root, fifth, or
-second depending the `Cadence` control and phrase role.
+second depending the `Cadence` control and phrase role. `Color` is intentionally
+not a chord-extension model yet; it increases melodic tension by making scalar
+movement looser, answer phrases more mutable, and weak/pickup notes more likely
+to use chromatic approaches or simple above/below enclosures.
 
 `Follow` adds one MIDI input role to the generator. Incoming note-on events set
 an active influence note; generated notes are pulled toward the nearest octave

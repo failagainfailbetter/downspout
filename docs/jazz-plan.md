@@ -32,6 +32,8 @@ reuse the same ideas after the bass behavior is stable.
 - [x] Mirror useful Jazz scales into the other plugins that already expose
       scale selectors.
 - [x] Make Cadence's custom UI expose the expanded scale list explicitly.
+- [x] Mirror the general `Color` idea into `melgen` as melodic tension,
+      chromatic approach, and enclosure behavior.
 
 ## First implementation slice
 
@@ -60,9 +62,10 @@ the existing genre vocabulary.
 
 - Validate `bassgen` Jazz and `Color` behavior in a DAW across several seeds,
   meters, and installed/reloaded plugin states.
-- Consider whether `Color` should be mirrored into `melgen`, `ground`, or
-  `counterpointer` after listening tests confirm the control stays musically
-  useful in `bassgen`.
+- Validate `melgen` Color behavior in a DAW with conservative and high settings
+  across inside scales, bebop scales, and altered/diminished scales.
+- Consider whether `Color` should be mirrored into `ground` or `counterpointer`
+  after listening tests confirm the melodic version stays musically useful.
 - Decide whether Jazz behavior should remain automatic or gain a second
   advanced control for dominant-color range after real host use.
 - Add audio/MIDI example fixtures once the preferred Jazz behavior is stable

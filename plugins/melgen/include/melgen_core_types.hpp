@@ -109,6 +109,7 @@ struct Controls {
     float leap = 0.28f;
     float rest = 0.24f;
     float cadence = 0.55f;
+    float color = 0.5f;
     float vary = 0.0f;
     float follow = 0.0f;
     std::uint32_t seed = 1u;

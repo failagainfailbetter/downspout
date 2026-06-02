@@ -38,6 +38,7 @@ enum ParameterIndex : uint32_t {
     kParamActionNotes,
     kParamActionRhythm,
     kParamFollow,
+    kParamColor,
     kParameterCount
 };
 
@@ -178,6 +179,7 @@ protected:
         case kParamSeed: initInteger(parameter, "Seed", "seed", 1.0f, 65535.0f, 1.0f); break;
         case kParamVary: initFloat(parameter, "Vary", "vary", 0.0f, 100.0f, 0.0f); break;
         case kParamFollow: initFloat(parameter, "Follow", "follow", 0.0f, 1.0f, 0.0f); break;
+        case kParamColor: initFloat(parameter, "Color", "color", 0.0f, 1.0f, 0.5f); break;
         case kParamActionNew:
         case kParamActionNotes:
         case kParamActionRhythm:
@@ -231,6 +233,7 @@ protected:
         case kParamSeed: return static_cast<float>(controls_.seed);
         case kParamVary: return controls_.vary * 100.0f;
         case kParamFollow: return controls_.follow;
+        case kParamColor: return controls_.color;
         case kParamActionNew:
         case kParamActionNotes:
         case kParamActionRhythm:
@@ -264,6 +267,7 @@ protected:
         case kParamSeed: controls_.seed = static_cast<uint32_t>(value); break;
         case kParamVary: controls_.vary = value / 100.0f; break;
         case kParamFollow: controls_.follow = value; break;
+        case kParamColor: controls_.color = value; break;
         case kParamActionNew: if (value > 0.5f) ++controls_.actionNew; break;
         case kParamActionNotes: if (value > 0.5f) ++controls_.actionNotes; break;
         case kParamActionRhythm: if (value > 0.5f) ++controls_.actionRhythm; break;

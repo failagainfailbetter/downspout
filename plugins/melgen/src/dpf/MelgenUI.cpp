@@ -35,6 +35,7 @@ enum ParameterIndex : uint32_t {
     kParamActionNotes,
     kParamActionRhythm,
     kParamFollow,
+    kParamColor,
     kParameterCount
 };
 
@@ -92,11 +93,12 @@ constexpr const char* kChannelNames[] = {
     "9", "10", "11", "12", "13", "14", "15", "16"
 };
 
-constexpr std::array<SliderDef, 15> kSliders = {{
+constexpr std::array<SliderDef, 16> kSliders = {{
     {kParamRootNote, "Root", 0.0f, 127.0f, true},
     {kParamRegister, "Register", 0.0f, 4.0f, true},
     {kParamRange, "Range", 0.0f, 1.0f, false},
     {kParamLeap, "Leap", 0.0f, 1.0f, false},
+    {kParamColor, "Color", 0.0f, 1.0f, false},
     {kParamHold, "Hold", 0.0f, 1.0f, false},
     {kParamAccent, "Accent", 0.0f, 1.0f, false},
     {kParamDensity, "Density", 0.0f, 1.0f, false},
@@ -111,9 +113,9 @@ constexpr std::array<SliderDef, 15> kSliders = {{
 }};
 
 constexpr std::array<SliderGroup, 3> kSliderGroups = {{
-    {"Pitch", 0, 6},
-    {"Phrase", 6, 6},
-    {"Pattern", 12, 3},
+    {"Pitch", 0, 7},
+    {"Phrase", 7, 6},
+    {"Pattern", 13, 3},
 }};
 
 constexpr std::array<SelectorDef, 6> kSelectors = {{
@@ -179,6 +181,7 @@ public:
         values_[kParamAccent] = 0.45f;
         values_[kParamStructure] = 0.62f;
         values_[kParamFollow] = 0.0f;
+        values_[kParamColor] = 0.5f;
         values_[kParamRange] = 0.45f;
         values_[kParamLeap] = 0.28f;
         values_[kParamRest] = 0.24f;

@@ -14,9 +14,11 @@ The musical core is new:
   stricter phrase derivation and cadence behavior.
 - a `Follow` control that lets incoming MIDI notes pull generated pitches
   toward another line, such as `bassgen`, without copying it exactly.
+- a `Color` control that increases melodic tension through wider scalar
+  movement, phrase mutation, chromatic approaches, and simple enclosures.
 - scale choices include minor, major, Dorian, Phrygian, Mixolydian, harmonic
-  minor, Lydian, melodic minor, whole tone, pentatonic, blues, Locrian, and
-  Phrygian dominant colors.
+  minor, Lydian, melodic minor, whole tone, altered, diminished, bebop,
+  pentatonic, blues, Locrian, and Phrygian dominant colors.
 
 Current status:
 
@@ -29,8 +31,9 @@ Current status:
 
 UI notes:
 
-- `Line Shape` contains root, length, phrase length, density, structure,
-  follow, range, leap, rest, cadence, hold, accent, register, and seed sliders.
+- `Line Controls` contains root, register, range, leap, color, hold, accent,
+  density, rest, structure, cadence, follow, vary, length, phrase length, and
+  seed sliders.
 - `Phrase Structure` contains scale, period, contour, answer, grid, and MIDI
   channel selectors plus `New`, `Notes`, and `Rhythm` action buttons.
 - The default UI height is intentionally taller than `bassgen` because the

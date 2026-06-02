@@ -70,6 +70,7 @@ std::string serializeControls(const Controls& controls)
     out << "leap=" << controls.leap << '\n';
     out << "rest=" << controls.rest << '\n';
     out << "cadence=" << controls.cadence << '\n';
+    out << "color=" << controls.color << '\n';
     out << "vary=" << controls.vary << '\n';
     out << "follow=" << controls.follow << '\n';
     out << "seed=" << controls.seed << '\n';
@@ -173,6 +174,8 @@ std::optional<Controls> deserializeControls(const std::string& text)
             controls.rest = floatValue;
         } else if (key == "cadence" && parseFloat(value, floatValue)) {
             controls.cadence = floatValue;
+        } else if (key == "color" && parseFloat(value, floatValue)) {
+            controls.color = floatValue;
         } else if (key == "vary" && parseFloat(value, floatValue)) {
             controls.vary = floatValue;
         } else if (key == "follow" && parseFloat(value, floatValue)) {

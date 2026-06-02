@@ -131,6 +131,29 @@ void testCadenceTargetsRoot()
     assert((answerEnd - controls.rootNote) % 12 == 0);
 }
 
+void testColorInfluencesGeneratedLine()
+{
+    Controls low;
+    low.seed = 4242u;
+    low.scale = ScaleId::bebopDominant;
+    low.period = PeriodId::callAnswer;
+    low.density = 0.8f;
+    low.rest = 0.05f;
+    low.color = 0.0f;
+
+    Controls high = low;
+    high.color = 1.0f;
+
+    PatternState restrained;
+    PatternState colored;
+    regeneratePattern(restrained, low, ::downspout::Meter {}, true, true);
+    regeneratePattern(colored, high, ::downspout::Meter {}, true, true);
+
+    assert(restrained.eventCount > 0);
+    assert(colored.eventCount > 0);
+    assert(!patternsEqual(restrained, colored));
+}
+
 void testEngineSchedulesMidi()
 {
     Controls controls;
@@ -212,6 +235,7 @@ void testSerializationRoundTrip()
     controls.answer = AnswerId::invert;
     controls.structure = 0.73f;
     controls.follow = 0.37f;
+    controls.color = 0.81f;
     controls.actionNotes = 4;
 
     PatternState pattern;
@@ -233,6 +257,7 @@ void testSerializationRoundTrip()
     assert(controlsRoundTrip->contour == controls.contour);
     assert(controlsRoundTrip->answer == controls.answer);
     assert(std::fabs(controlsRoundTrip->follow - controls.follow) < 0.0001f);
+    assert(std::fabs(controlsRoundTrip->color - controls.color) < 0.0001f);
     assert(patternRoundTrip->eventCount == pattern.eventCount);
     assert(patternRoundTrip->phraseCount == pattern.phraseCount);
     assert(patternRoundTrip->meter.numerator == 6);
@@ -248,6 +273,7 @@ int main()
     testCallAnswerPhraseMetadata();
     testStructureChangesPhraseRelationship();
     testCadenceTargetsRoot();
+    testColorInfluencesGeneratedLine();
     testEngineSchedulesMidi();
     testFollowInfluencesGeneratedNoteWithoutCopyingInput();
     testSerializationRoundTrip();
