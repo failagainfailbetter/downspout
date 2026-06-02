@@ -30,6 +30,7 @@ enum ParameterIndex : uint32_t {
     kParamFollowDodge,
     kParamListenChannel,
     kParamListenNote,
+    kParamColor,
     kParameterCount
 };
 
@@ -72,6 +73,7 @@ constexpr SliderDef kSliders[] = {
     {kParamRegister, "Register", 0.0f, 3.0f, true},
     {kParamHold, "Hold", 0.0f, 1.0f, false},
     {kParamAccent, "Accent", 0.0f, 1.0f, false},
+    {kParamColor, "Color", 0.0f, 1.0f, false},
     {kParamSeed, "Seed", 1.0f, 65535.0f, true},
     {kParamVary, "Vary", 0.0f, 100.0f, true},
     {kParamFollowDodge, "Follow/Dodge", -100.0f, 100.0f, true},
@@ -159,6 +161,7 @@ constexpr ButtonDef kButtons[] = {
     case kParamDensity:
     case kParamHold:
     case kParamAccent:
+    case kParamColor:
         std::snprintf(buf, sizeof(buf), "%.2f", value);
         return buf;
     default:
@@ -191,6 +194,7 @@ public:
         values_[kParamRegister] = 1.0f;
         values_[kParamHold] = 0.35f;
         values_[kParamAccent] = 0.45f;
+        values_[kParamColor] = 0.5f;
         values_[kParamSeed] = 1.0f;
         values_[kParamVary] = 0.0f;
         values_[kParamFollowDodge] = 0.0f;

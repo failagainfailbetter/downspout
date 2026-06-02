@@ -28,8 +28,7 @@ reuse the same ideas after the bass behavior is stable.
 - [x] Target chord tones explicitly on strong beats, especially roots, thirds,
       fifths, and sevenths.
 - [x] Add approach-tone and enclosure behavior around chord tones.
-- [ ] Decide whether the UI needs a simple `Jazz Color` control after the core
-      model proves useful.
+- [x] Add a general `Color` control after the core model proved useful.
 - [x] Mirror useful Jazz scales into the other plugins that already expose
       scale selectors.
 - [x] Make Cadence's custom UI expose the expanded scale list explicitly.
@@ -51,3 +50,8 @@ diminished, whole-tone, or bebop dominant color internally. Beat starts now
 prefer root, third, fifth, and seventh targets while late pickup notes handle
 motion into the next bar. One- and two-subdivision pickups now use chromatic
 approaches and simple above/below enclosures into the next chord-tone target.
+The UI now exposes a general `Color` control. In Jazz it controls dominant
+color intensity, from inside Mixolydian/bebop behavior toward altered,
+diminished, and whole-tone tension. In other genres it gently increases
+non-root movement, blues/tritone tension, or wider modal motion according to
+the existing genre vocabulary.

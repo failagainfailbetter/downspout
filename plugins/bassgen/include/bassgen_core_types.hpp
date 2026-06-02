@@ -84,6 +84,7 @@ struct Controls {
     int reg = 1;
     float hold = 0.35f;
     float accent = 0.45f;
+    float color = 0.5f;
     float vary = 0.0f;
     float followDodge = 0.0f;
     int listenChannel = 10;

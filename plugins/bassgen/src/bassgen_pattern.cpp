@@ -121,20 +121,23 @@ constexpr ScaleDef kScales[] = {
     return value;
 }
 
-[[nodiscard]] int chooseDegree(Rng& rng, GenreId genre, bool strongBeat, int prevDegree) {
+[[nodiscard]] int chooseDegree(Rng& rng, const Controls& controls, bool strongBeat, int prevDegree) {
     const float roll = rng.nextFloat();
+    const GenreId genre = controls.genre;
+    const float color = controls.color;
 
     if (strongBeat) {
         if (genre == GenreId::funk) {
-            if (roll < 0.35f) return 0;
+            if (roll < 0.35f - color * 0.08f) return 0;
             if (roll < 0.58f) return 4;
-            if (roll < 0.76f) return 7;
+            if (roll < 0.76f + color * 0.08f) return 7;
+            if (color > 0.55f && roll < 0.90f) return 6;
             return 2;
         }
         if (genre == GenreId::sabbath) {
-            if (roll < 0.52f) return 0;
+            if (roll < 0.52f - color * 0.10f) return 0;
             if (roll < 0.76f) return 4;
-            if (roll < 0.90f) return 6;
+            if (roll < 0.90f + color * 0.08f) return 6;
             return 1;
         }
         if (genre == GenreId::jazz) {
@@ -150,16 +153,17 @@ constexpr ScaleDef kScales[] = {
 
     switch (genre) {
     case GenreId::funk:
-        if (roll < 0.24f) return prevDegree;
+        if (roll < 0.24f - color * 0.08f) return prevDegree;
         if (roll < 0.45f) return (prevDegree < 7) ? prevDegree + 1 : 4;
         if (roll < 0.61f) return (prevDegree > 0) ? prevDegree - 1 : 0;
-        if (roll < 0.78f) return 7;
+        if (roll < 0.78f + color * 0.08f) return 7;
+        if (color > 0.55f && roll < 0.90f) return 6;
         return (rng.nextFloat() < 0.5f) ? 0 : 4;
     case GenreId::sabbath:
-        if (roll < 0.36f) return 0;
+        if (roll < 0.36f - color * 0.08f) return 0;
         if (roll < 0.58f) return 4;
-        if (roll < 0.74f) return 6;
-        if (roll < 0.86f) return 1;
+        if (roll < 0.74f + color * 0.10f) return 6;
+        if (roll < 0.86f + color * 0.08f) return 1;
         return (roll < 0.93f) ? prevDegree : 3;
     case GenreId::jazz:
         if (roll < 0.34f) return clampi(prevDegree + 1, 0, 9);
@@ -168,19 +172,21 @@ constexpr ScaleDef kScales[] = {
         if (roll < 0.90f) return 2;
         return 6;
     case GenreId::acid:
-        if (roll < 0.25f) return prevDegree;
-        if (roll < 0.55f) return clampi(prevDegree + rng.nextInt(-1, 1), 0, 6);
-        return rng.nextInt(0, 6);
+        if (roll < 0.25f - color * 0.10f) return prevDegree;
+        if (roll < 0.55f - color * 0.08f) return clampi(prevDegree + rng.nextInt(-1, 1), 0, 6);
+        return rng.nextInt(0, color > 0.65f ? 8 : 6);
     case GenreId::dub:
-        if (roll < 0.55f) return 0;
+        if (roll < 0.55f - color * 0.12f) return 0;
         if (roll < 0.75f) return 4;
+        if (color > 0.55f && roll < 0.88f) return 6;
         return clampi(prevDegree + rng.nextInt(-1, 1), 0, 6);
     case GenreId::ambient:
-        if (roll < 0.40f) return prevDegree;
-        return clampi(prevDegree + rng.nextInt(-1, 1), 0, 6);
+        if (roll < 0.40f - color * 0.10f) return prevDegree;
+        return clampi(prevDegree + rng.nextInt(-1, color > 0.6f ? 2 : 1), 0, color > 0.7f ? 8 : 6);
     default:
-        if (roll < 0.30f) return 0;
+        if (roll < 0.30f - color * 0.08f) return 0;
         if (roll < 0.50f) return 4;
+        if (color > 0.65f && roll < 0.68f) return 6;
         return clampi(prevDegree + rng.nextInt(-1, 1), 0, 6);
     }
 }
@@ -287,11 +293,16 @@ constexpr ScaleDef kScales[] = {
                (static_cast<std::uint32_t>(barIndex + 1) * 374761393u) ^
                (static_cast<std::uint32_t>(pattern.generationSerial + 1) * 668265263u));
     const std::uint32_t choice = seed % 100u;
+    const float color = controls.color;
+    const std::uint32_t bebopLimit = static_cast<std::uint32_t>(20.0f + color * 20.0f);
+    const std::uint32_t alteredLimit = static_cast<std::uint32_t>(bebopLimit + 8.0f + color * 32.0f);
+    const std::uint32_t diminishedLimit = static_cast<std::uint32_t>(alteredLimit + 10.0f + color * 24.0f);
+    const std::uint32_t wholeToneLimit = static_cast<std::uint32_t>(diminishedLimit + color * 18.0f);
 
-    if (choice < 30u) return JazzDominantColor::bebopDominant;
-    if (choice < 52u) return JazzDominantColor::altered;
-    if (choice < 73u) return JazzDominantColor::halfWholeDiminished;
-    if (choice < 88u) return JazzDominantColor::wholeTone;
+    if (choice < bebopLimit) return JazzDominantColor::bebopDominant;
+    if (choice < alteredLimit) return JazzDominantColor::altered;
+    if (choice < diminishedLimit) return JazzDominantColor::halfWholeDiminished;
+    if (choice < wholeToneLimit) return JazzDominantColor::wholeTone;
     return JazzDominantColor::mixolydian;
 }
 
@@ -1243,7 +1254,7 @@ void generateNotes(PatternState& pattern, const Controls& controls, Rng& rng) {
                 ? jazzDegreeForEvent(pattern, controls, rng, event, prevDegree)
                 : (controls.genre == GenreId::sabbath)
                     ? sabbathCellDegree(pattern, rng, sabbathCell, sabbathCellLen, index)
-                    : chooseDegree(rng, controls.genre, strong, prevDegree);
+                    : chooseDegree(rng, controls, strong, prevDegree);
             prevDegree = degree;
             event.note = noteFromDegree(controls, degree);
             prevJazzNote = event.note;
@@ -1295,6 +1306,7 @@ Controls clampControls(const Controls& raw) {
     controls.reg = clampi(controls.reg, 0, 3);
     controls.hold = clampf(controls.hold, 0.0f, 1.0f);
     controls.accent = clampf(controls.accent, 0.0f, 1.0f);
+    controls.color = clampf(controls.color, 0.0f, 1.0f);
     controls.vary = clampf(controls.vary, 0.0f, 1.0f);
     controls.followDodge = clampf(controls.followDodge, -1.0f, 1.0f);
     controls.listenChannel = clampi(controls.listenChannel, 1, 16);
@@ -1316,6 +1328,7 @@ bool structuralControlsChanged(const Controls& a, const Controls& b) {
            a.reg != b.reg ||
            std::fabs(a.hold - b.hold) > 0.0001f ||
            std::fabs(a.accent - b.accent) > 0.0001f ||
+           std::fabs(a.color - b.color) > 0.0001f ||
            a.seed != b.seed;
 }
 

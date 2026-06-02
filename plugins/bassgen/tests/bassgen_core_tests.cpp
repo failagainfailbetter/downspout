@@ -271,6 +271,56 @@ void testJazzDominantBarCanUseAlteredColor() {
     assert(relativePitchClass(dominantColorTone->note, controls.rootNote) == 8);
 }
 
+void testColorControlsJazzDominantIntensity() {
+    Controls controls;
+    controls.seed = 5u;
+    controls.genre = GenreId::jazz;
+    controls.scale = ScaleId::major;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.82f;
+    controls.hold = 0.25f;
+
+    PatternState lowColor;
+    controls.color = 0.0f;
+    regeneratePattern(lowColor, controls, ::downspout::Meter {}, true, true);
+
+    PatternState highColor;
+    controls.color = 1.0f;
+    regeneratePattern(highColor, controls, ::downspout::Meter {}, true, true);
+
+    const NoteEvent* lowDominantTone = eventStartingAt(lowColor, 24);
+    const NoteEvent* highDominantTone = eventStartingAt(highColor, 24);
+
+    assert(lowDominantTone != nullptr);
+    assert(highDominantTone != nullptr);
+    assert(relativePitchClass(lowDominantTone->note, controls.rootNote) == 2);
+    assert(relativePitchClass(highDominantTone->note, controls.rootNote) == 8);
+}
+
+void testColorInfluencesNonJazzGenres() {
+    Controls controls;
+    controls.seed = 77u;
+    controls.genre = GenreId::funk;
+    controls.scale = ScaleId::blues;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.80f;
+    controls.hold = 0.25f;
+
+    PatternState lowColor;
+    controls.color = 0.0f;
+    regeneratePattern(lowColor, controls, ::downspout::Meter {}, true, true);
+
+    PatternState highColor;
+    controls.color = 1.0f;
+    regeneratePattern(highColor, controls, ::downspout::Meter {}, true, true);
+
+    assert(patternsDiffer(lowColor, highColor));
+}
+
 void testJazzStrongBeatsTargetChordTones() {
     Controls controls;
     controls.seed = 909u;
@@ -440,6 +490,12 @@ void testStateSanitization() {
     variation.version = 99;
     const VariationState sanitizedVariation = sanitizeVariationState(variation);
     assert(sanitizedVariation.version == kVariationStateVersion);
+
+    Controls controls;
+    controls.color = 2.0f;
+    assert(std::fabs(clampControls(controls).color - 1.0f) < 0.0001f);
+    controls.color = -1.0f;
+    assert(std::fabs(clampControls(controls).color) < 0.0001f);
 }
 
 void testEngineRewindResyncAndStopNoteOff() {
@@ -615,6 +671,7 @@ void testSerializationRoundTrip() {
     controls.genre = GenreId::funk;
     controls.styleMode = StyleModeId::reel;
     controls.vary = 0.65f;
+    controls.color = 0.72f;
     controls.followDodge = -0.35f;
     controls.listenChannel = 10;
     controls.listenNote = 35;
@@ -640,6 +697,7 @@ void testSerializationRoundTrip() {
     assert(controlsRoundTrip->scale == controls.scale);
     assert(controlsRoundTrip->genre == controls.genre);
     assert(controlsRoundTrip->styleMode == controls.styleMode);
+    assert(std::fabs(controlsRoundTrip->color - controls.color) < 0.0001f);
     assert(std::fabs(controlsRoundTrip->followDodge - controls.followDodge) < 0.0001f);
     assert(controlsRoundTrip->listenChannel == controls.listenChannel);
     assert(controlsRoundTrip->listenNote == controls.listenNote);
@@ -755,6 +813,8 @@ int main() {
     testJazzGenreOutlinesTwoFiveOne();
     testJazzRoleColorsUseModalChordTones();
     testJazzDominantBarCanUseAlteredColor();
+    testColorControlsJazzDominantIntensity();
+    testColorInfluencesNonJazzGenres();
     testJazzStrongBeatsTargetChordTones();
     testJazzApproachAndEnclosureNotesTargetChordTones();
     testJazzScaleIdsAreAppended();

@@ -33,6 +33,7 @@ enum ParameterIndex : uint32_t {
     kParamFollowDodge,
     kParamListenChannel,
     kParamListenNote,
+    kParamColor,
     kParameterCount
 };
 
@@ -236,6 +237,13 @@ protected:
             parameter.ranges.max = 1.0f;
             parameter.ranges.def = 0.45f;
             break;
+        case kParamColor:
+            parameter.name = "Color";
+            parameter.symbol = "color";
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.5f;
+            break;
         case kParamSeed:
             parameter.name = "Seed";
             parameter.symbol = "seed";
@@ -336,6 +344,7 @@ protected:
         case kParamRegister: return static_cast<float>(controls_.reg);
         case kParamHold: return controls_.hold;
         case kParamAccent: return controls_.accent;
+        case kParamColor: return controls_.color;
         case kParamSeed: return static_cast<float>(controls_.seed);
         case kParamVary: return controls_.vary * 100.0f;
         case kParamFollowDodge: return controls_.followDodge * 100.0f;
@@ -364,6 +373,7 @@ protected:
         case kParamRegister: controls_.reg = static_cast<int>(value); break;
         case kParamHold: controls_.hold = value; break;
         case kParamAccent: controls_.accent = value; break;
+        case kParamColor: controls_.color = value; break;
         case kParamSeed: controls_.seed = static_cast<uint32_t>(value); break;
         case kParamVary: controls_.vary = value / 100.0f; break;
         case kParamFollowDodge: controls_.followDodge = value / 100.0f; break;
