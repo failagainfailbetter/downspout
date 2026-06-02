@@ -32,6 +32,7 @@ struct EngineState {
     int lastInputChannel = 1;
     bool harmonyOffPending = false;
     double pendingHarmonyOffBeat = 0.0;
+    std::uint32_t arpeggioStep = 0;
     CompPlaybackState compState {};
 
     VariationState variation = defaultVariationState();

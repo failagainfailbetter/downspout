@@ -28,6 +28,7 @@ enum ParameterIndex : uint32_t {
     kParamVary,
     kParamComp,
     kParamColor,
+    kParamArpeggio,
     kParameterCount
 };
 
@@ -68,6 +69,8 @@ constexpr SliderDef kSliders[] = {
     {kParamComplexity, "Complexity", 0.0f, 1.0f, false},
     {kParamMovement, "Movement", 0.0f, 1.0f, false},
     {kParamColor, "Color", 0.0f, 1.0f, false},
+    {kParamSpread, "Spread", 0.0f, 1.0f, false},
+    {kParamArpeggio, "Arpeggio", 0.0f, 1.0f, false},
     {kParamNoteLength, "Length", 0.10f, 1.0f, false},
     {kParamVary, "Vary", 0.0f, 100.0f, true},
     {kParamComp, "Comp", 0.0f, 100.0f, true},
@@ -97,10 +100,6 @@ constexpr const char* kRegisterNames[] = {
     "Low", "Mid", "High"
 };
 
-constexpr const char* kSpreadNames[] = {
-    "Close", "Open", "Drop-2"
-};
-
 constexpr const char* kToggleNames[] = {
     "Off", "On"
 };
@@ -121,7 +120,6 @@ constexpr SelectorDef kSelectors[] = {
     {kParamGranularity, "Grid", kGranularityNames, 3, 0},
     {kParamChordSize, "Chord", kChordSizeNames, 3, 0},
     {kParamRegister, "Register", kRegisterNames, 3, 0},
-    {kParamSpread, "Voicing", kSpreadNames, 3, 0},
     {kParamPassInput, "Pass", kToggleNames, 2, 0},
     {kParamOutputChannel, "Channel", kOutputChannelNames, 17, 0},
 };
@@ -181,6 +179,7 @@ public:
         values_[kParamComplexity] = 0.45f;
         values_[kParamMovement] = 0.65f;
         values_[kParamColor] = 0.0f;
+        values_[kParamArpeggio] = 0.0f;
         values_[kParamChordSize] = 0.0f;
         values_[kParamNoteLength] = 1.0f;
         values_[kParamRegister] = 1.0f;
@@ -400,12 +399,15 @@ private:
         const float innerX = x + 20.0f;
         const float innerY = y + 52.0f;
         const float innerW = w - 40.0f;
-        const float rowGap = 16.0f;
+        const float columnGap = 18.0f;
+        const float rowGap = 17.0f;
         const float rowH = 44.0f;
+        const float columnW = (innerW - columnGap) * 0.5f;
 
         for (std::size_t i = 0; i < std::size(kSliders); ++i) {
-            const float ry = innerY + static_cast<float>(i) * (rowH + rowGap);
-            sliderRects_[i] = {innerX, ry + 18.0f, innerW, 22.0f};
+            const float cx = innerX + static_cast<float>(i % 2) * (columnW + columnGap);
+            const float ry = innerY + static_cast<float>(i / 2) * (rowH + rowGap);
+            sliderRects_[i] = {cx, ry + 18.0f, columnW, 22.0f};
             drawSlider(kSliders[i], sliderRects_[i], values_[kSliders[i].index], draggingSlider_ == static_cast<int>(i));
         }
     }
@@ -450,18 +452,21 @@ private:
         fillColor(224, 228, 232, 255);
         text(x + 20.0f, y + 18.0f, "Harmony", nullptr);
 
-        const float selectorH = 42.0f;
-        const float selectorGap = 7.0f;
-        float cy = y + 52.0f;
+        const float selectorH = 48.0f;
+        const float selectorGap = 8.0f;
+        const float selectorColumnGap = 10.0f;
+        const float selectorW = (w - 40.0f - selectorColumnGap) * 0.5f;
+        const float selectorStartY = y + 52.0f;
         for (std::size_t i = 0; i < std::size(kSelectors); ++i) {
-            selectorRects_[i] = {x + 20.0f, cy, w - 40.0f, selectorH};
+            const float sx = x + 20.0f + static_cast<float>(i % 2) * (selectorW + selectorColumnGap);
+            const float sy = selectorStartY + static_cast<float>(i / 2) * (selectorH + selectorGap);
+            selectorRects_[i] = {sx, sy, selectorW, selectorH};
             drawSelector(kSelectors[i], selectorRects_[i], selectorValueForDisplay(kSelectors[i], values_[kSelectors[i].index]), static_cast<int>(i));
-            cy += selectorH + selectorGap;
         }
 
-        const float buttonH = std::min(44.0f, std::max(34.0f, y + h - cy - 20.0f));
-        cy = y + h - 20.0f - buttonH;
-        buttonRects_[0] = {x + 20.0f, cy, w - 40.0f, buttonH};
+        const float buttonH = 44.0f;
+        const float buttonY = y + h - 20.0f - buttonH;
+        buttonRects_[0] = {x + 20.0f, buttonY, w - 40.0f, buttonH};
         drawButton(kButtons[0], buttonRects_[0]);
     }
 
@@ -473,12 +478,12 @@ private:
         fill();
         closePath();
 
-        fontSize(11.0f);
+        fontSize(10.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
         fillColor(152, 166, 181, 255);
         text(rect.x + 14.0f, rect.y + 8.0f, def.label, nullptr);
 
-        fontSize(16.0f);
+        fontSize(14.0f);
         fillColor(235, 239, 242, 255);
         text(rect.x + 14.0f, rect.y + 27.0f, def.items[clampi(value, 0, def.count - 1)], nullptr);
 

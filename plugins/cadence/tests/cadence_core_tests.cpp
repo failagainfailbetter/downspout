@@ -65,7 +65,8 @@ void testSerializationRoundTrip()
     controls.chord_size = CHORD_SIZE_SEVENTHS;
     controls.note_length = 0.66f;
     controls.reg = REGISTER_HIGH;
-    controls.spread = SPREAD_OPEN;
+    controls.spread = 0.74f;
+    controls.arpeggio = 0.52f;
     controls.pass_input = false;
     controls.output_channel = 5;
     controls.action_learn = 12;
@@ -79,6 +80,8 @@ void testSerializationRoundTrip()
     assert(controlsRoundTrip->cycle_bars == 3);
     assert(std::fabs(controlsRoundTrip->note_length - 0.66f) < 1e-6f);
     assert(std::fabs(controlsRoundTrip->color - 0.83f) < 1e-6f);
+    assert(std::fabs(controlsRoundTrip->spread - 0.74f) < 1e-6f);
+    assert(std::fabs(controlsRoundTrip->arpeggio - 0.52f) < 1e-6f);
     assert(!controlsRoundTrip->pass_input);
     assert(controlsRoundTrip->output_channel == 5);
 
@@ -194,6 +197,40 @@ void testExtendedChordSizeBuildsExtensionVoicings()
     assert(roundTrip->slots[0].notes[4] == slots[0].notes[4]);
 }
 
+void testSpreadControlWidensVoicings()
+{
+    std::array<SegmentCapture, kMaxSegments> capture {};
+    capture[0].duration[0] = 1.0;
+    capture[0].duration[4] = 0.9;
+    capture[0].duration[7] = 0.8;
+    capture[0].onset[0] = 1.0;
+    capture[0].onset[4] = 0.8;
+    capture[0].onset[7] = 0.8;
+
+    Controls closeControls = defaultControls();
+    closeControls.key = 0;
+    closeControls.scale = SCALE_MAJOR;
+    closeControls.cycle_bars = 1;
+    closeControls.granularity = GRANULARITY_BAR;
+    closeControls.spread = 0.0f;
+
+    Controls wideControls = closeControls;
+    wideControls.spread = 1.0f;
+
+    std::array<ChordSlot, kMaxSegments> closeSlots {};
+    std::array<ChordSlot, kMaxSegments> wideSlots {};
+    const CadenceBuildOptions options {};
+
+    assert(cadence_build_progression_from_capture(capture.data(), 1, closeControls, nullptr, 0, options, closeSlots.data()));
+    assert(cadence_build_progression_from_capture(capture.data(), 1, wideControls, nullptr, 0, options, wideSlots.data()));
+    assert(closeSlots[0].valid);
+    assert(wideSlots[0].valid);
+
+    const int closeRange = closeSlots[0].notes[closeSlots[0].note_count - 1] - closeSlots[0].notes[0];
+    const int wideRange = wideSlots[0].notes[wideSlots[0].note_count - 1] - wideSlots[0].notes[0];
+    assert(wideRange > closeRange);
+}
+
 void testStoppedTransportPassThrough()
 {
     EngineState state;
@@ -278,6 +315,65 @@ void testEngineLearnsAndEmitsOnNextCycle()
     assert(sawNoteOn);
 }
 
+void testArpeggioCanEmitSingleNotes()
+{
+    EngineState state;
+    activate(state);
+
+    Controls controls = defaultControls();
+    controls.cycle_bars = 1;
+    controls.granularity = GRANULARITY_BEAT;
+    controls.pass_input = false;
+    controls.output_channel = 1;
+    controls.comp = 1.0f;
+    controls.arpeggio = 1.0f;
+
+    state.ready = true;
+    state.playbackSegmentCount = 4;
+    state.baseSegmentCount = 4;
+    for (int i = 0; i < 4; ++i) {
+        ChordSlot& slot = state.playback[static_cast<std::size_t>(i)];
+        slot.valid = true;
+        slot.root_pc = 0;
+        slot.quality = QUALITY_MAJ7;
+        slot.note_count = 4;
+        slot.velocity = 96;
+        slot.notes = {60, 64, 67, 71};
+        state.baseProgression[static_cast<std::size_t>(i)] = slot;
+    }
+    state.controlsInitialized = true;
+    state.previousControls = controls;
+
+    TransportSnapshot transport;
+    transport.valid = true;
+    transport.playing = true;
+    transport.bar = 0.0;
+    transport.barBeat = 0.0;
+    transport.beatsPerBar = 4.0;
+    transport.bpm = 120.0;
+
+    const BlockResult result = processBlock(state, controls, transport, 96000, 48000.0, nullptr, 0);
+    assert(result.ready);
+
+    for (int i = 0; i < result.eventCount; ++i) {
+        const ScheduledMidiEvent& event = result.events[static_cast<std::size_t>(i)];
+        if (event.size < 3 || (event.data[0] & 0xF0) != 0x90 || event.data[2] == 0)
+            continue;
+
+        int notesAtFrame = 0;
+        for (int j = 0; j < result.eventCount; ++j) {
+            const ScheduledMidiEvent& candidate = result.events[static_cast<std::size_t>(j)];
+            if (candidate.frame == event.frame &&
+                candidate.size >= 3 &&
+                (candidate.data[0] & 0xF0) == 0x90 &&
+                candidate.data[2] > 0) {
+                ++notesAtFrame;
+            }
+        }
+        assert(notesAtFrame == 1);
+    }
+}
+
 }  // namespace
 
 int main()
@@ -286,7 +382,9 @@ int main()
     testSerializationRoundTrip();
     testHighColorFavorsJazzCadenceRoles();
     testExtendedChordSizeBuildsExtensionVoicings();
+    testSpreadControlWidensVoicings();
     testStoppedTransportPassThrough();
     testEngineLearnsAndEmitsOnNextCycle();
+    testArpeggioCanEmitSingleNotes();
     return 0;
 }

@@ -32,12 +32,15 @@ Implementation status:
   diminished/tritone-sub options;
 - the `Extended` chord-size mode expands stored chord slots to six notes and
   can generate 9th, 11th, and 13th voicings while Triads and Sevenths remain
-  available for simpler output.
+  available for simpler output;
+- `Spread` is now a continuous voicing-width control, and `Arpeggio` thins
+  playback from solid chords toward rotating single-note chord tones.
 
 Recommended next steps:
 
 1. validate `cadence.vst3` in Reaper, especially the learn cycle, restart/rewind
    handling, and saved-state restore path;
-2. tighten any UI or parameter behavior issues found in host use;
+2. validate the continuous `Spread` and `Arpeggio` controls against dense
+   Extended voicings and higher `Comp` settings;
 3. broaden tests around earlier-state-format handling and wrapper-facing state mapping;
 4. keep release packaging aligned with the now-public wrapper target.

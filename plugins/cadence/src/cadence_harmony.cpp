@@ -536,26 +536,21 @@ int nearest_midi_for_pc(int pc, int target) {
     return best_note;
 }
 
-void apply_spread_to_notes(int* notes, int count, int spread) {
+void apply_spread_to_notes(int* notes, int count, float spread) {
     if (count < 3) {
         return;
     }
 
     sort_int_notes(notes, count);
-    switch (spread) {
-        case SPREAD_OPEN:
-            notes[1] += 12;
-            break;
-        case SPREAD_DROP2:
-            if (count >= 4) {
-                notes[count - 2] -= 12;
-            }
-            break;
-        case SPREAD_CLOSE:
-        default:
-            break;
+    const float amount = clampf(spread, 0.0f, 1.0f);
+    const int target_range = 8 + (int)std::lround(amount * 24.0f);
+    int guard = 0;
+    while (notes[count - 1] - notes[0] < target_range && guard < count * 2) {
+        const int voice = clampi(count - 1 - (guard % std::max(1, count - 1)), 1, count - 1);
+        notes[voice] += 12;
+        sort_int_notes(notes, count);
+        ++guard;
     }
-    sort_int_notes(notes, count);
 }
 
 double voicing_cost(const int* notes,

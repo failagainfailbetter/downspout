@@ -70,12 +70,6 @@ enum RegisterMode {
     REGISTER_HIGH
 };
 
-enum SpreadMode {
-    SPREAD_CLOSE = 0,
-    SPREAD_OPEN,
-    SPREAD_DROP2
-};
-
 enum QualityId {
     QUALITY_POWER = 0,
     QUALITY_MAJOR,
@@ -105,7 +99,8 @@ struct Controls {
     int chord_size = CHORD_SIZE_TRIADS;
     float note_length = 1.0f;
     int reg = REGISTER_MID;
-    int spread = SPREAD_CLOSE;
+    float spread = 0.0f;
+    float arpeggio = 0.0f;
     bool pass_input = true;
     int output_channel = 0;
     int action_learn = 0;
@@ -201,7 +196,8 @@ using ScheduledMidiEvent = MidiMessage;
     controls.chord_size = clampi(controls.chord_size, 0, 2);
     controls.note_length = clampf(controls.note_length, 0.10f, 1.0f);
     controls.reg = clampi(controls.reg, 0, 2);
-    controls.spread = clampi(controls.spread, 0, 2);
+    controls.spread = clampf(controls.spread, 0.0f, 1.0f);
+    controls.arpeggio = clampf(controls.arpeggio, 0.0f, 1.0f);
     controls.output_channel = clampi(controls.output_channel, 0, 16);
     controls.action_learn = clampi(controls.action_learn, 0, 1048576);
     controls.vary = clampf(controls.vary, 0.0f, 1.0f);
@@ -220,7 +216,7 @@ using ScheduledMidiEvent = MidiMessage;
            (a.color - b.color < 0.0001f && a.color - b.color > -0.0001f) &&
            a.chord_size == b.chord_size &&
            a.reg == b.reg &&
-           a.spread == b.spread;
+           (a.spread - b.spread < 0.0001f && a.spread - b.spread > -0.0001f);
 }
 
 }  // namespace downspout::cadence

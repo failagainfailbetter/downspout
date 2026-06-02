@@ -42,6 +42,9 @@ reuse the same ideas after the bass behavior is stable.
       bias, and occasional chromatic pickup behavior.
 - [x] Expand Cadence chord slots and add an `Extended` chord-size mode for
       generated 9th, 11th, and 13th voicings.
+- [x] Add Cadence phrasing controls for continuous voicing `Spread` and
+      `Arpeggio`, thinning playback from solid chords toward broken fragments
+      and rotating single-note chord tones.
 
 ## First implementation slice
 
@@ -75,7 +78,8 @@ the existing genre vocabulary.
 - Validate `cadence` Color behavior in a DAW using learned cycles with clear,
   sparse, and ambiguous input material.
 - Validate Cadence `Extended` chord mode in a DAW, especially whether dense
-  six-note voicings remain useful across register and spread settings.
+  six-note voicings remain useful across register, spread, comp, and arpeggio
+  settings.
 - Validate `counterpointer` and `ground` Color behavior in a DAW, especially
   that default zero preserves the current feel while high values remain useful
   rather than simply busier.

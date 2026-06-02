@@ -6,7 +6,9 @@ Notable behavior preserved in the current port:
 
 - host-transport-synced learning over a repeating cycle;
 - deterministic progression generation from captured note activity;
-- voiced chord playback with register and spread controls;
+- voiced chord playback with register and continuous spread controls;
+- arpeggiated playback phrasing that can thin chord hits down to rotating
+  single-note chord tones;
 - optional comp scheduling derived from captured onset timing;
 - cycle-boundary variation driven by the `Vary` control;
 - harmonic color bias driven by the `Color` control, defaulting to zero so
@@ -21,6 +23,9 @@ Jazz note:
   state remains readable because missing extension notes default to zero and
   `note_count` is serialized explicitly. The new extension qualities are only
   considered when `Chord` is set to `Extended`.
+- `Spread` and `Arpeggio` are playback-facing controls. Spread changes the
+  generated voicing width, while Arpeggio leaves stored chord slots intact and
+  changes which chord tones are emitted on each comp hit.
 
 Current wrapper choice:
 
@@ -35,4 +40,4 @@ Known follow-up areas:
 
 - verify learn and ready behavior in Reaper against the original LV2 plugin;
 - confirm restart and rewind handling in looped playback;
-- tighten UI wording and control feedback after DAW testing.
+- validate high `Arpeggio` settings with `Comp` and dense Extended voicings.

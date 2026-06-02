@@ -62,6 +62,7 @@ std::string serializeControls(const Controls& controls)
            "note_length=" + std::to_string(controls.note_length) + "\n"
            "reg=" + std::to_string(controls.reg) + "\n"
            "spread=" + std::to_string(controls.spread) + "\n"
+           "arpeggio=" + std::to_string(controls.arpeggio) + "\n"
            "pass_input=" + std::to_string(controls.pass_input ? 1 : 0) + "\n"
            "output_channel=" + std::to_string(controls.output_channel) + "\n"
            "action_learn=" + std::to_string(controls.action_learn) + "\n"
@@ -131,9 +132,13 @@ std::optional<Controls> deserializeControls(const std::string& text)
         {
             controls.reg = intValue;
         }
-        else if (key == "spread" && parseInteger(value, intValue))
+        else if (key == "spread" && parseFloat(value, floatValue))
         {
-            controls.spread = intValue;
+            controls.spread = floatValue > 1.0f ? floatValue * 0.5f : floatValue;
+        }
+        else if (key == "arpeggio" && parseFloat(value, floatValue))
+        {
+            controls.arpeggio = floatValue;
         }
         else if (key == "pass_input" && parseInteger(value, intValue))
         {

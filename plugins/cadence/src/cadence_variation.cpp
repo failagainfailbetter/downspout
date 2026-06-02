@@ -25,7 +25,7 @@ uint32_t controls_seed(const Controls& controls) {
     seed ^= cadence_mix_u32((uint32_t)lroundf(controls.color * 1000.0f));
     seed ^= cadence_mix_u32((uint32_t)(controls.chord_size & 0xFF) << 1);
     seed ^= cadence_mix_u32((uint32_t)(controls.reg & 0xFF) << 2);
-    seed ^= cadence_mix_u32((uint32_t)(controls.spread & 0xFF) << 3);
+    seed ^= cadence_mix_u32((uint32_t)lroundf(controls.spread * 1000.0f));
     return seed;
 }
 

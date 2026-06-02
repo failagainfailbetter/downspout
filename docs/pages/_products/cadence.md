@@ -5,7 +5,7 @@ bundle: cadence.vst3
 kind: MIDI effect
 role: Harmony and comping
 screenshot: /assets/plugins/cadence.png
-summary: Transport-aware MIDI harmonizer and comping generator with learned harmony, color, and extended voicings.
+summary: Transport-aware MIDI harmonizer and comping generator with learned harmony, color, extended voicings, and arpeggiated phrasing.
 ---
 
 ## Functionality
@@ -13,4 +13,6 @@ summary: Transport-aware MIDI harmonizer and comping generator with learned harm
 Cadence listens to incoming MIDI and uses the learned material to produce
 transport-synced harmony and comping output. The color control biases learned
 progressions toward stronger Jazz cadence roles and dominant tension, while
-the extended chord mode can voice 9ths, 11ths, and 13ths.
+the extended chord mode can voice 9ths, 11ths, and 13ths. Spread opens the
+voicing range, and Arpeggio moves playback from solid chords toward broken
+fragments or rotating single-note chord tones.

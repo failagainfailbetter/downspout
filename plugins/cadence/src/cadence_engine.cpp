@@ -118,57 +118,88 @@ bool note_in_set(const std::array<std::uint8_t, kMaxChordNotes>& notes,
     return false;
 }
 
+void render_playback_slot(EngineState& state, const ChordSlot* source, const bool advanceArpeggio, ChordSlot& rendered)
+{
+    rendered = {};
+    if (source == nullptr || !source->valid)
+        return;
+
+    rendered = *source;
+    const float arpeggio = clampf(state.controls.arpeggio, 0.0f, 1.0f);
+    if (arpeggio <= 0.0001f || source->note_count <= 1)
+        return;
+
+    const int sourceCount = clampi(source->note_count, 1, kMaxChordNotes);
+    const int emitCount = clampi(static_cast<int>(std::lround(1.0f + (1.0f - arpeggio) * static_cast<float>(sourceCount - 1))),
+                                 1,
+                                 sourceCount);
+    const int start = static_cast<int>(state.arpeggioStep % static_cast<std::uint32_t>(sourceCount));
+
+    rendered.note_count = static_cast<std::uint8_t>(emitCount);
+    rendered.notes.fill(0);
+    for (int i = 0; i < emitCount; ++i)
+        rendered.notes[static_cast<std::size_t>(i)] = source->notes[static_cast<std::size_t>((start + i) % sourceCount)];
+    std::sort(rendered.notes.begin(), rendered.notes.begin() + emitCount);
+
+    if (advanceArpeggio)
+        state.arpeggioStep += 1;
+}
+
 void transition_to_slot(EngineState& state,
                         BlockResult& result,
                         const std::uint32_t frame,
                         const ChordSlot* slot,
-                        const bool retrigger)
+                        const bool retrigger,
+                        const bool advanceArpeggio)
 {
-    const std::uint8_t nextCount = slot != nullptr && slot->valid ? slot->note_count : 0;
+    ChordSlot renderedSlot {};
+    render_playback_slot(state, slot, advanceArpeggio, renderedSlot);
+    const ChordSlot* effectiveSlot = renderedSlot.valid ? &renderedSlot : nullptr;
+    const std::uint8_t nextCount = effectiveSlot != nullptr ? effectiveSlot->note_count : 0;
     const int nextChannel = resolve_output_channel(state, state.controls.output_channel);
 
-    if (retrigger && slot != nullptr && slot->valid)
+    if (retrigger && effectiveSlot != nullptr)
     {
         for (std::uint8_t i = 0; i < state.activeHarmonyCount; ++i)
             emit_note_off(result, frame, state.activeHarmonyNotes[static_cast<std::size_t>(i)], state.activeHarmonyChannel);
 
-        for (std::uint8_t i = 0; i < slot->note_count; ++i)
-            emit_note_on(result, frame, slot->notes[static_cast<std::size_t>(i)], slot->velocity, nextChannel);
+        for (std::uint8_t i = 0; i < effectiveSlot->note_count; ++i)
+            emit_note_on(result, frame, effectiveSlot->notes[static_cast<std::size_t>(i)], effectiveSlot->velocity, nextChannel);
 
-        state.activeHarmonyCount = slot->note_count;
+        state.activeHarmonyCount = effectiveSlot->note_count;
         state.activeHarmonyChannel = nextChannel;
-        for (std::uint8_t i = 0; i < slot->note_count; ++i)
-            state.activeHarmonyNotes[static_cast<std::size_t>(i)] = slot->notes[static_cast<std::size_t>(i)];
+        for (std::uint8_t i = 0; i < effectiveSlot->note_count; ++i)
+            state.activeHarmonyNotes[static_cast<std::size_t>(i)] = effectiveSlot->notes[static_cast<std::size_t>(i)];
         return;
     }
 
     for (std::uint8_t i = 0; i < state.activeHarmonyCount; ++i)
     {
         const std::uint8_t note = state.activeHarmonyNotes[static_cast<std::size_t>(i)];
-        if (!(slot != nullptr && slot->valid && note_in_set(slot->notes, nextCount, note)))
+        if (!(effectiveSlot != nullptr && note_in_set(effectiveSlot->notes, nextCount, note)))
             emit_note_off(result, frame, note, state.activeHarmonyChannel);
     }
 
-    if (slot != nullptr && slot->valid)
+    if (effectiveSlot != nullptr)
     {
-        for (std::uint8_t i = 0; i < slot->note_count; ++i)
+        for (std::uint8_t i = 0; i < effectiveSlot->note_count; ++i)
         {
-            const std::uint8_t note = slot->notes[static_cast<std::size_t>(i)];
+            const std::uint8_t note = effectiveSlot->notes[static_cast<std::size_t>(i)];
             if (!note_in_set(state.activeHarmonyNotes, state.activeHarmonyCount, note))
-                emit_note_on(result, frame, note, slot->velocity, nextChannel);
+                emit_note_on(result, frame, note, effectiveSlot->velocity, nextChannel);
         }
         state.activeHarmonyChannel = nextChannel;
     }
 
     state.activeHarmonyCount = nextCount;
     for (std::uint8_t i = 0; i < nextCount; ++i)
-        state.activeHarmonyNotes[static_cast<std::size_t>(i)] = slot->notes[static_cast<std::size_t>(i)];
+        state.activeHarmonyNotes[static_cast<std::size_t>(i)] = effectiveSlot->notes[static_cast<std::size_t>(i)];
 }
 
 void silence_harmony(EngineState& state, BlockResult& result, const std::uint32_t frame)
 {
     clear_pending_harmony_off(state);
-    transition_to_slot(state, result, frame, nullptr, false);
+    transition_to_slot(state, result, frame, nullptr, false, false);
 }
 
 void panic_harmony(EngineState& state, BlockResult& result, const std::uint32_t frame)
@@ -209,6 +240,7 @@ void clear_learning_state(EngineState& state)
     state.activeHarmonyCount = 0;
     state.activeHarmonyChannel = 1;
     state.lastInputChannel = 1;
+    state.arpeggioStep = 0;
     cadence_reset_comp_playback(&state.compState);
     cadence_reset_variation_progress(&state.variation);
 }
@@ -430,7 +462,7 @@ void sync_harmony_to_position(EngineState& state,
 
         if (shouldSound)
         {
-            transition_to_slot(state, result, frame, &state.playback[static_cast<std::size_t>(segment)], false);
+            transition_to_slot(state, result, frame, &state.playback[static_cast<std::size_t>(segment)], false, false);
             schedule_harmony_off_at(state, offBeat);
         }
         else
@@ -511,7 +543,7 @@ void process_timeline_until(EngineState& state,
             {
                 ChordSlot slot = state.playback[static_cast<std::size_t>(state.compState.segment_index)];
                 slot.velocity = hit.velocity;
-                transition_to_slot(state, result, frame, &slot, true);
+                transition_to_slot(state, result, frame, &slot, true, true);
                 schedule_harmony_off_at(state, hit.off_beat);
             }
         }
@@ -539,6 +571,7 @@ void activate(EngineState& state)
     state.activeHarmonyCount = 0;
     state.activeHarmonyChannel = 1;
     state.lastInputChannel = 1;
+    state.arpeggioStep = 0;
     clear_pending_harmony_off(state);
     cadence_reset_comp_playback(&state.compState);
     state.wasPlaying = false;
@@ -551,6 +584,7 @@ void deactivate(EngineState& state)
     clear_held_notes(state);
     state.activeHarmonyCount = 0;
     state.activeHarmonyChannel = 1;
+    state.arpeggioStep = 0;
     clear_pending_harmony_off(state);
     cadence_reset_comp_playback(&state.compState);
     state.wasPlaying = false;
@@ -577,6 +611,7 @@ BlockResult processBlock(EngineState& state,
     const bool paramsChanged = !harmonyControlsMatch(state.controls, state.previousControls);
     const bool varyChanged = std::fabs(state.controls.vary - state.previousControls.vary) >= 0.0001f;
     const bool compChanged = std::fabs(state.controls.comp - state.previousControls.comp) >= 0.0001f;
+    const bool arpeggioChanged = std::fabs(state.controls.arpeggio - state.previousControls.arpeggio) >= 0.0001f;
 
     if (learnTriggered || paramsChanged)
     {
@@ -587,10 +622,12 @@ BlockResult processBlock(EngineState& state,
     {
         cadence_reset_variation_progress(&state.variation);
     }
-    else if (compChanged)
+    else if (compChanged || arpeggioChanged)
     {
         silence_harmony(state, result, 0);
         cadence_reset_comp_playback(&state.compState);
+        if (arpeggioChanged)
+            state.arpeggioStep = 0;
     }
     state.previousControls = state.controls;
 
@@ -627,6 +664,7 @@ BlockResult processBlock(EngineState& state,
         state.ready = false;
         state.haveLearnedCapture = false;
         state.learnedSegmentCount = 0;
+        state.arpeggioStep = 0;
         cadence_reset_comp_playback(&state.compState);
         cadence_reset_variation_progress(&state.variation);
     }

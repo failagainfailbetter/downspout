@@ -28,6 +28,7 @@ enum ParameterIndex : uint32_t {
     kParamVary,
     kParamComp,
     kParamColor,
+    kParamArpeggio,
     kParameterCount
 };
 
@@ -248,9 +249,8 @@ protected:
         case kParamSpread:
             parameter.name = "Spread";
             parameter.symbol = "spread";
-            parameter.hints |= kParameterIsInteger;
             parameter.ranges.min = 0.0f;
-            parameter.ranges.max = 2.0f;
+            parameter.ranges.max = 1.0f;
             parameter.ranges.def = 0.0f;
             break;
         case kParamPassInput:
@@ -308,6 +308,13 @@ protected:
             parameter.ranges.max = 1.0f;
             parameter.ranges.def = 0.0f;
             break;
+        case kParamArpeggio:
+            parameter.name = "Arpeggio";
+            parameter.symbol = "arpeggio";
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
+            break;
         }
     }
 
@@ -346,12 +353,13 @@ protected:
         case kParamChordSize: return static_cast<float>(controls_.chord_size);
         case kParamNoteLength: return controls_.note_length;
         case kParamRegister: return static_cast<float>(controls_.reg);
-        case kParamSpread: return static_cast<float>(controls_.spread);
+        case kParamSpread: return controls_.spread;
         case kParamPassInput: return controls_.pass_input ? 1.0f : 0.0f;
         case kParamOutputChannel: return static_cast<float>(controls_.output_channel);
         case kParamVary: return controls_.vary * 100.0f;
         case kParamComp: return controls_.comp * 100.0f;
         case kParamColor: return controls_.color;
+        case kParamArpeggio: return controls_.arpeggio;
         case kParamStatusReady: return readyStatus_;
         case kParamActionLearn:
         default:
@@ -372,13 +380,14 @@ protected:
         case kParamChordSize: controls_.chord_size = static_cast<int>(value); break;
         case kParamNoteLength: controls_.note_length = value; break;
         case kParamRegister: controls_.reg = static_cast<int>(value); break;
-        case kParamSpread: controls_.spread = static_cast<int>(value); break;
+        case kParamSpread: controls_.spread = value; break;
         case kParamPassInput: controls_.pass_input = value >= 0.5f; break;
         case kParamOutputChannel: controls_.output_channel = static_cast<int>(value); break;
         case kParamActionLearn: if (value > 0.5f) ++controls_.action_learn; break;
         case kParamVary: controls_.vary = value / 100.0f; break;
         case kParamComp: controls_.comp = value / 100.0f; break;
         case kParamColor: controls_.color = value; break;
+        case kParamArpeggio: controls_.arpeggio = value; break;
         case kParamStatusReady: break;
         }
 
