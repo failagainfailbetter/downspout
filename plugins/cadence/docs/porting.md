@@ -11,14 +11,16 @@ Notable behavior preserved in the current port:
 - cycle-boundary variation driven by the `Vary` control;
 - harmonic color bias driven by the `Color` control, defaulting to zero so
   earlier behavior remains the baseline until raised;
+- extended chord slots for the new `Extended` chord-size mode, allowing
+  generated 9th, 11th, and 13th voicings;
 - saved state for controls, progression, and variation progress.
 
 Jazz note:
 
-- Cadence still stores four-note chord slots, so extensions above sevenths are
-  not represented literally yet. The current Jazz pass stays inside that state
-  format and uses `Color` to bias candidate scoring toward ii-V-I roles,
-  dominant/diminished tension, tritone-sub approaches, and seventh qualities.
+- Cadence now stores up to six notes per chord slot. Old four-note progression
+  state remains readable because missing extension notes default to zero and
+  `note_count` is serialized explicitly. The new extension qualities are only
+  considered when `Chord` is set to `Extended`.
 
 Current wrapper choice:
 

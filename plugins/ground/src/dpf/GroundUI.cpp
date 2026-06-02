@@ -697,13 +697,26 @@ private:
         fillColor(226, 230, 234, 255);
         text(x + 20.0f, y + 18.0f, "Frame", nullptr);
 
-        float cy = y + 54.0f;
+        const float innerX = x + 20.0f;
+        const float innerW = w - 40.0f;
+        const float colGap = 10.0f;
+        const float colW = (innerW - colGap) * 0.5f;
+        const float selectorH = 50.0f;
+        const float selectorGap = 8.0f;
+        const float selectorTop = y + 54.0f;
         for (std::size_t i = 0; i < std::size(kSelectors); ++i) {
-            selectorRects_[i] = {x + 20.0f, cy, w - 40.0f, 56.0f};
+            const int col = static_cast<int>(i % 2);
+            const int row = static_cast<int>(i / 2);
+            selectorRects_[i] = {
+                innerX + static_cast<float>(col) * (colW + colGap),
+                selectorTop + static_cast<float>(row) * (selectorH + selectorGap),
+                colW,
+                selectorH
+            };
             drawSelector(static_cast<int>(i), kSelectors[i], selectorRects_[i], values_[kSelectors[i].index]);
-            cy += 66.0f;
         }
 
+        float cy = selectorTop + 3.0f * selectorH + 2.0f * selectorGap + 20.0f;
         fontSize(15.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
         fillColor(226, 230, 234, 255);
@@ -711,14 +724,12 @@ private:
         cy += 30.0f;
 
         const float buttonGap = 10.0f;
-        const float buttonH = 42.0f;
+        const float buttonH = 40.0f;
+        const float buttonW = (innerW - buttonGap * static_cast<float>(std::size(kButtons) - 1)) / static_cast<float>(std::size(kButtons));
         for (std::size_t i = 0; i < std::size(kButtons); ++i) {
-            buttonRects_[i] = {x + 20.0f, cy, w - 40.0f, buttonH};
+            buttonRects_[i] = {innerX + static_cast<float>(i) * (buttonW + buttonGap), cy, buttonW, buttonH};
             drawButton(kButtons[i], buttonRects_[i]);
-            cy += buttonH + buttonGap;
         }
-
-        drawHintBlock(x + 20.0f, y + h - 84.0f, w - 40.0f, 64.0f);
     }
 
     void drawSelector(const int selectorIndex, const SelectorDef& def, const Rect& rect, const float value)
@@ -734,7 +745,7 @@ private:
         fillColor(152, 166, 181, 255);
         text(rect.x + 16.0f, rect.y + 12.0f, def.label, nullptr);
 
-        fontSize(18.0f);
+        fontSize(rect.w < 150.0f ? 15.0f : 18.0f);
         fillColor(235, 239, 242, 255);
         text(rect.x + 16.0f, rect.y + 31.0f,
              def.items[selectorValueToIndex(def, value)], nullptr);
@@ -761,25 +772,10 @@ private:
         stroke();
         closePath();
 
-        fontSize(16.0f);
+        fontSize(rect.w < 96.0f ? 12.0f : 14.0f);
         textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
         fillColor(240, 244, 247, 255);
         text(rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f + 1.0f, def.label, nullptr);
-    }
-
-    void drawHintBlock(const float x, const float y, const float w, const float h)
-    {
-        beginPath();
-        roundedRect(x, y, w, h, 14.0f);
-        fillColor(18, 23, 30, 255);
-        fill();
-        closePath();
-
-        fontSize(12.0f);
-        textAlign(ALIGN_LEFT | ALIGN_TOP);
-        fillColor(149, 164, 179, 255);
-        text(x + 14.0f, y + 14.0f, "Wheel or drag for quick edits.", nullptr);
-        text(x + 14.0f, y + 32.0f, "Use New Phrase in motion, New Form for bigger resets.", nullptr);
     }
 
     void updateSliderFromPosition(const int sliderIndex, const float mouseX)

@@ -227,7 +227,7 @@ protected:
             parameter.symbol = "chord_size";
             parameter.hints |= kParameterIsInteger;
             parameter.ranges.min = 0.0f;
-            parameter.ranges.max = 1.0f;
+            parameter.ranges.max = 2.0f;
             parameter.ranges.def = 0.0f;
             break;
         case kParamNoteLength:

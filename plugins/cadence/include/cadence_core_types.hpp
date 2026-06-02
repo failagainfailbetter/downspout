@@ -8,11 +8,11 @@
 namespace downspout::cadence {
 
 inline constexpr int kMaxSegments = 32;
-inline constexpr int kMaxChordNotes = 4;
-inline constexpr int kMaxCandidates = 108;
+inline constexpr int kMaxChordNotes = 6;
+inline constexpr int kMaxCandidates = 192;
 inline constexpr int kTimingBins = 8;
 inline constexpr int kMaxCompHits = 4;
-inline constexpr int kProgressionStateVersion = 1;
+inline constexpr int kProgressionStateVersion = 2;
 inline constexpr int kVariationStateVersion = 1;
 inline constexpr int kMaxMidiMessageData = 4;
 inline constexpr int kMaxScheduledMidiEvents = 2048;
@@ -60,7 +60,8 @@ enum GranularityMode {
 
 enum ChordSizeMode {
     CHORD_SIZE_TRIADS = 0,
-    CHORD_SIZE_SEVENTHS
+    CHORD_SIZE_SEVENTHS,
+    CHORD_SIZE_EXTENDED
 };
 
 enum RegisterMode {
@@ -84,7 +85,13 @@ enum QualityId {
     QUALITY_DIM,
     QUALITY_DOM7,
     QUALITY_MAJ7,
-    QUALITY_MIN7
+    QUALITY_MIN7,
+    QUALITY_DOM9,
+    QUALITY_MAJ9,
+    QUALITY_MIN9,
+    QUALITY_DOM13,
+    QUALITY_MAJ13,
+    QUALITY_MIN11
 };
 
 struct Controls {
@@ -191,7 +198,7 @@ using ScheduledMidiEvent = MidiMessage;
     controls.complexity = clampf(controls.complexity, 0.0f, 1.0f);
     controls.movement = clampf(controls.movement, 0.0f, 1.0f);
     controls.color = clampf(controls.color, 0.0f, 1.0f);
-    controls.chord_size = clampi(controls.chord_size, 0, 1);
+    controls.chord_size = clampi(controls.chord_size, 0, 2);
     controls.note_length = clampf(controls.note_length, 0.10f, 1.0f);
     controls.reg = clampi(controls.reg, 0, 2);
     controls.spread = clampi(controls.spread, 0, 2);

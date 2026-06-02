@@ -40,6 +40,8 @@ reuse the same ideas after the bass behavior is stable.
       reduced strict consonance, and chromatic approach behavior.
 - [x] Mirror `Color` into `ground` as long-form bass tension, phrase-motion
       bias, and occasional chromatic pickup behavior.
+- [x] Expand Cadence chord slots and add an `Extended` chord-size mode for
+      generated 9th, 11th, and 13th voicings.
 
 ## First implementation slice
 
@@ -72,10 +74,8 @@ the existing genre vocabulary.
   across inside scales, bebop scales, and altered/diminished scales.
 - Validate `cadence` Color behavior in a DAW using learned cycles with clear,
   sparse, and ambiguous input material.
-- Plan a larger Cadence chord-extension model before adding true 9ths, 11ths,
-  13ths, altered extensions, or richer voicings. Cadence currently stores
-  four-note chord slots, so this would require a state/model migration rather
-  than only adding UI choices or scoring weights.
+- Validate Cadence `Extended` chord mode in a DAW, especially whether dense
+  six-note voicings remain useful across register and spread settings.
 - Validate `counterpointer` and `ground` Color behavior in a DAW, especially
   that default zero preserves the current feel while high values remain useful
   rather than simply busier.

@@ -90,7 +90,7 @@ constexpr const char* kGranularityNames[] = {
 };
 
 constexpr const char* kChordSizeNames[] = {
-    "Triads", "Sevenths"
+    "Triads", "Sevenths", "Extended"
 };
 
 constexpr const char* kRegisterNames[] = {
@@ -119,7 +119,7 @@ constexpr SelectorDef kSelectors[] = {
     {kParamScale, "Scale", kScaleNames, 21, 0},
     {kParamCycleBars, "Bars", kCycleBarNames, 8, 1},
     {kParamGranularity, "Grid", kGranularityNames, 3, 0},
-    {kParamChordSize, "Chord", kChordSizeNames, 2, 0},
+    {kParamChordSize, "Chord", kChordSizeNames, 3, 0},
     {kParamRegister, "Register", kRegisterNames, 3, 0},
     {kParamSpread, "Voicing", kSpreadNames, 3, 0},
     {kParamPassInput, "Pass", kToggleNames, 2, 0},

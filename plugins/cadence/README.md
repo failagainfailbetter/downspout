@@ -27,9 +27,12 @@ Implementation status:
 - scale choices now include Lydian, Melodic Minor, Whole Tone, Altered,
   diminished, and bebop colors, appended after the original scale IDs so
   saved-state scale values remain stable;
-- the `Color` control adds harmonic tension inside the current four-note chord
-  model, biasing Jazz scales toward ii-V-I motion, stronger V-I resolution,
-  sevenths, dominant color, and diminished/tritone-sub options.
+- the `Color` control adds harmonic tension, biasing Jazz scales toward ii-V-I
+  motion, stronger V-I resolution, sevenths, dominant color, and
+  diminished/tritone-sub options;
+- the `Extended` chord-size mode expands stored chord slots to six notes and
+  can generate 9th, 11th, and 13th voicings while Triads and Sevenths remain
+  available for simpler output.
 
 Recommended next steps:
 

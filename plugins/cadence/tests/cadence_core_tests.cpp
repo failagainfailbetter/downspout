@@ -151,6 +151,49 @@ void testHighColorFavorsJazzCadenceRoles()
     assert(slots[3].quality == QUALITY_MAJ7 || slots[3].quality == QUALITY_MAJOR);
 }
 
+void testExtendedChordSizeBuildsExtensionVoicings()
+{
+    std::array<SegmentCapture, kMaxSegments> capture {};
+    capture[0].duration[0] = 1.0;
+    capture[0].duration[4] = 0.8;
+    capture[0].duration[7] = 0.7;
+    capture[0].duration[11] = 0.5;
+    capture[0].duration[2] = 0.45;
+    capture[0].onset[0] = 1.0;
+    capture[0].onset[4] = 0.6;
+    capture[0].onset[7] = 0.6;
+    capture[0].onset[11] = 0.4;
+    capture[0].onset[2] = 0.4;
+
+    Controls controls = defaultControls();
+    controls.key = 0;
+    controls.scale = SCALE_BEBOP_MAJOR;
+    controls.cycle_bars = 1;
+    controls.granularity = GRANULARITY_BAR;
+    controls.chord_size = CHORD_SIZE_EXTENDED;
+    controls.complexity = 1.0f;
+    controls.color = 1.0f;
+
+    std::array<ChordSlot, kMaxSegments> slots {};
+    const CadenceBuildOptions options {};
+    const bool built = cadence_build_progression_from_capture(capture.data(), 1, controls, nullptr, 0, options, slots.data());
+
+    assert(built);
+    assert(slots[0].valid);
+    assert(slots[0].note_count > 4);
+
+    ProgressionState progression;
+    progression.segmentCount = 1;
+    progression.ready = true;
+    progression.slots[0] = slots[0];
+
+    const auto roundTrip = deserializeProgressionState(serializeProgressionState(progression));
+    assert(roundTrip.has_value());
+    assert(roundTrip->slots[0].quality == slots[0].quality);
+    assert(roundTrip->slots[0].note_count == slots[0].note_count);
+    assert(roundTrip->slots[0].notes[4] == slots[0].notes[4]);
+}
+
 void testStoppedTransportPassThrough()
 {
     EngineState state;
@@ -242,6 +285,7 @@ int main()
     testHarmonyBuildFromCapture();
     testSerializationRoundTrip();
     testHighColorFavorsJazzCadenceRoles();
+    testExtendedChordSizeBuildsExtensionVoicings();
     testStoppedTransportPassThrough();
     testEngineLearnsAndEmitsOnNextCycle();
     return 0;

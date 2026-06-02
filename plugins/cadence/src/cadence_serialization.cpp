@@ -239,7 +239,7 @@ std::optional<ProgressionState> deserializeProgressionState(const std::string& t
             else if (field == "root_pc")
                 slot.root_pc = static_cast<std::uint8_t>(clampi(intValue, 0, 11));
             else if (field == "quality")
-                slot.quality = static_cast<std::uint8_t>(clampi(intValue, 0, QUALITY_MIN7));
+                slot.quality = static_cast<std::uint8_t>(clampi(intValue, 0, QUALITY_MIN11));
             else if (field == "note_count")
                 slot.note_count = static_cast<std::uint8_t>(clampi(intValue, 0, kMaxChordNotes));
             else if (field == "velocity")

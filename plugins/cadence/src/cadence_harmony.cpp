@@ -97,7 +97,14 @@ void sort_int_notes(int* notes, int count) {
 }
 
 bool quality_uses_seventh(uint8_t quality) {
-    return quality == QUALITY_DOM7 || quality == QUALITY_MAJ7 || quality == QUALITY_MIN7;
+    return quality == QUALITY_DOM7 || quality == QUALITY_MAJ7 || quality == QUALITY_MIN7 ||
+           quality == QUALITY_DOM9 || quality == QUALITY_MAJ9 || quality == QUALITY_MIN9 ||
+           quality == QUALITY_DOM13 || quality == QUALITY_MAJ13 || quality == QUALITY_MIN11;
+}
+
+bool quality_uses_extension(uint8_t quality) {
+    return quality == QUALITY_DOM9 || quality == QUALITY_MAJ9 || quality == QUALITY_MIN9 ||
+           quality == QUALITY_DOM13 || quality == QUALITY_MAJ13 || quality == QUALITY_MIN11;
 }
 
 bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* intervals) {
@@ -112,6 +119,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 7;
             intervals[2] = 0;
             intervals[3] = 0;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_MAJOR:
             *note_count = 3;
@@ -119,6 +128,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 4;
             intervals[2] = 7;
             intervals[3] = 0;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_MINOR:
             *note_count = 3;
@@ -126,6 +137,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 3;
             intervals[2] = 7;
             intervals[3] = 0;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_SUS2:
             *note_count = 3;
@@ -133,6 +146,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 2;
             intervals[2] = 7;
             intervals[3] = 0;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_SUS4:
             *note_count = 3;
@@ -140,6 +155,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 5;
             intervals[2] = 7;
             intervals[3] = 0;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_DIM:
             *note_count = 3;
@@ -147,6 +164,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 3;
             intervals[2] = 6;
             intervals[3] = 0;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_DOM7:
             *note_count = 4;
@@ -154,6 +173,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 4;
             intervals[2] = 7;
             intervals[3] = 10;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_MAJ7:
             *note_count = 4;
@@ -161,6 +182,8 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 4;
             intervals[2] = 7;
             intervals[3] = 11;
+            intervals[4] = 0;
+            intervals[5] = 0;
             return true;
         case QUALITY_MIN7:
             *note_count = 4;
@@ -168,6 +191,62 @@ bool fill_quality_intervals(uint8_t quality, uint8_t* note_count, uint8_t* inter
             intervals[1] = 3;
             intervals[2] = 7;
             intervals[3] = 10;
+            intervals[4] = 0;
+            intervals[5] = 0;
+            return true;
+        case QUALITY_DOM9:
+            *note_count = 5;
+            intervals[0] = 0;
+            intervals[1] = 4;
+            intervals[2] = 7;
+            intervals[3] = 10;
+            intervals[4] = 14;
+            intervals[5] = 0;
+            return true;
+        case QUALITY_MAJ9:
+            *note_count = 5;
+            intervals[0] = 0;
+            intervals[1] = 4;
+            intervals[2] = 7;
+            intervals[3] = 11;
+            intervals[4] = 14;
+            intervals[5] = 0;
+            return true;
+        case QUALITY_MIN9:
+            *note_count = 5;
+            intervals[0] = 0;
+            intervals[1] = 3;
+            intervals[2] = 7;
+            intervals[3] = 10;
+            intervals[4] = 14;
+            intervals[5] = 0;
+            return true;
+        case QUALITY_DOM13:
+            *note_count = 6;
+            intervals[0] = 0;
+            intervals[1] = 4;
+            intervals[2] = 7;
+            intervals[3] = 10;
+            intervals[4] = 14;
+            intervals[5] = 21;
+            return true;
+        case QUALITY_MAJ13:
+            *note_count = 6;
+            intervals[0] = 0;
+            intervals[1] = 4;
+            intervals[2] = 7;
+            intervals[3] = 11;
+            intervals[4] = 14;
+            intervals[5] = 21;
+            return true;
+        case QUALITY_MIN11:
+            *note_count = 6;
+            intervals[0] = 0;
+            intervals[1] = 3;
+            intervals[2] = 7;
+            intervals[3] = 10;
+            intervals[4] = 14;
+            intervals[5] = 17;
             return true;
         default:
             return false;
@@ -572,8 +651,11 @@ double candidate_continuity_bonus(const Candidate& candidate,
 int build_candidates(const Controls& controls, Candidate* out) {
     int count = 0;
     for (int root = 0; root < 12; ++root) {
-        for (uint8_t quality = QUALITY_POWER; quality <= QUALITY_MIN7; ++quality) {
+        for (uint8_t quality = QUALITY_POWER; quality <= QUALITY_MIN11; ++quality) {
             if (controls.chord_size == CHORD_SIZE_TRIADS && quality_uses_seventh(quality)) {
+                continue;
+            }
+            if (controls.chord_size == CHORD_SIZE_SEVENTHS && quality_uses_extension(quality)) {
                 continue;
             }
 
@@ -701,11 +783,27 @@ double score_candidate(const SegmentCapture& segment,
             break;
         case QUALITY_DOM7:
         case QUALITY_MAJ7:
-        case QUALITY_MIN7: {
+        case QUALITY_MIN7:
+        case QUALITY_DOM9:
+        case QUALITY_MAJ9:
+        case QUALITY_MIN9:
+        case QUALITY_DOM13:
+        case QUALITY_MAJ13:
+        case QUALITY_MIN11: {
             const int seventh_pc = wrap12(candidate.root_pc + candidate.intervals[3]);
             score -= 0.12 + (1.0 - complexity) * 0.24;
             score += color_amount(controls) * 0.28;
             score += weights[seventh_pc] / (total + 1e-9) * 0.36;
+            if (quality_uses_extension(candidate.quality)) {
+                const int ninth_pc = wrap12(candidate.root_pc + candidate.intervals[4]);
+                score += weights[ninth_pc] / (total + 1e-9) * 0.24;
+                score += color_amount(controls) * 0.38 + complexity * 0.16;
+                if (candidate.note_count > 5) {
+                    const int color_pc = wrap12(candidate.root_pc + candidate.intervals[5]);
+                    score += weights[color_pc] / (total + 1e-9) * 0.18;
+                    score += color_amount(controls) * 0.18;
+                }
+            }
             break;
         }
         case QUALITY_MAJOR:
