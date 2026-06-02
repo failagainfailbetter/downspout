@@ -25,7 +25,7 @@ reuse the same ideas after the bass behavior is stable.
       Major/Lydian tones over I.
 - [x] Add dominant-bar color selection for altered, diminished, whole-tone,
       and bebop dominant material.
-- [ ] Target chord tones explicitly on strong beats, especially roots, thirds,
+- [x] Target chord tones explicitly on strong beats, especially roots, thirds,
       fifths, and sevenths.
 - [ ] Add approach-tone and enclosure behavior around chord tones.
 - [ ] Decide whether the UI needs a simple `Jazz Color` control after the core
@@ -47,4 +47,6 @@ Append the following scale choices to `bassgen`:
 
 These scales are useful immediately as selectable pitch vocabularies. Jazz bars
 now carry explicit chord roles, and dominant bars can choose altered,
-diminished, whole-tone, or bebop dominant color internally.
+diminished, whole-tone, or bebop dominant color internally. Beat starts now
+prefer root, third, fifth, and seventh targets while late pickup notes handle
+motion into the next bar.

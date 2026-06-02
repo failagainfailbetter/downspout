@@ -33,8 +33,9 @@ Implementation status:
   four-bar phrases across ii-V-I-turnaround roots, with role-specific Dorian,
   Mixolydian/altered, and Major/Lydian color for ordinary scales. Dominant
   bars choose from Mixolydian, altered, half-whole diminished, whole-tone, and
-  bebop dominant material while explicitly selected Jazz color scales remain
-  constrained to their chosen vocabulary;
+  bebop dominant material, and beat-start notes target roots, thirds, fifths,
+  and sevenths while explicitly selected Jazz color scales remain constrained
+  to their chosen vocabulary;
 - incoming MIDI follow/dodge controls are wired through the wrapper, core, and
   UI.
 

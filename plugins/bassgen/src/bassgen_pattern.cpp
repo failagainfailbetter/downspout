@@ -329,37 +329,44 @@ constexpr ScaleDef kScales[] = {
 
     switch (role) {
     case JazzChordRole::two:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.64f ? 3 : 10;
-        return rng.nextFloat() < 0.68f ? 7 : 2;
+        if (beatIndex == 1) return rng.nextFloat() < 0.72f ? 3 : 10;
+        if (beatIndex == 2) return 7;
+        return rng.nextFloat() < 0.64f ? 10 : 3;
 
     case JazzChordRole::five:
         switch (dominantColor) {
         case JazzDominantColor::altered:
-            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.56f ? 4 : 10;
-            return rng.nextFloat() < 0.34f ? 1 : (rng.nextFloat() < 0.5f ? 3 : 8);
+            if (beatIndex == 1) return rng.nextFloat() < 0.62f ? 4 : 10;
+            if (beatIndex == 2) return rng.nextFloat() < 0.34f ? 1 : (rng.nextFloat() < 0.5f ? 3 : 8);
+            return rng.nextFloat() < 0.64f ? 10 : 4;
         case JazzDominantColor::halfWholeDiminished:
-            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.56f ? 4 : 10;
-            return rng.nextFloat() < 0.34f ? 1 : (rng.nextFloat() < 0.5f ? 6 : 9);
+            if (beatIndex == 1) return rng.nextFloat() < 0.62f ? 4 : 10;
+            if (beatIndex == 2) return rng.nextFloat() < 0.34f ? 1 : (rng.nextFloat() < 0.5f ? 6 : 9);
+            return rng.nextFloat() < 0.64f ? 10 : 4;
         case JazzDominantColor::wholeTone:
-            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.56f ? 4 : 10;
-            return rng.nextFloat() < 0.38f ? 6 : (rng.nextFloat() < 0.5f ? 8 : 2);
+            if (beatIndex == 1) return rng.nextFloat() < 0.62f ? 4 : 10;
+            if (beatIndex == 2) return rng.nextFloat() < 0.38f ? 6 : (rng.nextFloat() < 0.5f ? 8 : 2);
+            return rng.nextFloat() < 0.64f ? 10 : 4;
         case JazzDominantColor::bebopDominant:
-            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 10;
-            return rng.nextFloat() < 0.36f ? 11 : (rng.nextFloat() < 0.62f ? 7 : 2);
+            if (beatIndex == 1) return rng.nextFloat() < 0.62f ? 4 : 10;
+            if (beatIndex == 2) return rng.nextFloat() < 0.36f ? 11 : 7;
+            return rng.nextFloat() < 0.64f ? 10 : 4;
         case JazzDominantColor::mixolydian:
         default:
-            if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 10;
-            if (rng.nextFloat() < 0.26f) return rng.nextFloat() < 0.5f ? 1 : 8;
-            return rng.nextFloat() < 0.62f ? 7 : 2;
+            if (beatIndex == 1) return rng.nextFloat() < 0.62f ? 4 : 10;
+            if (beatIndex == 2) return 7;
+            return rng.nextFloat() < 0.64f ? 10 : 4;
         }
 
     case JazzChordRole::one:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? 4 : 9;
-        return rng.nextFloat() < 0.72f ? 7 : 6;
+        if (beatIndex == 1) return rng.nextFloat() < 0.64f ? 4 : 11;
+        if (beatIndex == 2) return 7;
+        return rng.nextFloat() < 0.64f ? 11 : 4;
 
     case JazzChordRole::turnaround:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.52f ? 3 : 10;
-        return rng.nextFloat() < 0.58f ? 7 : 2;
+        if (beatIndex == 1) return rng.nextFloat() < 0.58f ? 3 : 10;
+        if (beatIndex == 2) return 7;
+        return rng.nextFloat() < 0.60f ? 10 : 3;
 
     default:
         return 0;
@@ -376,20 +383,24 @@ constexpr ScaleDef kScales[] = {
 
     switch (role) {
     case JazzChordRole::two:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.64f ? root + 2 : root + 6;
-        return rng.nextFloat() < 0.68f ? root + 4 : root + 1;
+        if (beatIndex == 1) return rng.nextFloat() < 0.72f ? root + 2 : root + 6;
+        if (beatIndex == 2) return root + 4;
+        return rng.nextFloat() < 0.64f ? root + 6 : root + 2;
 
     case JazzChordRole::five:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? root + 2 : root + 6;
-        return rng.nextFloat() < 0.62f ? root + 4 : root + 1;
+        if (beatIndex == 1) return rng.nextFloat() < 0.62f ? root + 2 : root + 6;
+        if (beatIndex == 2) return root + 4;
+        return rng.nextFloat() < 0.64f ? root + 6 : root + 2;
 
     case JazzChordRole::one:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.58f ? root + 2 : root + 5;
-        return rng.nextFloat() < 0.66f ? root + 4 : root + 6;
+        if (beatIndex == 1) return rng.nextFloat() < 0.64f ? root + 2 : root + 6;
+        if (beatIndex == 2) return root + 4;
+        return rng.nextFloat() < 0.64f ? root + 6 : root + 2;
 
     case JazzChordRole::turnaround:
-        if ((beatIndex % 2) == 1) return rng.nextFloat() < 0.52f ? root + 2 : root + 6;
-        return rng.nextFloat() < 0.58f ? root + 4 : root + 1;
+        if (beatIndex == 1) return rng.nextFloat() < 0.58f ? root + 2 : root + 6;
+        if (beatIndex == 2) return root + 4;
+        return rng.nextFloat() < 0.60f ? root + 6 : root + 2;
 
     default:
         return root;
@@ -455,7 +466,6 @@ constexpr ScaleDef kScales[] = {
     }
     return bestAny;
 }
-
 [[nodiscard]] int jazzRoleColoredNoteForEvent(const PatternState& pattern,
                                               const Controls& controls,
                                               Rng& rng,
@@ -466,8 +476,6 @@ constexpr ScaleDef kScales[] = {
     const int beatIndex = pattern.stepsPerBeat > 0 ? stepInBar / pattern.stepsPerBeat : 0;
     const int stepInBeat = pattern.stepsPerBeat > 0 ? stepInBar % pattern.stepsPerBeat : 0;
     const bool beatStart = stepInBeat == 0;
-    const int lastBeat = std::max(0, pattern.meter.numerator - 1);
-    const bool lateBeat = beatIndex >= lastBeat;
     const bool barPickup = pattern.stepsPerBar > 0 &&
         stepInBar >= (pattern.stepsPerBar - std::max(1, pattern.stepsPerBeat / 2));
 
@@ -475,7 +483,7 @@ constexpr ScaleDef kScales[] = {
     const JazzDominantColor dominantColor = role == JazzChordRole::five
         ? jazzDominantColorForBar(controls, pattern, barIndex)
         : JazzDominantColor::mixolydian;
-    if (lateBeat || barPickup) {
+    if (barPickup) {
         const JazzChordRole nextRole = jazzChordRoleForBar(barIndex + 1);
         const int target = jazzChordRootSemitoneForRole(nextRole);
         const int targetNote = noteFromSemitoneOffset(controls, target, previousNote);
@@ -507,13 +515,11 @@ constexpr ScaleDef kScales[] = {
     const int rootBase = jazzProgressionRootForBar(barIndex, span);
     const int root = nearestEquivalentDegree(rootBase, previousDegree, span);
     const int nextRootBase = jazzProgressionRootForBar(barIndex + 1, span);
-    const int lastBeat = std::max(0, pattern.meter.numerator - 1);
-    const bool lateBeat = beatIndex >= lastBeat;
     const bool barPickup = pattern.stepsPerBar > 0 &&
         stepInBar >= (pattern.stepsPerBar - std::max(1, pattern.stepsPerBeat / 2));
 
     const JazzChordRole role = jazzChordRoleForBar(barIndex);
-    if (lateBeat || barPickup) {
+    if (barPickup) {
         return clampi(jazzApproachDegree(rng, nextRootBase, previousDegree, span), 0, span * 3 - 1);
     }
 

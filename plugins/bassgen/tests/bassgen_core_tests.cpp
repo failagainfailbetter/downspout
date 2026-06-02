@@ -248,7 +248,7 @@ void testJazzRoleColorsUseModalChordTones() {
     assert(oneBeatThree != nullptr);
     assert(relativePitchClass(twoBeatTwo->note, controls.rootNote) == 5);
     assert(relativePitchClass(fiveBeatTwo->note, controls.rootNote) == 11);
-    assert(relativePitchClass(oneBeatThree->note, controls.rootNote) == 6);
+    assert(relativePitchClass(oneBeatThree->note, controls.rootNote) == 7);
 }
 
 void testJazzDominantBarCanUseAlteredColor() {
@@ -269,6 +269,74 @@ void testJazzDominantBarCanUseAlteredColor() {
 
     assert(dominantColorTone != nullptr);
     assert(relativePitchClass(dominantColorTone->note, controls.rootNote) == 8);
+}
+
+void testJazzStrongBeatsTargetChordTones() {
+    Controls controls;
+    controls.seed = 909u;
+    controls.genre = GenreId::jazz;
+    controls.scale = ScaleId::major;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.82f;
+    controls.hold = 0.25f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    static constexpr int kTwoChord[] = {2, 5, 9, 0};
+    static constexpr int kFiveChord[] = {7, 11, 2, 5};
+    static constexpr int kOneChord[] = {0, 4, 7, 11};
+    static constexpr int kTurnaroundChord[] = {9, 0, 4, 7};
+
+    const NoteEvent* twoRoot = eventStartingAt(pattern, 0);
+    const NoteEvent* twoThird = eventStartingAt(pattern, 4);
+    const NoteEvent* twoFifth = eventStartingAt(pattern, 8);
+    const NoteEvent* fiveRoot = eventStartingAt(pattern, 16);
+    const NoteEvent* fiveThird = eventStartingAt(pattern, 20);
+    const NoteEvent* fiveFifth = eventStartingAt(pattern, 24);
+    const NoteEvent* fiveSeventh = eventStartingAt(pattern, 28);
+    const NoteEvent* oneRoot = eventStartingAt(pattern, 32);
+    const NoteEvent* oneThird = eventStartingAt(pattern, 36);
+    const NoteEvent* oneFifth = eventStartingAt(pattern, 40);
+    const NoteEvent* oneSeventh = eventStartingAt(pattern, 44);
+    const NoteEvent* turnaroundRoot = eventStartingAt(pattern, 48);
+    const NoteEvent* turnaroundThird = eventStartingAt(pattern, 52);
+    const NoteEvent* turnaroundFifth = eventStartingAt(pattern, 56);
+    const NoteEvent* turnaroundSeventh = eventStartingAt(pattern, 60);
+
+    assert(twoRoot != nullptr);
+    assert(twoThird != nullptr);
+    assert(twoFifth != nullptr);
+    assert(fiveRoot != nullptr);
+    assert(fiveThird != nullptr);
+    assert(fiveFifth != nullptr);
+    assert(fiveSeventh != nullptr);
+    assert(oneRoot != nullptr);
+    assert(oneThird != nullptr);
+    assert(oneFifth != nullptr);
+    assert(oneSeventh != nullptr);
+    assert(turnaroundRoot != nullptr);
+    assert(turnaroundThird != nullptr);
+    assert(turnaroundFifth != nullptr);
+    assert(turnaroundSeventh != nullptr);
+
+    assert(pitchClassInSet(relativePitchClass(twoRoot->note, controls.rootNote), kTwoChord, 4));
+    assert(pitchClassInSet(relativePitchClass(twoThird->note, controls.rootNote), kTwoChord, 4));
+    assert(pitchClassInSet(relativePitchClass(twoFifth->note, controls.rootNote), kTwoChord, 4));
+    assert(pitchClassInSet(relativePitchClass(fiveRoot->note, controls.rootNote), kFiveChord, 4));
+    assert(pitchClassInSet(relativePitchClass(fiveThird->note, controls.rootNote), kFiveChord, 4));
+    assert(pitchClassInSet(relativePitchClass(fiveFifth->note, controls.rootNote), kFiveChord, 4));
+    assert(pitchClassInSet(relativePitchClass(fiveSeventh->note, controls.rootNote), kFiveChord, 4));
+    assert(pitchClassInSet(relativePitchClass(oneRoot->note, controls.rootNote), kOneChord, 4));
+    assert(pitchClassInSet(relativePitchClass(oneThird->note, controls.rootNote), kOneChord, 4));
+    assert(pitchClassInSet(relativePitchClass(oneFifth->note, controls.rootNote), kOneChord, 4));
+    assert(pitchClassInSet(relativePitchClass(oneSeventh->note, controls.rootNote), kOneChord, 4));
+    assert(pitchClassInSet(relativePitchClass(turnaroundRoot->note, controls.rootNote), kTurnaroundChord, 4));
+    assert(pitchClassInSet(relativePitchClass(turnaroundThird->note, controls.rootNote), kTurnaroundChord, 4));
+    assert(pitchClassInSet(relativePitchClass(turnaroundFifth->note, controls.rootNote), kTurnaroundChord, 4));
+    assert(pitchClassInSet(relativePitchClass(turnaroundSeventh->note, controls.rootNote), kTurnaroundChord, 4));
 }
 
 void testJazzScaleIdsAreAppended() {
@@ -650,6 +718,7 @@ int main() {
     testJazzGenreOutlinesTwoFiveOne();
     testJazzRoleColorsUseModalChordTones();
     testJazzDominantBarCanUseAlteredColor();
+    testJazzStrongBeatsTargetChordTones();
     testJazzScaleIdsAreAppended();
     testBebopDominantScaleConstrainsGeneratedNotes();
     testStateSanitization();
