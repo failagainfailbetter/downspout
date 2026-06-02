@@ -50,55 +50,82 @@ struct SliderDef {
     bool integer;
 };
 
-constexpr int kControlsPerRow = 7;
-constexpr std::array<SliderDef, 14> kSliders = {{
-    {kParamKey, "KEY", 0.0f, 11.0f, true},
-    {kParamScale, "SCALE", 0.0f, 20.0f, true},
-    {kParamCycleBars, "BARS", 1.0f, 8.0f, true},
-    {kParamGranularity, "GRID", 0.0f, 2.0f, true},
-    {kParamComplexity, "COMPLEXITY", 0.0f, 1.0f, false},
-    {kParamMovement, "MOVE", 0.0f, 1.0f, false},
-    {kParamVary, "VARY", 0.0f, 100.0f, true},
-    {kParamComp, "COMP", 0.0f, 100.0f, true},
-    {kParamChordSize, "SIZE", 0.0f, 1.0f, true},
-    {kParamNoteLength, "LENGTH", 0.10f, 1.0f, false},
-    {kParamRegister, "REG", 0.0f, 2.0f, true},
-    {kParamSpread, "VOICE", 0.0f, 2.0f, true},
-    {kParamPassInput, "PASS", 0.0f, 1.0f, true},
-    {kParamOutputChannel, "CHAN", 0.0f, 16.0f, true},
-}};
+struct SelectorDef {
+    uint32_t index;
+    const char* label;
+    const char* const* items;
+    int count;
+    int valueOffset;
+};
 
-constexpr const char* kNoteNames[12] = {
+struct ButtonDef {
+    uint32_t index;
+    const char* label;
+};
+
+constexpr SliderDef kSliders[] = {
+    {kParamComplexity, "Complexity", 0.0f, 1.0f, false},
+    {kParamMovement, "Movement", 0.0f, 1.0f, false},
+    {kParamNoteLength, "Length", 0.10f, 1.0f, false},
+    {kParamVary, "Vary", 0.0f, 100.0f, true},
+    {kParamComp, "Comp", 0.0f, 100.0f, true},
+};
+
+constexpr const char* kNoteNames[] = {
     "C", "C#", "D", "D#", "E", "F",
     "F#", "G", "G#", "A", "A#", "B"
 };
 
-constexpr const char* kScaleNames[21] = {
+constexpr const char* kScaleNames[] = {
     "Chrom", "Major", "Nat Min", "Harm Min", "Pent Maj", "Pent Min",
     "Blues", "Dorian", "Mixolyd", "Phryg", "Locrian", "Phryg Dom",
     "Lydian", "Mel Min", "Whole", "Altered", "H-W Dim", "W-H Dim",
     "Bebop Dom", "Bebop Maj", "Bebop Min"
 };
-constexpr int kScaleCount = 21;
 
-constexpr const char* kGranularityNames[3] = {
+constexpr const char* kGranularityNames[] = {
     "Beat", "Half Bar", "Bar"
 };
 
-constexpr const char* kChordSizeNames[2] = {
+constexpr const char* kChordSizeNames[] = {
     "Triads", "Sevenths"
 };
 
-constexpr const char* kRegisterNames[3] = {
+constexpr const char* kRegisterNames[] = {
     "Low", "Mid", "High"
 };
 
-constexpr const char* kSpreadNames[3] = {
+constexpr const char* kSpreadNames[] = {
     "Close", "Open", "Drop-2"
 };
 
-constexpr const char* kToggleNames[2] = {
+constexpr const char* kToggleNames[] = {
     "Off", "On"
+};
+
+constexpr const char* kCycleBarNames[] = {
+    "1", "2", "3", "4", "5", "6", "7", "8"
+};
+
+constexpr const char* kOutputChannelNames[] = {
+    "Input", "1", "2", "3", "4", "5", "6", "7", "8",
+    "9", "10", "11", "12", "13", "14", "15", "16"
+};
+
+constexpr SelectorDef kSelectors[] = {
+    {kParamKey, "Key", kNoteNames, 12, 0},
+    {kParamScale, "Scale", kScaleNames, 21, 0},
+    {kParamCycleBars, "Bars", kCycleBarNames, 8, 1},
+    {kParamGranularity, "Grid", kGranularityNames, 3, 0},
+    {kParamChordSize, "Chord", kChordSizeNames, 2, 0},
+    {kParamRegister, "Register", kRegisterNames, 3, 0},
+    {kParamSpread, "Voicing", kSpreadNames, 3, 0},
+    {kParamPassInput, "Pass", kToggleNames, 2, 0},
+    {kParamOutputChannel, "Channel", kOutputChannelNames, 17, 0},
+};
+
+constexpr ButtonDef kButtons[] = {
+    {kParamActionLearn, "Learn"},
 };
 
 [[nodiscard]] float clampf(const float value, const float minValue, const float maxValue)
@@ -111,62 +138,29 @@ constexpr const char* kToggleNames[2] = {
     return std::max(minValue, std::min(value, maxValue));
 }
 
-[[nodiscard]] const char* label_from_index(const char* const* labels, const int count, int index)
-{
-    index = clampi(index, 0, count - 1);
-    return labels[index];
-}
-
-[[nodiscard]] std::string formatValueLabel(const uint32_t index, const float value)
+[[nodiscard]] std::string formatSliderValue(const uint32_t index, const float value)
 {
     char buffer[48];
     switch (index) {
-    case kParamKey:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kNoteNames, 12, static_cast<int>(std::lround(value))));
-        break;
-    case kParamScale:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kScaleNames, kScaleCount, static_cast<int>(std::lround(value))));
-        break;
-    case kParamCycleBars:
-        std::snprintf(buffer, sizeof(buffer), "%d", static_cast<int>(std::lround(value)));
-        break;
-    case kParamGranularity:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kGranularityNames, 3, static_cast<int>(std::lround(value))));
-        break;
-    case kParamComplexity:
-    case kParamMovement:
-        std::snprintf(buffer, sizeof(buffer), "%.2f", value);
-        break;
     case kParamVary:
     case kParamComp:
         std::snprintf(buffer, sizeof(buffer), "%d%%", static_cast<int>(std::lround(value)));
         break;
-    case kParamChordSize:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kChordSizeNames, 2, static_cast<int>(std::lround(value))));
-        break;
-    case kParamNoteLength:
-        std::snprintf(buffer, sizeof(buffer), "%d%%", static_cast<int>(std::lround(value * 100.0f)));
-        break;
-    case kParamRegister:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kRegisterNames, 3, static_cast<int>(std::lround(value))));
-        break;
-    case kParamSpread:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kSpreadNames, 3, static_cast<int>(std::lround(value))));
-        break;
-    case kParamPassInput:
-        std::snprintf(buffer, sizeof(buffer), "%s", label_from_index(kToggleNames, 2, static_cast<int>(std::lround(value))));
-        break;
-    case kParamOutputChannel:
-        if (static_cast<int>(std::lround(value)) <= 0)
-            std::snprintf(buffer, sizeof(buffer), "Input");
-        else
-            std::snprintf(buffer, sizeof(buffer), "%d", static_cast<int>(std::lround(value)));
-        break;
     default:
-        std::snprintf(buffer, sizeof(buffer), "%.2f", value);
+        std::snprintf(buffer, sizeof(buffer), "%d%%", static_cast<int>(std::lround(value * 100.0f)));
         break;
     }
     return buffer;
+}
+
+[[nodiscard]] int selectorValueForDisplay(const SelectorDef& def, const float rawValue)
+{
+    return clampi(static_cast<int>(std::lround(rawValue)) - def.valueOffset, 0, def.count - 1);
+}
+
+[[nodiscard]] float selectorParameterValue(const SelectorDef& def, const int item)
+{
+    return static_cast<float>(item + def.valueOffset);
 }
 
 }  // namespace
@@ -193,7 +187,6 @@ public:
         values_[kParamStatusReady] = 0.0f;
         values_[kParamVary] = 0.0f;
         values_[kParamComp] = 0.0f;
-        learnPulse_ = 0;
 
        #ifdef DGL_NO_SHARED_RESOURCES
         createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
@@ -223,15 +216,22 @@ protected:
     {
         const float width = static_cast<float>(getWidth());
         const float height = static_cast<float>(getHeight());
-        const float pad = 22.0f;
+        const float pad = 20.0f;
+        const float headerH = 72.0f;
 
         drawBackground(width, height);
-        drawHeader(pad, pad, width - pad * 2.0f, 84.0f);
-        drawControlGroups(pad, pad + 104.0f, width - pad * 2.0f, height - 220.0f);
-        drawFooter(pad, height - 94.0f, width - pad * 2.0f, 72.0f);
+        drawHeader(pad, pad, width - pad * 2.0f, headerH);
 
-        if (scaleMenuOpen_)
-            drawScaleMenu();
+        const float contentY = pad + headerH + 18.0f;
+        const float contentH = height - contentY - pad;
+        const float leftW = width * 0.62f;
+        const float rightW = width - leftW - pad * 3.0f;
+
+        drawSliderPanel(pad, contentY, leftW, contentH);
+        drawRightPanel(pad * 2.0f + leftW, contentY, rightW, contentH);
+
+        if (openSelector_ >= 0)
+            drawOpenSelectorMenu(openSelector_);
     }
 
     bool onMouse(const MouseEvent& ev) override
@@ -243,32 +243,35 @@ protected:
         const float y = static_cast<float>(ev.pos.getY());
 
         if (!ev.press) {
-            activeSlider_ = -1;
+            draggingSlider_ = -1;
             return false;
         }
 
-        if (scaleMenuOpen_) {
-            if (handleScaleMenuPress(x, y))
+        if (openSelector_ >= 0) {
+            if (handleOpenSelectorClick(x, y))
                 return true;
-            scaleMenuOpen_ = false;
-            repaint();
-        }
-
-        if (learnButtonRect_.contains(x, y)) {
-            triggerLearn();
-            return true;
+            openSelector_ = -1;
         }
 
         for (std::size_t i = 0; i < sliderRects_.size(); ++i) {
             if (sliderRects_[i].contains(x, y)) {
-                if (kSliders[i].index == kParamScale) {
-                    activeSlider_ = -1;
-                    scaleMenuOpen_ = true;
-                    repaint();
-                    return true;
-                }
-                activeSlider_ = static_cast<int>(i);
-                updateSliderFromY(activeSlider_, y);
+                draggingSlider_ = static_cast<int>(i);
+                updateSliderFromPosition(draggingSlider_, x);
+                return true;
+            }
+        }
+
+        for (std::size_t i = 0; i < selectorRects_.size(); ++i) {
+            if (selectorRects_[i].contains(x, y)) {
+                openSelector_ = static_cast<int>(i);
+                repaint();
+                return true;
+            }
+        }
+
+        for (std::size_t i = 0; i < buttonRects_.size(); ++i) {
+            if (buttonRects_[i].contains(x, y)) {
+                triggerButton(static_cast<int>(i));
                 return true;
             }
         }
@@ -278,11 +281,11 @@ protected:
 
     bool onMotion(const MotionEvent& ev) override
     {
-        if (activeSlider_ < 0)
-            return false;
-
-        updateSliderFromY(activeSlider_, static_cast<float>(ev.pos.getY()));
-        return true;
+        if (draggingSlider_ >= 0) {
+            updateSliderFromPosition(draggingSlider_, static_cast<float>(ev.pos.getX()));
+            return true;
+        }
+        return false;
     }
 
     bool onScroll(const ScrollEvent& ev) override
@@ -297,34 +300,43 @@ protected:
             }
         }
 
+        for (std::size_t i = 0; i < selectorRects_.size(); ++i) {
+            if (selectorRects_[i].contains(x, y)) {
+                if (openSelector_ == static_cast<int>(i)) {
+                    openSelector_ = -1;
+                    repaint();
+                } else {
+                    cycleSelector(static_cast<int>(i), ev.delta.getY() > 0.0f ? -1 : 1);
+                }
+                return true;
+            }
+        }
+
         return false;
     }
 
 private:
     std::array<float, kParameterCount> values_ {};
-    std::array<Rect, kSliders.size()> sliderRects_ {};
-    Rect learnButtonRect_ {};
-    int activeSlider_ = -1;
+    std::array<Rect, std::size(kSliders)> sliderRects_ {};
+    std::array<Rect, std::size(kSelectors)> selectorRects_ {};
+    std::array<Rect, std::size(kButtons)> buttonRects_ {};
+    int draggingSlider_ = -1;
+    int openSelector_ = -1;
     int learnPulse_ = 0;
-    bool scaleMenuOpen_ = false;
+
+    static constexpr float kSelectorItemHeight = 24.0f;
 
     void drawBackground(const float width, const float height)
     {
         beginPath();
-        fillColor(12, 14, 18, 255);
+        fillColor(17, 21, 27, 255);
         rect(0.0f, 0.0f, width, height);
         fill();
         closePath();
 
         beginPath();
-        fillColor(24, 28, 36, 255);
+        fillColor(27, 35, 45, 255);
         rect(0.0f, 0.0f, width, height * 0.28f);
-        fill();
-        closePath();
-
-        beginPath();
-        fillColor(234, 179, 68, 16);
-        roundedRect(width - 280.0f, 28.0f, 240.0f, 220.0f, 38.0f);
         fill();
         closePath();
     }
@@ -333,283 +345,177 @@ private:
     {
         beginPath();
         roundedRect(x, y, w, h, 18.0f);
-        fillColor(22, 27, 35, 236);
-        fill();
-        closePath();
-
-        beginPath();
-        roundedRect(x, y, w, 4.0f, 2.0f);
-        fillColor(238, 183, 72, 255);
+        fillColor(31, 42, 55, 230);
         fill();
         closePath();
 
         fontSize(28.0f);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
-        fillColor(242, 244, 247, 255);
-        text(x + 22.0f, y + 16.0f, "Cadence", nullptr);
+        fillColor(238, 241, 244, 255);
+        text(x + 20.0f, y + 16.0f, "Cadence", nullptr);
 
         fontSize(13.0f);
-        fillColor(163, 171, 182, 255);
-        text(x + 24.0f, y + 50.0f, "Cycle-learned MIDI harmonizer", nullptr);
+        fillColor(154, 169, 183, 255);
+        text(x + 22.0f, y + 48.0f, "Cycle-learned MIDI harmonizer", nullptr);
 
-        drawReadyPill(x + w - 202.0f, y + 20.0f, 178.0f, 30.0f, values_[kParamStatusReady] >= 0.5f);
+        drawStatusPill(x + w - 178.0f, y + 16.0f, 158.0f, 30.0f, values_[kParamStatusReady] >= 0.5f ? "Ready" : "Learning",
+                       values_[kParamStatusReady] >= 0.5f ? 103 : 195,
+                       values_[kParamStatusReady] >= 0.5f ? 185 : 123,
+                       values_[kParamStatusReady] >= 0.5f ? 134 : 73);
     }
 
-    void drawReadyPill(const float x, const float y, const float w, const float h, const bool ready)
+    void drawStatusPill(const float x, const float y, const float w, const float h, const char* label, const int r, const int g, const int b)
     {
-        const int fr = ready ? 72 : 72;
-        const int fg = ready ? 174 : 94;
-        const int fb = ready ? 108 : 94;
-
         beginPath();
         roundedRect(x, y, w, h, h * 0.5f);
-        fillColor(fr, fg, fb, 36);
+        fillColor(r, g, b, 36);
         fill();
-        strokeColor(fr, fg, fb, 180);
-        strokeWidth(1.0f);
-        stroke();
-        closePath();
-
-        fontSize(12.0f);
-        textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
-        fillColor(ready ? 210 : 178, ready ? 245 : 182, ready ? 220 : 182, 255);
-        text(x + w * 0.5f, y + h * 0.5f + 1.0f, ready ? "Ready" : "Learning", nullptr);
-    }
-
-    void drawControlGroups(const float x, const float y, const float w, const float h)
-    {
-        const float groupGap = 18.0f;
-        const float groupH = (h - groupGap) * 0.5f;
-
-        drawGroup(x, y, w, groupH, 0, "Context");
-        drawGroup(x, y + groupH + groupGap, w, groupH, kControlsPerRow, "Voicing And Routing");
-    }
-
-    void drawGroup(const float x, const float y, const float w, const float h, const int startIndex, const char* title)
-    {
-        beginPath();
-        roundedRect(x, y, w, h, 18.0f);
-        fillColor(18, 21, 28, 246);
-        fill();
-        closePath();
-
-        beginPath();
-        roundedRect(x, y, w, h, 18.0f);
-        strokeColor(42, 48, 58, 255);
+        strokeColor(r, g, b, 180);
         strokeWidth(1.0f);
         stroke();
         closePath();
 
         fontSize(13.0f);
-        textAlign(ALIGN_CENTER | ALIGN_TOP);
-        fillColor(178, 184, 194, 255);
-        text(x + w * 0.5f, y + 16.0f, title, nullptr);
+        textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
+        fillColor(r, g, b, 255);
+        text(x + w * 0.5f, y + h * 0.5f + 1.0f, label, nullptr);
+    }
 
-        const float innerX = x + 24.0f;
-        const float innerY = y + 46.0f;
-        const float innerW = w - 48.0f;
-        const float colGap = 12.0f;
-        const float colW = (innerW - colGap * (kControlsPerRow - 1)) / static_cast<float>(kControlsPerRow);
+    void drawSliderPanel(const float x, const float y, const float w, const float h)
+    {
+        beginPath();
+        roundedRect(x, y, w, h, 18.0f);
+        fillColor(24, 29, 37, 250);
+        fill();
+        closePath();
 
-        for (int i = 0; i < kControlsPerRow; ++i) {
-            const int sliderIndex = startIndex + i;
-            const float rx = innerX + i * (colW + colGap);
-            sliderRects_[static_cast<std::size_t>(sliderIndex)] = {rx, innerY + 22.0f, colW, h - 98.0f};
-            drawSlider(kSliders[static_cast<std::size_t>(sliderIndex)],
-                       sliderRects_[static_cast<std::size_t>(sliderIndex)],
-                       values_[kSliders[static_cast<std::size_t>(sliderIndex)].index],
-                       activeSlider_ == sliderIndex);
+        fontSize(15.0f);
+        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        fillColor(224, 228, 232, 255);
+        text(x + 20.0f, y + 18.0f, "Shape", nullptr);
+
+        const float innerX = x + 20.0f;
+        const float innerY = y + 52.0f;
+        const float innerW = w - 40.0f;
+        const float rowGap = 16.0f;
+        const float rowH = 44.0f;
+
+        for (std::size_t i = 0; i < std::size(kSliders); ++i) {
+            const float ry = innerY + static_cast<float>(i) * (rowH + rowGap);
+            sliderRects_[i] = {innerX, ry + 18.0f, innerW, 22.0f};
+            drawSlider(kSliders[i], sliderRects_[i], values_[kSliders[i].index], draggingSlider_ == static_cast<int>(i));
         }
     }
 
     void drawSlider(const SliderDef& def, const Rect& rect, const float value, const bool active)
     {
-        const float trackW = 28.0f;
-        const float trackH = rect.h - 48.0f;
-        const float trackX = rect.x + (rect.w - trackW) * 0.5f;
-        const float trackY = rect.y + 8.0f;
-        const float knobH = 18.0f;
+        fontSize(13.0f);
+        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        fillColor(154, 169, 183, 255);
+        text(rect.x, rect.y - 18.0f, def.label, nullptr);
 
-        fontSize(11.0f);
-        textAlign(ALIGN_CENTER | ALIGN_TOP);
-        fillColor(218, 222, 228, 255);
-        text(rect.x + rect.w * 0.5f, rect.y - 18.0f, def.label, nullptr);
+        const std::string valueText = formatSliderValue(def.index, value);
+        textAlign(ALIGN_RIGHT | ALIGN_TOP);
+        fillColor(223, 230, 236, 255);
+        text(rect.x + rect.w, rect.y - 18.0f, valueText.c_str(), nullptr);
 
         beginPath();
-        roundedRect(trackX, trackY, trackW, trackH, 8.0f);
-        fillColor(34, 39, 48, 255);
+        roundedRect(rect.x, rect.y, rect.w, rect.h, 10.0f);
+        fillColor(42, 50, 62, 255);
         fill();
         closePath();
 
         const float denom = std::max(0.0001f, def.max - def.min);
         const float t = clampf((value - def.min) / denom, 0.0f, 1.0f);
-        const float knobY = trackY + (1.0f - t) * (trackH - knobH);
-
         beginPath();
-        roundedRect(trackX - 3.0f, knobY, trackW + 6.0f, knobH, 7.0f);
-        fillColor(active ? 241 : 224, active ? 188 : 166, 76, 255);
+        roundedRect(rect.x, rect.y, rect.w * t, rect.h, 10.0f);
+        fillColor(active ? 225 : 195, active ? 123 : 90, 73, 255);
+        fill();
+        closePath();
+    }
+
+    void drawRightPanel(const float x, const float y, const float w, const float h)
+    {
+        beginPath();
+        roundedRect(x, y, w, h, 18.0f);
+        fillColor(24, 29, 37, 250);
+        fill();
+        closePath();
+
+        fontSize(15.0f);
+        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        fillColor(224, 228, 232, 255);
+        text(x + 20.0f, y + 18.0f, "Harmony", nullptr);
+
+        const float selectorH = 42.0f;
+        const float selectorGap = 7.0f;
+        float cy = y + 52.0f;
+        for (std::size_t i = 0; i < std::size(kSelectors); ++i) {
+            selectorRects_[i] = {x + 20.0f, cy, w - 40.0f, selectorH};
+            drawSelector(kSelectors[i], selectorRects_[i], selectorValueForDisplay(kSelectors[i], values_[kSelectors[i].index]), static_cast<int>(i));
+            cy += selectorH + selectorGap;
+        }
+
+        const float buttonH = std::min(44.0f, std::max(34.0f, y + h - cy - 20.0f));
+        cy = y + h - 20.0f - buttonH;
+        buttonRects_[0] = {x + 20.0f, cy, w - 40.0f, buttonH};
+        drawButton(kButtons[0], buttonRects_[0]);
+    }
+
+    void drawSelector(const SelectorDef& def, const Rect& rect, const int value, const int selectorIndex)
+    {
+        beginPath();
+        roundedRect(rect.x, rect.y, rect.w, rect.h, 14.0f);
+        fillColor(34, 43, 55, 255);
         fill();
         closePath();
 
         fontSize(11.0f);
-        textAlign(ALIGN_CENTER | ALIGN_TOP);
-        fillColor(187, 193, 202, 255);
-        const std::string label = formatValueLabel(def.index, value);
-        text(rect.x + rect.w * 0.5f, rect.y + rect.h - 18.0f, label.c_str(), nullptr);
+        textAlign(ALIGN_LEFT | ALIGN_TOP);
+        fillColor(152, 166, 181, 255);
+        text(rect.x + 14.0f, rect.y + 8.0f, def.label, nullptr);
 
-        if (def.index == kParamScale) {
-            fontSize(10.0f);
-            fillColor(238, 183, 72, 230);
-            text(rect.x + rect.w * 0.5f, rect.y + rect.h - 4.0f, "v", nullptr);
-        }
+        fontSize(16.0f);
+        fillColor(235, 239, 242, 255);
+        text(rect.x + 14.0f, rect.y + 27.0f, def.items[clampi(value, 0, def.count - 1)], nullptr);
+
+        fontSize(17.0f);
+        textAlign(ALIGN_RIGHT | ALIGN_MIDDLE);
+        fillColor(117, 133, 149, 255);
+        text(rect.x + rect.w - 16.0f, rect.y + rect.h * 0.5f + 1.0f, openSelector_ == selectorIndex ? "^" : "v", nullptr);
     }
 
-    void drawScaleMenu()
-    {
-        const Rect menu = scaleMenuRect();
-        constexpr float itemH = 22.0f;
-        const int selected = clampi(static_cast<int>(std::lround(values_[kParamScale])), 0, kScaleCount - 1);
-
-        beginPath();
-        roundedRect(menu.x, menu.y, menu.w, menu.h, 10.0f);
-        fillColor(15, 18, 24, 252);
-        fill();
-        strokeColor(238, 183, 72, 210);
-        strokeWidth(1.2f);
-        stroke();
-        closePath();
-
-        fontSize(12.0f);
-        textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
-        for (int i = 0; i < kScaleCount; ++i) {
-            const Rect row {menu.x + 6.0f, menu.y + 4.0f + static_cast<float>(i) * itemH, menu.w - 12.0f, itemH};
-            if (i == selected) {
-                beginPath();
-                roundedRect(row.x, row.y + 1.0f, row.w, row.h - 2.0f, 6.0f);
-                fillColor(238, 183, 72, 48);
-                fill();
-                closePath();
-            }
-            fillColor(i == selected ? 247 : 215, i == selected ? 206 : 220, i == selected ? 128 : 228, 255);
-            text(row.x + 10.0f, row.y + row.h * 0.5f + 1.0f, kScaleNames[i], nullptr);
-        }
-    }
-
-    void drawFooter(const float x, const float y, const float w, const float h)
-    {
-        const float buttonW = 156.0f;
-        const float buttonH = 38.0f;
-        learnButtonRect_ = {x + w * 0.5f - buttonW - 12.0f, y + 8.0f, buttonW, buttonH};
-        drawLearnButton(learnButtonRect_);
-
-        drawReadyPanel(x + w * 0.5f + 12.0f, y + 8.0f, buttonW, buttonH, values_[kParamStatusReady] >= 0.5f);
-
-        fontSize(11.0f);
-        textAlign(ALIGN_CENTER | ALIGN_BOTTOM);
-        fillColor(132, 139, 148, 255);
-        text(x + w * 0.5f,
-             y + h,
-             "Comp learns rhythmic shape from the input line. Vary evolves the progression at cycle seams. Chan=Input follows the source channel.",
-             nullptr);
-    }
-
-    void drawLearnButton(const Rect& rect)
+    void drawButton(const ButtonDef& def, const Rect& rect)
     {
         const float pulse = static_cast<float>(learnPulse_) / 8.0f;
         beginPath();
-        roundedRect(rect.x, rect.y, rect.w, rect.h, 8.0f);
-        fillColor(64 + static_cast<int>(pulse * 28.0f),
-                  73 + static_cast<int>(pulse * 24.0f),
-                  86 + static_cast<int>(pulse * 20.0f),
-                  255);
+        roundedRect(rect.x, rect.y, rect.w, rect.h, 16.0f);
+        fillColor(76 + static_cast<int>(pulse * 30.0f), 96 + static_cast<int>(pulse * 28.0f), 120, 255);
         fill();
         closePath();
 
         beginPath();
-        roundedRect(rect.x, rect.y, rect.w, rect.h, 8.0f);
-        strokeColor(238, 183, 72, 255);
-        strokeWidth(1.5f);
+        roundedRect(rect.x + 1.0f, rect.y + 1.0f, rect.w - 2.0f, rect.h - 2.0f, 15.0f);
+        strokeColor(165, 186, 209, 110);
+        strokeWidth(1.0f);
         stroke();
         closePath();
 
-        fontSize(13.0f);
+        fontSize(16.0f);
         textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
-        fillColor(238, 183, 72, 255);
-        text(rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f + 1.0f, "Learn", nullptr);
+        fillColor(240, 244, 247, 255);
+        text(rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f, def.label, nullptr);
     }
 
-    void drawReadyPanel(const float x, const float y, const float w, const float h, const bool ready)
-    {
-        beginPath();
-        roundedRect(x, y, w, h, 8.0f);
-        fillColor(ready ? 42 : 34, ready ? 102 : 48, ready ? 58 : 52, 255);
-        fill();
-        closePath();
-
-        beginPath();
-        roundedRect(x, y, w, h, 8.0f);
-        strokeColor(ready ? 128 : 94, ready ? 220 : 118, ready ? 156 : 124, 255);
-        strokeWidth(1.4f);
-        stroke();
-        closePath();
-
-        fontSize(13.0f);
-        textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
-        fillColor(ready ? 222 : 194, ready ? 244 : 202, ready ? 230 : 206, 255);
-        text(x + w * 0.5f, y + h * 0.5f + 1.0f, ready ? "Ready" : "Learning", nullptr);
-    }
-
-    void triggerLearn()
-    {
-        editParameter(kParamActionLearn, true);
-        setParameterValue(kParamActionLearn, 1.0f);
-        editParameter(kParamActionLearn, false);
-        values_[kParamStatusReady] = 0.0f;
-        learnPulse_ = 8;
-        repaint();
-    }
-
-    void updateSliderFromY(const int sliderIndex, const float mouseY)
+    void updateSliderFromPosition(const int sliderIndex, const float mouseX)
     {
         const SliderDef& def = kSliders[static_cast<std::size_t>(sliderIndex)];
         const Rect& rect = sliderRects_[static_cast<std::size_t>(sliderIndex)];
-        const float trackY = rect.y + 8.0f;
-        const float trackH = rect.h - 48.0f;
-        const float knobH = 18.0f;
-        float t = 1.0f - ((mouseY - trackY - knobH * 0.5f) / std::max(1.0f, trackH - knobH));
-        t = clampf(t, 0.0f, 1.0f);
+        const float t = clampf((mouseX - rect.x) / rect.w, 0.0f, 1.0f);
         float value = def.min + t * (def.max - def.min);
         if (def.integer)
             value = std::round(value);
         setParameter(def.index, value);
-    }
-
-    [[nodiscard]] Rect scaleMenuRect() const
-    {
-        constexpr float itemH = 22.0f;
-        constexpr float menuW = 206.0f;
-        constexpr float menuH = 8.0f + itemH * static_cast<float>(kScaleCount);
-        const Rect& anchor = sliderRects_[sliderIndexForParameter(kParamScale)];
-        float x = anchor.x + anchor.w * 0.5f - menuW * 0.5f;
-        float y = anchor.y + 4.0f;
-        x = clampf(x, 14.0f, static_cast<float>(getWidth()) - menuW - 14.0f);
-        y = clampf(y, 14.0f, static_cast<float>(getHeight()) - menuH - 14.0f);
-        return {x, y, menuW, menuH};
-    }
-
-    bool handleScaleMenuPress(const float x, const float y)
-    {
-        const Rect menu = scaleMenuRect();
-        if (!menu.contains(x, y))
-            return false;
-
-        constexpr float itemH = 22.0f;
-        const int index = static_cast<int>((y - menu.y - 4.0f) / itemH);
-        if (index >= 0 && index < kScaleCount) {
-            scaleMenuOpen_ = false;
-            setParameter(kParamScale, static_cast<float>(index));
-        }
-        return true;
     }
 
     void nudgeSlider(const int sliderIndex, const float direction)
@@ -619,12 +525,94 @@ private:
         setParameter(def.index, values_[def.index] + direction * step);
     }
 
+    void cycleSelector(const int selectorIndex, const int direction)
+    {
+        const SelectorDef& def = kSelectors[static_cast<std::size_t>(selectorIndex)];
+        const int value = selectorValueForDisplay(def, values_[def.index]);
+        const int next = clampi(value + direction, 0, def.count - 1);
+        setParameter(def.index, selectorParameterValue(def, next));
+    }
+
+    void drawOpenSelectorMenu(const int selectorIndex)
+    {
+        const SelectorDef& def = kSelectors[static_cast<std::size_t>(selectorIndex)];
+        const int selected = selectorValueForDisplay(def, values_[def.index]);
+        const Rect menuRect = selectorMenuRect(selectorIndex);
+
+        beginPath();
+        roundedRect(menuRect.x, menuRect.y, menuRect.w, menuRect.h, 14.0f);
+        fillColor(22, 28, 36, 248);
+        fill();
+        strokeColor(93, 112, 134, 220);
+        strokeWidth(1.0f);
+        stroke();
+        closePath();
+
+        for (int i = 0; i < def.count; ++i) {
+            const float rowY = menuRect.y + static_cast<float>(i) * kSelectorItemHeight;
+            if (i == selected) {
+                beginPath();
+                roundedRect(menuRect.x + 4.0f, rowY + 3.0f, menuRect.w - 8.0f, kSelectorItemHeight - 6.0f, 10.0f);
+                fillColor(74, 96, 122, 255);
+                fill();
+                closePath();
+            }
+
+            fontSize(12.0f);
+            textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
+            fillColor(236, 240, 243, 255);
+            text(menuRect.x + 14.0f, rowY + kSelectorItemHeight * 0.5f + 1.0f, def.items[i], nullptr);
+        }
+    }
+
+    bool handleOpenSelectorClick(const float x, const float y)
+    {
+        const Rect& base = selectorRects_[static_cast<std::size_t>(openSelector_)];
+        if (base.contains(x, y)) {
+            openSelector_ = -1;
+            repaint();
+            return true;
+        }
+
+        const SelectorDef& def = kSelectors[static_cast<std::size_t>(openSelector_)];
+        const Rect menuRect = selectorMenuRect(openSelector_);
+        if (!menuRect.contains(x, y))
+            return false;
+
+        const int item = clampi(static_cast<int>((y - menuRect.y) / kSelectorItemHeight), 0, def.count - 1);
+        setParameter(def.index, selectorParameterValue(def, item));
+        openSelector_ = -1;
+        repaint();
+        return true;
+    }
+
+    [[nodiscard]] Rect selectorMenuRect(const int selectorIndex) const
+    {
+        const SelectorDef& def = kSelectors[static_cast<std::size_t>(selectorIndex)];
+        const Rect& base = selectorRects_[static_cast<std::size_t>(selectorIndex)];
+        const float menuH = static_cast<float>(def.count) * kSelectorItemHeight;
+        const float margin = 14.0f;
+        float menuY = base.y + base.h + 6.0f;
+        if (menuY + menuH > static_cast<float>(getHeight()) - margin)
+            menuY = std::max(margin, static_cast<float>(getHeight()) - margin - menuH);
+        return {base.x, menuY, base.w, menuH};
+    }
+
+    void triggerButton(const int buttonIndex)
+    {
+        const uint32_t index = kButtons[static_cast<std::size_t>(buttonIndex)].index;
+        editParameter(index, true);
+        setParameterValue(index, 1.0f);
+        setParameterValue(index, 0.0f);
+        editParameter(index, false);
+        values_[kParamStatusReady] = 0.0f;
+        learnPulse_ = 8;
+        repaint();
+    }
+
     void setParameter(const uint32_t index, float value)
     {
-        const SliderDef& def = kSliders[sliderIndexForParameter(index)];
-        value = clampf(value, def.min, def.max);
-        if (def.integer)
-            value = std::round(value);
+        value = clampParameter(index, value);
 
         editParameter(index, true);
         setParameterValue(index, value);
@@ -633,13 +621,21 @@ private:
         repaint();
     }
 
-    [[nodiscard]] std::size_t sliderIndexForParameter(const uint32_t index) const
+    [[nodiscard]] float clampParameter(const uint32_t index, float value) const
     {
-        for (std::size_t i = 0; i < kSliders.size(); ++i) {
-            if (kSliders[i].index == index)
-                return i;
+        for (const SliderDef& def : kSliders) {
+            if (def.index == index) {
+                value = clampf(value, def.min, def.max);
+                return def.integer ? std::round(value) : value;
+            }
         }
-        return 0;
+
+        for (const SelectorDef& def : kSelectors) {
+            if (def.index == index)
+                return static_cast<float>(clampi(static_cast<int>(std::lround(value)), def.valueOffset, def.count - 1 + def.valueOffset));
+        }
+
+        return value;
     }
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CadenceUI)
