@@ -5,11 +5,12 @@ bundle: counterpointer.vst3
 kind: MIDI generator/effect
 role: Counter-melody generator
 screenshot: /assets/plugins/counterpointer.png
-summary: Learns an incoming MIDI pattern and emits a monophonic answering line.
+summary: Learns an incoming MIDI pattern and emits a monophonic answering line with color control.
 ---
 
 ## Functionality
 
 Counterpointer follows incoming MIDI and generates a complementary monophonic
 line. Controls shape how closely it follows, how often it moves contrary to the
-source, and how much rhythmic answering or randomness is introduced.
+source, and how much rhythmic answering, chromatic color, or randomness is
+introduced.

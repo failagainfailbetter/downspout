@@ -8,8 +8,8 @@ Current scope:
 - capture incoming MIDI against the host transport cycle;
 - generate a deterministic complementary melodic line from that captured pattern;
 - expose controls for follow/counter movement, rhythm following, density,
-  embellishment density, regularity, consonance, register, short randomness, and
-  long cycle variation;
+  embellishment density, regularity, consonance, color, register, short
+  randomness, and long cycle variation;
 - keep the implementation portable before adding DPF/VST3 glue.
 
 The input MIDI stream is the source pattern. There is intentionally no separate
@@ -21,8 +21,11 @@ Current status:
 - portable core types, transport helpers, and engine exist;
 - deterministic core tests exist;
 - a first DPF-backed `counterpointer.vst3` wrapper and custom UI exist.
-- scale choices now include Lydian, Melodic Minor, and Whole Tone, appended
-  after the original scale IDs so saved-state scale values remain stable.
+- scale choices now include Lydian, Melodic Minor, Whole Tone, Altered,
+  diminished, and bebop colors, appended after the original scale IDs so
+  saved-state scale values remain stable.
+- the `Color` control makes the generated counterline less strictly consonant
+  and more chromatic/adventurous, especially on Jazz-capable scales.
 - the UI reports separate `MIDI In`, `MIDI Out`, and phrase-ready status so
   host routing can be checked before the learned counter-melody starts.
 

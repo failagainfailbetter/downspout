@@ -18,6 +18,7 @@ using downspout::ground::kParamActionNewForm;
 using downspout::ground::kParamActionNewPhrase;
 using downspout::ground::kParamCadence;
 using downspout::ground::kParamChannel;
+using downspout::ground::kParamColor;
 using downspout::ground::kParamDensity;
 using downspout::ground::kParamFormBars;
 using downspout::ground::kParamMotion;
@@ -72,6 +73,7 @@ constexpr SliderDef kSliders[] = {
     {kParamDensity, "Density", 0.0f, 1.0f, false},
     {kParamMotion, "Motion", 0.0f, 1.0f, false},
     {kParamTension, "Tension", 0.0f, 1.0f, false},
+    {kParamColor, "Color", 0.0f, 1.0f, false},
     {kParamCadence, "Cadence", 0.0f, 1.0f, false},
     {kParamRegisterArc, "Reg Arc", 0.0f, 1.0f, false},
     {kParamSequence, "Sequence", 0.0f, 1.0f, false},
@@ -292,6 +294,7 @@ public:
         values_[kParamDensity] = 0.45f;
         values_[kParamMotion] = 0.55f;
         values_[kParamTension] = 0.45f;
+        values_[kParamColor] = 0.0f;
         values_[kParamCadence] = 0.50f;
         values_[kParamRegister] = 1.0f;
         values_[kParamRegisterArc] = 0.40f;

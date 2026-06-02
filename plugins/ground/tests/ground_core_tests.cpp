@@ -268,6 +268,7 @@ void testSerializationRoundTrip()
     controls.style = StyleId::march;
     controls.formBars = 32;
     controls.phraseBars = 8;
+    controls.color = 0.72f;
     controls.sequence = 0.75f;
     controls.vary = 0.42f;
     controls.seed = 998u;
@@ -290,6 +291,7 @@ void testSerializationRoundTrip()
     assert(controlsRoundTrip->rootNote == controls.rootNote);
     assert(controlsRoundTrip->scale == controls.scale);
     assert(controlsRoundTrip->style == controls.style);
+    assert(controlsRoundTrip->color > 0.71f && controlsRoundTrip->color < 0.73f);
     assert(controlsRoundTrip->actionMutateCell == controls.actionMutateCell);
     assert(formRoundTrip->phraseCount == form.phraseCount);
     assert(formRoundTrip->eventCount == form.eventCount);

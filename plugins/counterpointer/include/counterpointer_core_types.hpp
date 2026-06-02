@@ -63,6 +63,7 @@ struct Controls {
     float rhythm_follow = 0.65f;
     float syncopation = 0.25f;
     float consonance = 0.75f;
+    float color = 0.0f;
     float embellish = 0.25f;
     float regularity = 0.65f;
     int reg = REGISTER_MID;
@@ -175,6 +176,7 @@ using ScheduledMidiEvent = MidiMessage;
     controls.rhythm_follow = clampf(controls.rhythm_follow, 0.0f, 1.0f);
     controls.syncopation = clampf(controls.syncopation, 0.0f, 1.0f);
     controls.consonance = clampf(controls.consonance, 0.0f, 1.0f);
+    controls.color = clampf(controls.color, 0.0f, 1.0f);
     controls.embellish = clampf(controls.embellish, 0.0f, 1.0f);
     controls.regularity = clampf(controls.regularity, 0.0f, 1.0f);
     controls.reg = clampi(controls.reg, 0, 2);
@@ -200,6 +202,7 @@ using ScheduledMidiEvent = MidiMessage;
            (a.rhythm_follow - b.rhythm_follow < 0.0001f && a.rhythm_follow - b.rhythm_follow > -0.0001f) &&
            (a.syncopation - b.syncopation < 0.0001f && a.syncopation - b.syncopation > -0.0001f) &&
            (a.consonance - b.consonance < 0.0001f && a.consonance - b.consonance > -0.0001f) &&
+           (a.color - b.color < 0.0001f && a.color - b.color > -0.0001f) &&
            (a.embellish - b.embellish < 0.0001f && a.embellish - b.embellish > -0.0001f) &&
            (a.regularity - b.regularity < 0.0001f && a.regularity - b.regularity > -0.0001f) &&
            (a.span - b.span < 0.0001f && a.span - b.span > -0.0001f) &&

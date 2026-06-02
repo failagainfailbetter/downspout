@@ -70,6 +70,7 @@ struct Controls {
     float density = 0.45f;
     float motion = 0.55f;
     float tension = 0.45f;
+    float color = 0.0f;
     float cadence = 0.50f;
     int reg = 1;
     float registerArc = 0.40f;

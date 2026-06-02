@@ -132,6 +132,7 @@ void testSerializationRoundTrip()
     controls.rhythm_follow = 0.61f;
     controls.syncopation = 0.35f;
     controls.consonance = 0.93f;
+    controls.color = 0.67f;
     controls.embellish = 0.84f;
     controls.regularity = 0.91f;
     controls.reg = REGISTER_HIGH;
@@ -150,6 +151,7 @@ void testSerializationRoundTrip()
     assert(controlsRoundTrip->cycle_bars == 3);
     assert(controlsRoundTrip->reg == REGISTER_HIGH);
     assert(controlsRoundTrip->embellish > 0.83f && controlsRoundTrip->embellish < 0.85f);
+    assert(controlsRoundTrip->color > 0.66f && controlsRoundTrip->color < 0.68f);
     assert(controlsRoundTrip->regularity > 0.90f && controlsRoundTrip->regularity < 0.92f);
     assert(!controlsRoundTrip->pass_input);
     assert(controlsRoundTrip->output_channel == 5);

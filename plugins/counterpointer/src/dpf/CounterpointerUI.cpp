@@ -37,6 +37,7 @@ enum ParameterIndex : uint32_t {
     kParamStatusReady,
     kParamStatusInput,
     kParamStatusOutput,
+    kParamColor,
     kParameterCount
 };
 
@@ -80,6 +81,7 @@ constexpr SliderDef kSliders[] = {
     {kParamRhythmFollow, "Rhythm", 0.0f, 1.0f, false},
     {kParamSyncopation, "Syncopation", 0.0f, 1.0f, false},
     {kParamConsonance, "Consonance", 0.0f, 1.0f, false},
+    {kParamColor, "Color", 0.0f, 1.0f, false},
     {kParamEmbellish, "Embellish", 0.0f, 1.0f, false},
     {kParamRegularity, "Regularity", 0.0f, 1.0f, false},
     {kParamShortRandom, "Short Rnd", 0.0f, 1.0f, false},
@@ -198,6 +200,7 @@ public:
         values_[kParamRhythmFollow] = 0.65f;
         values_[kParamSyncopation] = 0.25f;
         values_[kParamConsonance] = 0.75f;
+        values_[kParamColor] = 0.0f;
         values_[kParamEmbellish] = 0.25f;
         values_[kParamRegularity] = 0.65f;
         values_[kParamRegister] = 1.0f;

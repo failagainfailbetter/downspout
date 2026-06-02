@@ -111,19 +111,51 @@ std::uint32_t controls_seed(const Controls& controls)
     seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.density * 1000.0f)) << 4);
     seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.embellish * 1000.0f)) << 5);
     seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.regularity * 1000.0f)) << 6);
+    seed ^= mix_u32(static_cast<std::uint32_t>(std::lround(controls.color * 1000.0f)) << 7);
     return seed;
+}
+
+bool is_jazz_scale(const int scale)
+{
+    switch (scale)
+    {
+    case SCALE_DORIAN:
+    case SCALE_MIXOLYDIAN:
+    case SCALE_LYDIAN:
+    case SCALE_MELODIC_MINOR:
+    case SCALE_WHOLE_TONE:
+    case SCALE_ALTERED:
+    case SCALE_HALF_WHOLE_DIMINISHED:
+    case SCALE_WHOLE_HALF_DIMINISHED:
+    case SCALE_BEBOP_DOMINANT:
+    case SCALE_BEBOP_MAJOR:
+    case SCALE_BEBOP_MINOR:
+        return true;
+    default:
+        return false;
+    }
+}
+
+float color_amount(const Controls& controls)
+{
+    const float color = clampf(controls.color, 0.0f, 1.0f);
+    return is_jazz_scale(controls.scale) ? color : color * 0.45f;
 }
 
 Controls effective_controls_for_generation(const Controls& controls)
 {
     Controls out = controls;
     const float irregularity = 1.0f - clampf(controls.regularity, 0.0f, 1.0f);
+    const float color = color_amount(controls);
 
-    out.short_random = clampf(controls.short_random * (0.18f + irregularity * 1.25f) + irregularity * 0.28f, 0.0f, 1.0f);
-    out.long_random = clampf(controls.long_random * (0.10f + irregularity * 1.15f), 0.0f, 1.0f);
-    out.syncopation = clampf(controls.syncopation * (0.35f + irregularity * 0.95f) + irregularity * 0.18f, 0.0f, 1.0f);
+    out.short_random = clampf(controls.short_random * (0.18f + irregularity * 1.25f) + irregularity * 0.28f + color * 0.18f, 0.0f, 1.0f);
+    out.long_random = clampf(controls.long_random * (0.10f + irregularity * 1.15f) + color * 0.08f, 0.0f, 1.0f);
+    out.syncopation = clampf(controls.syncopation * (0.35f + irregularity * 0.95f) + irregularity * 0.18f + color * 0.12f, 0.0f, 1.0f);
     out.rhythm_follow = clampf(controls.rhythm_follow * (0.55f + controls.regularity * 0.45f), 0.0f, 1.0f);
-    out.consonance = clampf(controls.consonance * (0.65f + controls.regularity * 0.35f), 0.0f, 1.0f);
+    out.consonance = clampf(controls.consonance * (0.65f + controls.regularity * 0.35f) * (1.0f - color * 0.32f), 0.0f, 1.0f);
+    out.embellish = clampf(controls.embellish + color * 0.24f, 0.0f, 1.0f);
+    out.span = clampf(controls.span + color * 0.18f, 0.0f, 1.0f);
+    out.regularity = clampf(controls.regularity - color * 0.14f, 0.0f, 1.0f);
     return out;
 }
 
@@ -155,6 +187,23 @@ int nearest_scale_note(const Controls& controls, const int target, const int min
         }
     }
     return best;
+}
+
+bool chromatic_approach_allowed(const Controls& controls, const int note, const int source)
+{
+    const float color = color_amount(controls);
+    if (color <= 0.0001f) {
+        return false;
+    }
+    if (scale_contains_pc(controls.scale, controls.key, note - 1) ||
+        scale_contains_pc(controls.scale, controls.key, note + 1)) {
+        int distance = std::abs(wrap12(note - source));
+        if (distance > 6) {
+            distance = 12 - distance;
+        }
+        return distance <= 2 || distance == 5 || distance == 6;
+    }
+    return false;
 }
 
 int register_center(const int reg)
@@ -424,7 +473,9 @@ int choose_output_note(const Controls& controls,
 
     for (int note = minNote; note <= maxNote; ++note)
     {
-        if (!scale_contains_pc(controls.scale, controls.key, note))
+        const bool inScale = scale_contains_pc(controls.scale, controls.key, note);
+        const bool chromaticApproach = !inScale && chromatic_approach_allowed(controls, note, source);
+        if (!inScale && !chromaticApproach)
             continue;
 
         const int outputDelta = clampi(note - previousOutput, -12, 12);
@@ -432,6 +483,10 @@ int choose_output_note(const Controls& controls,
         score -= std::abs(note - center) * 0.035;
         score -= std::max(0, std::abs(note - previousOutput) - maxLeap) * 0.35;
         score += consonance_score(note, source, controls.consonance);
+        if (chromaticApproach) {
+            score += static_cast<double>(color_amount(controls)) * 0.32;
+            score -= 0.26;
+        }
 
         if (sourceDelta != 0)
         {
@@ -450,6 +505,7 @@ int choose_output_note(const Controls& controls,
         const double randomJitter = (static_cast<double>(rng.nextFloat()) - 0.5) *
                                     static_cast<double>(controls.short_random) * 1.8;
         score += randomJitter;
+        score += static_cast<double>(color_amount(controls)) * static_cast<double>(std::abs(outputDelta) > 2 ? 0.10 : -0.02);
         score += static_cast<double>((segmentIndex % 2) == 0 ? 1 : -1) * static_cast<double>(controls.syncopation) * 0.04;
 
         if (score > bestScore)

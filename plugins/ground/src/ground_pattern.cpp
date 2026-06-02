@@ -96,7 +96,44 @@ constexpr ScaleDef kScales[] = {
     return controls.seed ^
            (static_cast<std::uint32_t>(generationSerial) * 2654435761u) ^
            (static_cast<std::uint32_t>(phraseIndex + 1) * 2246822519u) ^
+           (static_cast<std::uint32_t>(std::lround(controls.color * 1000.0f)) * 3266489917u) ^
            salt;
+}
+
+[[nodiscard]] bool isJazzScale(const ScaleId scale)
+{
+    switch (scale) {
+    case ScaleId::dorian:
+    case ScaleId::mixolydian:
+    case ScaleId::lydian:
+    case ScaleId::melodicMinor:
+    case ScaleId::wholeTone:
+    case ScaleId::altered:
+    case ScaleId::halfWholeDiminished:
+    case ScaleId::wholeHalfDiminished:
+    case ScaleId::bebopDominant:
+    case ScaleId::bebopMajor:
+    case ScaleId::bebopMinor:
+        return true;
+    case ScaleId::minor:
+    case ScaleId::major:
+    case ScaleId::phrygian:
+    case ScaleId::pentMinor:
+    case ScaleId::blues:
+    case ScaleId::harmonicMinor:
+    case ScaleId::pentMajor:
+    case ScaleId::locrian:
+    case ScaleId::phrygianDominant:
+    case ScaleId::count:
+        break;
+    }
+    return false;
+}
+
+[[nodiscard]] float colorAmount(const Controls& controls)
+{
+    const float color = clampf(controls.color, 0.0f, 1.0f);
+    return isJazzScale(controls.scale) ? color : color * 0.45f;
 }
 
 [[nodiscard]] int nearestFromSet(const int raw, const std::initializer_list<int> values)
@@ -198,7 +235,8 @@ constexpr ScaleDef kScales[] = {
     }
 
     const float progress = static_cast<float>(phraseIndex) / static_cast<float>(std::max(1, phraseCount - 1));
-    const float breakProb = controls.tension * 0.24f + (progress > 0.55f ? 0.10f : 0.0f);
+    const float color = colorAmount(controls);
+    const float breakProb = controls.tension * 0.24f + color * 0.10f + (progress > 0.55f ? 0.10f : 0.0f);
     if (rng.nextFloat() < breakProb) {
         return PhraseRoleId::breakdown;
     }
@@ -250,21 +288,22 @@ constexpr ScaleDef kScales[] = {
 {
     const bool strongBeat = stepsPerBeat > 0 ? ((localStep % stepsPerBeat) == 0) : true;
     const int base = plan.rootDegree;
+    const float color = colorAmount(controls);
 
     switch (plan.role) {
     case PhraseRoleId::statement:
         if (strongBeat) {
             return rng.nextFloat() < 0.72f ? base : base + 2;
         }
-        return clampi(previousDegree + rng.nextInt(-1, 1), base - 1, base + 3);
+        return clampi(previousDegree + rng.nextInt(-1, 1) + (rng.nextFloat() < color * 0.20f ? rng.nextInt(-1, 1) : 0), base - 2, base + 4);
     case PhraseRoleId::answer:
         if (strongBeat && rng.nextFloat() < 0.60f) {
             return base;
         }
-        return clampi(previousDegree + rng.nextInt(-2, 0), base - 2, base + 2);
+        return clampi(previousDegree + rng.nextInt(-2, color > 0.55f ? 1 : 0), base - 3, base + 3);
     case PhraseRoleId::climb: {
         const float progress = static_cast<float>(ordinal) / static_cast<float>(std::max(1, eventCountEstimate - 1));
-        const int rise = static_cast<int>(std::floor(progress * (2.0f + controls.motion * 4.0f)));
+        const int rise = static_cast<int>(std::floor(progress * (2.0f + controls.motion * 4.0f + color * 2.0f)));
         return clampi(base + rise + rng.nextInt(0, 1), base, base + 6);
     }
     case PhraseRoleId::pedal:
@@ -276,9 +315,9 @@ constexpr ScaleDef kScales[] = {
             return 0;
         }
         if (ordinal >= std::max(1, eventCountEstimate - 2)) {
-            return rng.nextFloat() < 0.60f ? 4 : 6;
+            return rng.nextFloat() < color * 0.35f ? 6 : (rng.nextFloat() < 0.60f ? 4 : 6);
         }
-        return clampi(base + rng.nextInt(0, 2), base, base + 3);
+        return clampi(base + rng.nextInt(0, color > 0.60f ? 3 : 2), base, base + 4);
     }
     case PhraseRoleId::release:
         return clampi(base - (ordinal / 2) + rng.nextInt(-1, 0), 0, std::max(0, base + 1));
@@ -378,7 +417,7 @@ void buildBarOnsets(std::array<bool, kMaxPhraseGridSteps>& onset,
                     const int stepsPerBar)
 {
     const float density = clampf(controls.density * plan.intensity, 0.05f, 1.0f);
-    const float motion = clampf(plan.motionBias, 0.0f, 1.0f);
+    const float motion = clampf(plan.motionBias + colorAmount(controls) * 0.16f, 0.0f, 1.0f);
 
     if (plan.role == PhraseRoleId::pedal || controls.style == StyleId::drone) {
         appendOnset(onset, localBarStart);
@@ -539,6 +578,28 @@ void buildBarOnsets(std::array<bool, kMaxPhraseGridSteps>& onset,
     return clampf(legato, 0.0f, 1.0f);
 }
 
+[[nodiscard]] int applyColorToNote(const Controls& controls,
+                                   Rng& rng,
+                                   const int note,
+                                   const int localStep,
+                                   const int stepsPerBeat,
+                                   const PhraseRoleId role,
+                                   const int phraseSteps)
+{
+    const float color = colorAmount(controls);
+    if (color <= 0.0001f) {
+        return note;
+    }
+
+    const bool strongBeat = stepsPerBeat > 0 ? ((localStep % stepsPerBeat) == 0) : true;
+    const bool finalCadence = role == PhraseRoleId::cadence && (localStep + stepsPerBeat) >= phraseSteps;
+    if (strongBeat || finalCadence || rng.nextFloat() >= color * 0.18f) {
+        return note;
+    }
+
+    return clampi(note + (rng.nextFloat() < 0.5f ? -1 : 1), 0, 127);
+}
+
 void applyLegatoShaping(PhraseEventList& list, const Controls& controls, const PhrasePlan& plan, Rng& rng)
 {
     if (list.count <= 0) {
@@ -638,7 +699,7 @@ void generatePhraseEvents(PhraseEventList& out,
             int jitter = 0;
             if (mutationStrength > 0.25f) {
                 jitter = rng.nextInt(-2, 2);
-            } else if (rng.nextFloat() < (0.10f + controls.motion * 0.12f + controls.tension * 0.08f)) {
+            } else if (rng.nextFloat() < (0.10f + controls.motion * 0.12f + controls.tension * 0.08f + colorAmount(controls) * 0.10f)) {
                 jitter = rng.nextFloat() < 0.5f ? -1 : 1;
             }
             event.startStep = clampi(plan.startStep + localStart + jitter,
@@ -647,7 +708,13 @@ void generatePhraseEvents(PhraseEventList& out,
             event.durationSteps = clampi(event.durationSteps + (mutationStrength > 0.30f ? rng.nextInt(-1, 1) : 0),
                                          1,
                                          (plan.startStep + plan.stepCount) - event.startStep);
-            event.note = clampi(event.note + semitoneShift, 0, 127);
+            event.note = applyColorToNote(controls,
+                                          rng,
+                                          clampi(event.note + semitoneShift, 0, 127),
+                                          localStart,
+                                          stepsPerBeat,
+                                          plan.role,
+                                          plan.stepCount);
             event.velocity = clampi(event.velocity + rng.nextInt(-4, 4), 52, 124);
             out.events[static_cast<std::size_t>(out.count++)] = event;
         }
@@ -694,7 +761,13 @@ void generatePhraseEvents(PhraseEventList& out,
         NoteEvent event;
         event.startStep = plan.startStep + step;
         event.durationSteps = chooseDuration(controls, plan, rng, available, step, phraseSteps);
-        event.note = noteFromDegree(controls, degree, plan.registerOffset);
+        event.note = applyColorToNote(controls,
+                                      rng,
+                                      noteFromDegree(controls, degree, plan.registerOffset),
+                                      step,
+                                      stepsPerBeat,
+                                      plan.role,
+                                      phraseSteps);
         event.velocity = clampi(static_cast<int>(78.0f + plan.intensity * 28.0f) +
                                     ((step % stepsPerBar) == 0 ? 10 : 0) +
                                     rng.nextInt(-6, 6),
@@ -730,7 +803,7 @@ void buildPhrasePlan(FormState& form, const Controls& controls, const ::downspou
     Rng plannerRng;
     plannerRng.seed(seedMix(controls, form.generationSerial, -1, 0x2c9277b5u));
     const int peakPhrase = clampi(static_cast<int>(std::lround(static_cast<double>(form.phraseCount - 1) *
-                                                               (0.35 + controls.tension * 0.40))),
+                                                               (0.35 + clampf(controls.tension + colorAmount(controls) * 0.12f, 0.0f, 1.0f) * 0.40))),
                                   1,
                                   std::max(1, form.phraseCount - 1));
 
@@ -745,7 +818,7 @@ void buildPhrasePlan(FormState& form, const Controls& controls, const ::downspou
         phrase.rootDegree = roleBaseDegree(phrase.role, plannerRng);
         phrase.registerOffset = phraseRegisterOffset(controls, phrase.role, index, form.phraseCount);
         phrase.intensity = roleIntensity(phrase.role);
-        phrase.motionBias = roleMotionBias(phrase.role, controls.motion);
+        phrase.motionBias = roleMotionBias(phrase.role, clampf(controls.motion + colorAmount(controls) * 0.15f, 0.0f, 1.0f));
     }
 }
 
@@ -790,14 +863,14 @@ void regenerateSinglePhrasePlan(PhrasePlan& phrase,
     Rng rng;
     rng.seed(seedMix(controls, generationSerial, phraseIndex, 0x7f4a7c15u));
     const int peakPhrase = clampi(static_cast<int>(std::lround(static_cast<double>(phraseCount - 1) *
-                                                               (0.35 + controls.tension * 0.40))),
+                                                               (0.35 + clampf(controls.tension + colorAmount(controls) * 0.12f, 0.0f, 1.0f) * 0.40))),
                                   1,
                                   std::max(1, phraseCount - 1));
     phrase.role = chooseRole(controls, rng, phraseIndex, phraseCount, peakPhrase);
     phrase.rootDegree = roleBaseDegree(phrase.role, rng);
     phrase.registerOffset = phraseRegisterOffset(controls, phrase.role, phraseIndex, phraseCount);
     phrase.intensity = roleIntensity(phrase.role);
-    phrase.motionBias = roleMotionBias(phrase.role, controls.motion);
+    phrase.motionBias = roleMotionBias(phrase.role, clampf(controls.motion + colorAmount(controls) * 0.15f, 0.0f, 1.0f));
 }
 
 }  // namespace
@@ -836,6 +909,7 @@ Controls clampControls(const Controls& raw)
     controls.density = clampf(controls.density, 0.0f, 1.0f);
     controls.motion = clampf(controls.motion, 0.0f, 1.0f);
     controls.tension = clampf(controls.tension, 0.0f, 1.0f);
+    controls.color = clampf(controls.color, 0.0f, 1.0f);
     controls.cadence = clampf(controls.cadence, 0.0f, 1.0f);
     controls.reg = clampi(controls.reg, 0, 3);
     controls.registerArc = clampf(controls.registerArc, 0.0f, 1.0f);
@@ -910,6 +984,7 @@ bool structureControlsMatch(const Controls& a, const Controls& b)
            std::fabs(a.density - b.density) < 0.0001f &&
            std::fabs(a.motion - b.motion) < 0.0001f &&
            std::fabs(a.tension - b.tension) < 0.0001f &&
+           std::fabs(a.color - b.color) < 0.0001f &&
            std::fabs(a.cadence - b.cadence) < 0.0001f &&
            a.reg == b.reg &&
            std::fabs(a.registerArc - b.registerArc) < 0.0001f &&

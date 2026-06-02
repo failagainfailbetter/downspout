@@ -63,6 +63,7 @@ std::string serializeControls(const Controls& rawControls)
            "density=" + std::to_string(controls.density) + "\n"
            "motion=" + std::to_string(controls.motion) + "\n"
            "tension=" + std::to_string(controls.tension) + "\n"
+           "color=" + std::to_string(controls.color) + "\n"
            "cadence=" + std::to_string(controls.cadence) + "\n"
            "reg=" + std::to_string(controls.reg) + "\n"
            "register_arc=" + std::to_string(controls.registerArc) + "\n"
@@ -167,6 +168,8 @@ std::optional<Controls> deserializeControls(const std::string& text)
             controls.motion = floatValue;
         } else if (key == "tension" && parseFloat(value, floatValue)) {
             controls.tension = floatValue;
+        } else if (key == "color" && parseFloat(value, floatValue)) {
+            controls.color = floatValue;
         } else if (key == "cadence" && parseFloat(value, floatValue)) {
             controls.cadence = floatValue;
         } else if (key == "reg" && parseInteger(value, intValue)) {

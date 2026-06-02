@@ -71,6 +71,7 @@ std::string serializeControls(const Controls& controls)
            "rhythm_follow=" + std::to_string(controls.rhythm_follow) + "\n"
            "syncopation=" + std::to_string(controls.syncopation) + "\n"
            "consonance=" + std::to_string(controls.consonance) + "\n"
+           "color=" + std::to_string(controls.color) + "\n"
            "embellish=" + std::to_string(controls.embellish) + "\n"
            "regularity=" + std::to_string(controls.regularity) + "\n"
            "reg=" + std::to_string(controls.reg) + "\n"
@@ -127,6 +128,8 @@ std::optional<Controls> deserializeControls(const std::string& text)
             controls.syncopation = floatValue;
         else if (key == "consonance" && parseFloat(value, floatValue))
             controls.consonance = floatValue;
+        else if (key == "color" && parseFloat(value, floatValue))
+            controls.color = floatValue;
         else if (key == "embellish" && parseFloat(value, floatValue))
             controls.embellish = floatValue;
         else if (key == "regularity" && parseFloat(value, floatValue))

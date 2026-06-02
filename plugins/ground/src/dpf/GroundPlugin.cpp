@@ -27,6 +27,7 @@ using downspout::ground::kParamActionNewForm;
 using downspout::ground::kParamActionNewPhrase;
 using downspout::ground::kParamCadence;
 using downspout::ground::kParamChannel;
+using downspout::ground::kParamColor;
 using downspout::ground::kParamDensity;
 using downspout::ground::kParamFormBars;
 using downspout::ground::kParamMotion;
@@ -290,6 +291,13 @@ protected:
             parameter.ranges.max = 1.0f;
             parameter.ranges.def = 0.50f;
             break;
+        case kParamColor:
+            parameter.name = "Color";
+            parameter.symbol = "color";
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
+            break;
         case kParamRegister:
             parameter.name = "Register";
             parameter.symbol = "register";
@@ -411,6 +419,7 @@ protected:
         case kParamDensity: return controls_.density;
         case kParamMotion: return controls_.motion;
         case kParamTension: return controls_.tension;
+        case kParamColor: return controls_.color;
         case kParamCadence: return controls_.cadence;
         case kParamRegister: return static_cast<float>(controls_.reg);
         case kParamRegisterArc: return controls_.registerArc;
@@ -442,6 +451,7 @@ protected:
         case kParamDensity: controls_.density = value; break;
         case kParamMotion: controls_.motion = value; break;
         case kParamTension: controls_.tension = value; break;
+        case kParamColor: controls_.color = value; break;
         case kParamCadence: controls_.cadence = value; break;
         case kParamRegister: controls_.reg = static_cast<int>(value); break;
         case kParamRegisterArc: controls_.registerArc = value; break;

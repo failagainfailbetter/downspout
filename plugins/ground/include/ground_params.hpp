@@ -25,6 +25,7 @@ enum ParameterIndex : std::uint32_t {
     kParamActionMutateCell,
     kParamStatusPhrase,
     kParamStatusRole,
+    kParamColor,
     kParameterCount
 };
 

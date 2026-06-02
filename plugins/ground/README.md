@@ -28,6 +28,10 @@ ties than the first `ground` build.
   How far the line tends to move away from its current degree.
 - `Tension`
   How strongly the form leans toward a later peak and climb behavior.
+- `Color`
+  Adds harmonic and melodic tension. Higher values make phrase roles less
+  static, increase motion on Jazz-capable scales, and allow occasional
+  chromatic pickup notes.
 - `Cadence`
   How strongly the final phrase behaves like a real cadence rather than a soft release.
 - `Register`
@@ -66,8 +70,11 @@ It is supposed to help users think in sections rather than in parameter soup.
 - text state serialization;
 - deterministic core tests;
 - a first DPF-backed `ground.vst3` wrapper target with a custom UI.
-- scale choices now include Lydian, Melodic Minor, and Whole Tone, appended
-  after the original scale IDs so saved-state scale values remain stable.
+- scale choices now include Lydian, Melodic Minor, Whole Tone, Altered,
+  diminished, and bebop colors, appended after the original scale IDs so
+  saved-state scale values remain stable.
+- the `Color` control is serialized and exposed in the UI, defaulting to zero
+  so the original long-form behavior remains the baseline.
 
 Reference docs:
 
