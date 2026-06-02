@@ -55,3 +55,15 @@ color intensity, from inside Mixolydian/bebop behavior toward altered,
 diminished, and whole-tone tension. In other genres it gently increases
 non-root movement, blues/tritone tension, or wider modal motion according to
 the existing genre vocabulary.
+
+## Next Steps
+
+- Validate `bassgen` Jazz and `Color` behavior in a DAW across several seeds,
+  meters, and installed/reloaded plugin states.
+- Consider whether `Color` should be mirrored into `melgen`, `ground`, or
+  `counterpointer` after listening tests confirm the control stays musically
+  useful in `bassgen`.
+- Decide whether Jazz behavior should remain automatic or gain a second
+  advanced control for dominant-color range after real host use.
+- Add audio/MIDI example fixtures once the preferred Jazz behavior is stable
+  enough to compare generated output by ear and by deterministic event tests.

@@ -165,7 +165,8 @@ Current main gap:
 - DPF is now vendored and all current wrapper targets build successfully.
 - `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `m_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, `ground.vst3`, `floozy.vst3`, `basilico.vst3`, `luma.vst3`, `paunchlad.vst3`, and `lifeform.vst3` bundles.
 - both `install.sh` and `scripts/package-release.sh` are expected to cover the same eighteen-bundle set.
-- the main remaining gaps are host validation across the full plugin set, validating the first tagged GitHub Actions release, and pushing the shared meter/style model further up the musical stack where it improves generator behavior.
+- `bassgen` now has a richer Jazz model with ii-V-I-turnaround roles, dominant color, chord-tone targeting, approaches/enclosures, and a general `Color` control.
+- the main remaining gaps are host validation across the full plugin set, validating the first tagged GitHub Actions release, and pushing the shared meter/style/color model further up the musical stack where it improves generator behavior.
 
 ## Meter direction
 
