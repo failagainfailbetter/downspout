@@ -200,6 +200,9 @@ public:
         values_[kParamFollowDodge] = 0.0f;
         values_[kParamListenChannel] = 10.0f;
         values_[kParamListenNote] = 36.0f;
+        values_[kParamActionNew] = 0.0f;
+        values_[kParamActionNotes] = 0.0f;
+        values_[kParamActionRhythm] = 0.0f;
     }
 
 protected:
@@ -229,6 +232,7 @@ protected:
         const float leftW = width * 0.64f;
         const float rightW = width - leftW - pad * 3.0f;
 
+        updateLayout(width, height);
         drawSliderPanel(pad, contentY, leftW, contentH);
         drawRightPanel(pad * 2.0f + leftW, contentY, rightW, contentH, selectorH, buttonH);
 
@@ -245,6 +249,7 @@ protected:
 
         const float x = static_cast<float>(ev.pos.getX());
         const float y = static_cast<float>(ev.pos.getY());
+        updateLayout(static_cast<float>(getWidth()), static_cast<float>(getHeight()));
 
         if (!ev.press) {
             draggingSlider_ = -1;
@@ -297,6 +302,7 @@ protected:
     {
         const float x = static_cast<float>(ev.pos.getX());
         const float y = static_cast<float>(ev.pos.getY());
+        updateLayout(static_cast<float>(getWidth()), static_cast<float>(getHeight()));
 
         for (std::size_t i = 0; i < sliderRects_.size(); ++i) {
             if (sliderRects_[i].contains(x, y)) {
@@ -329,6 +335,51 @@ private:
     int openSelector_ = -1;
 
     static constexpr float kSelectorItemHeight = 24.0f;
+
+    void updateLayout(float width, float height)
+    {
+        const float pad = 20.0f;
+        const float headerH = 72.0f;
+        const float selectorH = 50.0f;
+        const float buttonH = 44.0f;
+        const float contentY = pad + headerH + 18.0f;
+        const float contentH = height - contentY - pad;
+        const float leftW = width * 0.64f;
+        const float rightX = pad * 2.0f + leftW;
+        const float rightW = width - leftW - pad * 3.0f;
+
+        const float innerX = pad + 20.0f;
+        const float innerY = contentY + 52.0f;
+        const float innerW = leftW - 40.0f;
+        const float rowGap = 14.0f;
+        const float rowH = 44.0f;
+        const float colGap = 16.0f;
+        const float colW = (innerW - colGap) * 0.5f;
+
+        for (std::size_t i = 0; i < std::size(kSliders); ++i) {
+            const int col = static_cast<int>(i % 2);
+            const int row = static_cast<int>(i / 2);
+            const float rx = innerX + static_cast<float>(col) * (colW + colGap);
+            const float ry = innerY + static_cast<float>(row) * (rowH + rowGap);
+            sliderRects_[i] = {rx, ry + 18.0f, colW, 22.0f};
+        }
+
+        const float panelBottom = contentY + contentH - 20.0f;
+        float cy = contentY + 54.0f;
+        for (std::size_t i = 0; i < std::size(kSelectors); ++i) {
+            selectorRects_[i] = {rightX + 20.0f, cy, rightW - 40.0f, selectorH};
+            cy += selectorH + 8.0f;
+        }
+
+        cy += 28.0f;
+        const float buttonGap = 8.0f;
+        const float buttonW = (rightW - 40.0f - buttonGap * (static_cast<float>(std::size(kButtons)) - 1.0f))
+            / static_cast<float>(std::size(kButtons));
+        const float drawButtonH = std::min(buttonH, std::max(34.0f, panelBottom - cy));
+        for (std::size_t i = 0; i < std::size(kButtons); ++i) {
+            buttonRects_[i] = {rightX + 20.0f + static_cast<float>(i) * (buttonW + buttonGap), cy, buttonW, drawButtonH};
+        }
+    }
 
     void drawBackground(float width, float height)
     {
@@ -616,10 +667,14 @@ private:
     void triggerButton(int buttonIndex)
     {
         const uint32_t index = kButtons[buttonIndex].index;
+        float value = values_[index] + 1.0f;
+        if (value > 1048576.0f) {
+            value = 1.0f;
+        }
         editParameter(index, true);
-        setParameterValue(index, 1.0f);
-        setParameterValue(index, 0.0f);
+        setParameterValue(index, value);
         editParameter(index, false);
+        values_[index] = value;
         repaint();
     }
 

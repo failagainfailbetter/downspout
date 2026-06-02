@@ -285,25 +285,25 @@ protected:
         case kParamActionNew:
             parameter.name = "New";
             parameter.symbol = "new";
-            parameter.hints = kParameterIsAutomatable|kParameterIsBoolean|kParameterIsInteger|kParameterIsTrigger;
+            parameter.hints = kParameterIsAutomatable|kParameterIsInteger;
             parameter.ranges.min = 0.0f;
-            parameter.ranges.max = 1.0f;
+            parameter.ranges.max = 1048576.0f;
             parameter.ranges.def = 0.0f;
             break;
         case kParamActionNotes:
             parameter.name = "Notes";
             parameter.symbol = "notes";
-            parameter.hints = kParameterIsAutomatable|kParameterIsBoolean|kParameterIsInteger|kParameterIsTrigger;
+            parameter.hints = kParameterIsAutomatable|kParameterIsInteger;
             parameter.ranges.min = 0.0f;
-            parameter.ranges.max = 1.0f;
+            parameter.ranges.max = 1048576.0f;
             parameter.ranges.def = 0.0f;
             break;
         case kParamActionRhythm:
             parameter.name = "Rhythm";
             parameter.symbol = "rhythm";
-            parameter.hints = kParameterIsAutomatable|kParameterIsBoolean|kParameterIsInteger|kParameterIsTrigger;
+            parameter.hints = kParameterIsAutomatable|kParameterIsInteger;
             parameter.ranges.min = 0.0f;
-            parameter.ranges.max = 1.0f;
+            parameter.ranges.max = 1048576.0f;
             parameter.ranges.def = 0.0f;
             break;
         }
@@ -350,10 +350,9 @@ protected:
         case kParamFollowDodge: return controls_.followDodge * 100.0f;
         case kParamListenChannel: return static_cast<float>(controls_.listenChannel);
         case kParamListenNote: return static_cast<float>(controls_.listenNote);
-        case kParamActionNew:
-        case kParamActionNotes:
-        case kParamActionRhythm:
-            return 0.0f;
+        case kParamActionNew: return static_cast<float>(controls_.actionNew);
+        case kParamActionNotes: return static_cast<float>(controls_.actionNotes);
+        case kParamActionRhythm: return static_cast<float>(controls_.actionRhythm);
         default:
             return 0.0f;
         }
@@ -379,9 +378,9 @@ protected:
         case kParamFollowDodge: controls_.followDodge = value / 100.0f; break;
         case kParamListenChannel: controls_.listenChannel = static_cast<int>(value); break;
         case kParamListenNote: controls_.listenNote = static_cast<int>(value); break;
-        case kParamActionNew: if (value > 0.5f) ++controls_.actionNew; break;
-        case kParamActionNotes: if (value > 0.5f) ++controls_.actionNotes; break;
-        case kParamActionRhythm: if (value > 0.5f) ++controls_.actionRhythm; break;
+        case kParamActionNew: controls_.actionNew = static_cast<int>(value); break;
+        case kParamActionNotes: controls_.actionNotes = static_cast<int>(value); break;
+        case kParamActionRhythm: controls_.actionRhythm = static_cast<int>(value); break;
         }
 
         controls_ = downspout::bassgen::clampControls(controls_);

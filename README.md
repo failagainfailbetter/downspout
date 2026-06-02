@@ -7,6 +7,19 @@ The repository is organized around portable C++ cores, deterministic tests, thin
 DPF wrappers, and custom NanoVG UIs. VST3 metadata is normalized across the
 plugins with creator `danja`, group `Downspout`, and plugin-specific categories.
 
+## Install From Releases
+
+Download `downspout-<version>-linux-x86_64-vst3.zip` from GitHub Releases,
+unpack it, and copy the `.vst3` bundles into `~/.vst3`:
+
+```bash
+mkdir -p ~/.vst3
+cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 m_mix.vst3 melgen.vst3 rift.vst3 drumgen.vst3 drumkit.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 floozy.vst3 basilico.vst3 luma.vst3 paunchlad.vst3 lifeform.vst3 ~/.vst3/
+```
+
+See [docs/install.md](docs/install.md) and [docs/release.md](docs/release.md)
+for the local install and release packaging details.
+
 ## Build and Install
 
 For local development installs:
@@ -28,19 +41,6 @@ DOWNSPOUT_RUN_TESTS=0 ./install.sh
 After reinstalling, restart your DAW or force a VST3 rescan. Some hosts cache
 plugin names, makers, categories, and homepage metadata independently of the
 installed bundle.
-
-## Install From Releases
-
-Download `downspout-<version>-linux-x86_64-vst3.zip` from GitHub Releases,
-unpack it, and copy the `.vst3` bundles into `~/.vst3`:
-
-```bash
-mkdir -p ~/.vst3
-cp -r bassgen.vst3 p_mix.vst3 e_mix.vst3 m_mix.vst3 melgen.vst3 rift.vst3 drumgen.vst3 drumkit.vst3 cadence.vst3 counterpointer.vst3 gremlin.vst3 gremlin_driver.vst3 ground.vst3 floozy.vst3 basilico.vst3 luma.vst3 paunchlad.vst3 lifeform.vst3 ~/.vst3/
-```
-
-See [docs/install.md](docs/install.md) and [docs/release.md](docs/release.md)
-for the local install and release packaging details.
 
 ## Plugins
 

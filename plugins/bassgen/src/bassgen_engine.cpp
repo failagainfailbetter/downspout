@@ -99,9 +99,14 @@ void handleTransportRestart(EngineState& state, BlockResult& result, double absS
     return ::downspout::Meter {};
 }
 
-void updatePatternIfNeeded(EngineState& state,
-                           const Controls& fresh,
-                           const ::downspout::Meter& targetMeter) {
+struct PatternUpdateResult {
+    bool regenerated = false;
+};
+
+PatternUpdateResult updatePatternIfNeeded(EngineState& state,
+                                          const Controls& fresh,
+                                          const ::downspout::Meter& targetMeter) {
+    PatternUpdateResult result;
     const bool paramsChanged = structuralControlsChanged(fresh, state.previousControls);
     const bool triggerNew = fresh.actionNew != state.previousControls.actionNew;
     const bool triggerNotes = fresh.actionNotes != state.previousControls.actionNotes;
@@ -115,17 +120,21 @@ void updatePatternIfNeeded(EngineState& state,
         regeneratePattern(state.pattern, state.controls, targetMeter, true, true);
         state.patternValid = true;
         resetVariationProgress(state.variation);
+        result.regenerated = true;
     } else if (triggerRhythm) {
         regeneratePattern(state.pattern, state.controls, targetMeter, true, false);
         resetVariationProgress(state.variation);
+        result.regenerated = true;
     } else if (triggerNotes) {
         regeneratePattern(state.pattern, state.controls, targetMeter, false, true);
         resetVariationProgress(state.variation);
+        result.regenerated = true;
     } else if (varyJustEnabled) {
         resetVariationProgress(state.variation);
     }
 
     state.previousControls = fresh;
+    return result;
 }
 
 [[nodiscard]] bool isNoteOn(const InputMidiEvent& event) {
@@ -309,7 +318,7 @@ BlockResult processBlock(EngineState& state,
 
     const Controls freshControls = clampControls(controls);
     const ::downspout::Meter targetMeter = resolvedMeterFor(state, transport);
-    updatePatternIfNeeded(state, freshControls, targetMeter);
+    const PatternUpdateResult patternUpdate = updatePatternIfNeeded(state, freshControls, targetMeter);
     if (std::fabs(state.controls.followDodge) <= 0.001f) {
         state.inputTriggerPending = false;
         state.inputTriggerVelocity = 0;
@@ -331,9 +340,14 @@ BlockResult processBlock(EngineState& state,
     const std::int64_t startStepFloor = static_cast<std::int64_t>(std::floor(absStepsStart + 1e-9));
     std::uint32_t inputIndex = 0;
 
-    if (transportRestartDetected(state.wasPlaying, state.lastTransportStep, startStepFloor)) {
+    const bool restart = transportRestartDetected(state.wasPlaying, state.lastTransportStep, startStepFloor);
+    if (restart) {
         consumeInputUntil(state, midiEvents, midiEventCount, inputIndex, 0);
         handleTransportRestart(state, result, absStepsStart);
+    } else if (patternUpdate.regenerated) {
+        clearActiveNote(state, result, 0);
+        const double localStep = localStepFromAbsolute(state.pattern, absStepsStart);
+        syncNoteStateToPosition(state, result, localStep);
     }
 
     state.wasPlaying = true;

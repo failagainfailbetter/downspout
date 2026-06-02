@@ -62,6 +62,15 @@ bool patternsDiffer(const PatternState& left, const PatternState& right) {
     return false;
 }
 
+bool hasNoteOffFor(const BlockResult& result, const int note) {
+    for (int index = 0; index < result.eventCount; ++index) {
+        if (result.events[index].type == MidiEventType::noteOff && result.events[index].data1 == note) {
+            return true;
+        }
+    }
+    return false;
+}
+
 InputMidiEvent noteOn(std::uint32_t frame, int channel, int note, int velocity = 100) {
     InputMidiEvent event;
     event.frame = frame;
@@ -802,6 +811,48 @@ void testEngineRegeneratesOnMeterChange() {
     assert(engine.pattern.generationSerial > originalSerial);
 }
 
+void testEngineActionCountersRegenerateAndResync() {
+    Controls controls;
+    controls.seed = 91u;
+    controls.lengthBeats = 8;
+    controls.subdivision = SubdivisionId::sixteenth;
+
+    EngineState engine;
+    activate(engine, controls);
+    const int initialSerial = engine.pattern.generationSerial;
+
+    TransportSnapshot transport;
+    transport.valid = true;
+    transport.playing = true;
+    transport.bar = 0.0;
+    transport.barBeat = 1.0;
+    transport.beatsPerBar = 4.0;
+    transport.beatType = 4.0;
+    transport.bpm = 120.0;
+    transport.meter = ::downspout::Meter {};
+
+    engine.wasPlaying = true;
+    engine.lastTransportStep = 4;
+    engine.activeNote = 70;
+
+    controls.actionNew += 1;
+    BlockResult result = processBlock(engine, controls, transport, 128, 48000.0);
+    assert(engine.pattern.generationSerial > initialSerial);
+    assert(hasNoteOffFor(result, 70));
+    const int newSerial = engine.pattern.generationSerial;
+
+    controls.actionNotes += 1;
+    result = processBlock(engine, controls, transport, 128, 48000.0);
+    assert(result.eventCount >= 0);
+    assert(engine.pattern.generationSerial > newSerial);
+    const int notesSerial = engine.pattern.generationSerial;
+
+    controls.actionRhythm += 1;
+    result = processBlock(engine, controls, transport, 128, 48000.0);
+    assert(result.eventCount >= 0);
+    assert(engine.pattern.generationSerial > notesSerial);
+}
+
 }  // namespace
 
 int main() {
@@ -828,5 +879,6 @@ int main() {
     testCompoundMeterGenerationTracksPulseGrid();
     testTripleMeterGenerationTracksSecondaryBeat();
     testEngineRegeneratesOnMeterChange();
+    testEngineActionCountersRegenerateAndResync();
     return 0;
 }
