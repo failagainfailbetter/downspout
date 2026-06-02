@@ -618,6 +618,7 @@ private:
         const uint32_t index = kButtons[buttonIndex].index;
         editParameter(index, true);
         setParameterValue(index, 1.0f);
+        setParameterValue(index, 0.0f);
         editParameter(index, false);
         repaint();
     }
