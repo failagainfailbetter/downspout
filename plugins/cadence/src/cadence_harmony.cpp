@@ -251,13 +251,108 @@ int candidate_out_of_scale_count(const Candidate& candidate, const Controls& con
     return count;
 }
 
+bool is_jazz_scale(int scale) {
+    switch (scale) {
+        case SCALE_MAJOR:
+        case SCALE_DORIAN:
+        case SCALE_MIXOLYDIAN:
+        case SCALE_LYDIAN:
+        case SCALE_MELODIC_MINOR:
+        case SCALE_ALTERED:
+        case SCALE_HALF_WHOLE_DIMINISHED:
+        case SCALE_WHOLE_HALF_DIMINISHED:
+        case SCALE_BEBOP_DOMINANT:
+        case SCALE_BEBOP_MAJOR:
+        case SCALE_BEBOP_MINOR:
+            return true;
+        default:
+            return false;
+    }
+}
+
+double color_amount(const Controls& controls) {
+    const double color = clampd((double)controls.color, 0.0, 1.0);
+    return is_jazz_scale(controls.scale) ? color : color * 0.45;
+}
+
+double jazz_role_bonus(const Candidate& candidate, const Controls& controls) {
+    const double color = color_amount(controls);
+    if (color <= 0.0001) {
+        return 0.0;
+    }
+
+    const int rel = wrap12((int)candidate.root_pc - controls.key);
+    double score = 0.0;
+
+    if (rel == 2 && (candidate.quality == QUALITY_MINOR || candidate.quality == QUALITY_MIN7)) {
+        score += 0.22 + color * 0.42;
+        if (candidate.quality == QUALITY_MIN7) {
+            score += color * 0.26;
+        }
+    } else if (rel == 7 && candidate.quality == QUALITY_DOM7) {
+        score += 0.28 + color * 0.62;
+    } else if (rel == 0 && (candidate.quality == QUALITY_MAJOR || candidate.quality == QUALITY_MAJ7)) {
+        score += 0.16 + color * 0.34;
+        if (candidate.quality == QUALITY_MAJ7) {
+            score += color * 0.24;
+        }
+    } else if (rel == 11 && candidate.quality == QUALITY_DIM) {
+        score += color * 0.42;
+    } else if (rel == 1 && candidate.quality == QUALITY_DOM7) {
+        score += color * 0.30;
+    } else if (rel == 10 && candidate.quality == QUALITY_DOM7) {
+        score += color * 0.22;
+    }
+
+    if (quality_uses_seventh(candidate.quality)) {
+        score += color * 0.16;
+    }
+
+    return score;
+}
+
+double jazz_cadence_position_bonus(const Candidate& candidate,
+                                   const Controls& controls,
+                                   const int segment_index,
+                                   const int segment_count) {
+    const double color = color_amount(controls);
+    if (color <= 0.0001 || segment_count < 3) {
+        return 0.0;
+    }
+
+    const int rel = wrap12((int)candidate.root_pc - controls.key);
+    const int from_end = segment_count - 1 - segment_index;
+    double score = 0.0;
+
+    if (from_end == 0 && rel == 0) {
+        score += 0.45 + color * 0.80;
+        if (candidate.quality == QUALITY_MAJOR || candidate.quality == QUALITY_MAJ7) {
+            score += color * 0.34;
+        }
+    } else if (from_end == 1 && rel == 7) {
+        score += 0.36 + color * 0.72;
+        if (candidate.quality == QUALITY_DOM7) {
+            score += color * 0.46;
+        }
+    } else if (from_end == 2 && rel == 2) {
+        score += 0.30 + color * 0.58;
+        if (candidate.quality == QUALITY_MINOR || candidate.quality == QUALITY_MIN7) {
+            score += color * 0.34;
+        }
+    } else if (from_end == 1 && rel == 1 && candidate.quality == QUALITY_DOM7) {
+        score += color * 0.34;
+    }
+
+    return score;
+}
+
 bool candidate_allowed_by_scale(const Candidate& candidate, const Controls& controls) {
     if (controls.scale == SCALE_CHROMATIC) {
         return true;
     }
 
     const float complexity = clampf(controls.complexity, 0.0f, 1.0f);
-    if (complexity >= 0.78f) {
+    if (complexity + clampf(controls.color, 0.0f, 1.0f) * 0.28f >= 0.78f) {
         return true;
     }
 
@@ -601,6 +696,7 @@ double score_candidate(const SegmentCapture& segment,
         }
         case QUALITY_DIM:
             score -= 0.24 + (1.0 - complexity) * 0.16;
+            score += color_amount(controls) * 0.20;
             score += weights[wrap12(candidate.root_pc + 6)] / (total + 1e-9) * 0.32;
             break;
         case QUALITY_DOM7:
@@ -608,6 +704,7 @@ double score_candidate(const SegmentCapture& segment,
         case QUALITY_MIN7: {
             const int seventh_pc = wrap12(candidate.root_pc + candidate.intervals[3]);
             score -= 0.12 + (1.0 - complexity) * 0.24;
+            score += color_amount(controls) * 0.28;
             score += weights[seventh_pc] / (total + 1e-9) * 0.36;
             break;
         }
@@ -620,6 +717,8 @@ double score_candidate(const SegmentCapture& segment,
         default:
             break;
     }
+
+    score += jazz_role_bonus(candidate, controls);
 
     return score / (total + 1e-9);
 }
@@ -668,7 +767,25 @@ double transition_score(const Candidate& previous,
         score += 0.08 + (1.0 - movement) * 0.08;
     }
     if (next.quality == QUALITY_DIM) {
-        score -= 0.08;
+        score -= 0.08 - color_amount(controls) * 0.12;
+    }
+
+    const double color = color_amount(controls);
+    if (color > 0.0001) {
+        const int prev_rel = wrap12((int)previous.root_pc - controls.key);
+        const int next_rel = wrap12((int)next.root_pc - controls.key);
+        if (prev_rel == 2 && next_rel == 7) {
+            score += color * 0.52;
+        }
+        if (prev_rel == 7 && next_rel == 0) {
+            score += color * 0.68;
+            if (previous.quality == QUALITY_DOM7) {
+                score += color * 0.18;
+            }
+        }
+        if (prev_rel == 1 && previous.quality == QUALITY_DOM7 && next_rel == 0) {
+            score += color * 0.38;
+        }
     }
 
     return score;
@@ -846,8 +963,9 @@ bool cadence_build_progression_from_capture(const SegmentCapture* capture,
         const bool anchored = options.anchor_endpoints && (s == 0 || s == segment_count - 1);
         for (int c = 0; c < candidate_count; ++c) {
             local_scores[s][c] = score_candidate(capture[s], candidates[c], controls);
+            local_scores[s][c] += jazz_cadence_position_bonus(candidates[c], controls, s, segment_count);
             if (!(root_prefs[s].mask & (uint16_t)(1u << candidates[c].root_pc))) {
-                local_scores[s][c] -= 0.18 + (double)controls.movement * 0.86;
+                local_scores[s][c] -= 0.18 + (double)controls.movement * 0.86 - color_amount(controls) * 0.16;
             }
             if (reference_slots && s < reference_count) {
                 local_scores[s][c] += candidate_continuity_bonus(candidates[c],

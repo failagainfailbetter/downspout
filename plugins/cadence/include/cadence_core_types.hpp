@@ -94,6 +94,7 @@ struct Controls {
     int granularity = GRANULARITY_HALF_BAR;
     float complexity = 0.45f;
     float movement = 0.65f;
+    float color = 0.0f;
     int chord_size = CHORD_SIZE_TRIADS;
     float note_length = 1.0f;
     int reg = REGISTER_MID;
@@ -189,6 +190,7 @@ using ScheduledMidiEvent = MidiMessage;
     controls.granularity = clampi(controls.granularity, 0, 2);
     controls.complexity = clampf(controls.complexity, 0.0f, 1.0f);
     controls.movement = clampf(controls.movement, 0.0f, 1.0f);
+    controls.color = clampf(controls.color, 0.0f, 1.0f);
     controls.chord_size = clampi(controls.chord_size, 0, 1);
     controls.note_length = clampf(controls.note_length, 0.10f, 1.0f);
     controls.reg = clampi(controls.reg, 0, 2);
@@ -208,6 +210,7 @@ using ScheduledMidiEvent = MidiMessage;
            a.granularity == b.granularity &&
            (a.complexity - b.complexity < 0.0001f && a.complexity - b.complexity > -0.0001f) &&
            (a.movement - b.movement < 0.0001f && a.movement - b.movement > -0.0001f) &&
+           (a.color - b.color < 0.0001f && a.color - b.color > -0.0001f) &&
            a.chord_size == b.chord_size &&
            a.reg == b.reg &&
            a.spread == b.spread;

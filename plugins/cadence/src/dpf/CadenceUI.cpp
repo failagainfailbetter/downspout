@@ -27,6 +27,7 @@ enum ParameterIndex : uint32_t {
     kParamStatusReady,
     kParamVary,
     kParamComp,
+    kParamColor,
     kParameterCount
 };
 
@@ -66,6 +67,7 @@ struct ButtonDef {
 constexpr SliderDef kSliders[] = {
     {kParamComplexity, "Complexity", 0.0f, 1.0f, false},
     {kParamMovement, "Movement", 0.0f, 1.0f, false},
+    {kParamColor, "Color", 0.0f, 1.0f, false},
     {kParamNoteLength, "Length", 0.10f, 1.0f, false},
     {kParamVary, "Vary", 0.0f, 100.0f, true},
     {kParamComp, "Comp", 0.0f, 100.0f, true},
@@ -178,6 +180,7 @@ public:
         values_[kParamGranularity] = 1.0f;
         values_[kParamComplexity] = 0.45f;
         values_[kParamMovement] = 0.65f;
+        values_[kParamColor] = 0.0f;
         values_[kParamChordSize] = 0.0f;
         values_[kParamNoteLength] = 1.0f;
         values_[kParamRegister] = 1.0f;

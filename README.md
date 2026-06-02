@@ -7,6 +7,8 @@ The repository is organized around portable C++ cores, deterministic tests, thin
 DPF wrappers, and custom NanoVG UIs. VST3 metadata is normalized across the
 plugins with creator `danja`, group `Downspout`, and plugin-specific categories.
 
+[Example of the plugins in use](https://www.youtube.com/watch?v=DrAHdaJolyc) (YouTube)
+
 ## Install From Releases
 
 Download `downspout-<version>-linux-x86_64-vst3.zip` from GitHub Releases,

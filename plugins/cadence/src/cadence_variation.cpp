@@ -22,6 +22,7 @@ uint32_t controls_seed(const Controls& controls) {
     seed ^= (uint32_t)(controls.granularity & 0xFF) << 24;
     seed ^= cadence_mix_u32((uint32_t)lroundf(controls.complexity * 1000.0f));
     seed ^= cadence_mix_u32((uint32_t)lroundf(controls.movement * 1000.0f));
+    seed ^= cadence_mix_u32((uint32_t)lroundf(controls.color * 1000.0f));
     seed ^= cadence_mix_u32((uint32_t)(controls.chord_size & 0xFF) << 1);
     seed ^= cadence_mix_u32((uint32_t)(controls.reg & 0xFF) << 2);
     seed ^= cadence_mix_u32((uint32_t)(controls.spread & 0xFF) << 3);

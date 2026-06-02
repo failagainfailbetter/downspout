@@ -9,7 +9,16 @@ Notable behavior preserved in the current port:
 - voiced chord playback with register and spread controls;
 - optional comp scheduling derived from captured onset timing;
 - cycle-boundary variation driven by the `Vary` control;
+- harmonic color bias driven by the `Color` control, defaulting to zero so
+  earlier behavior remains the baseline until raised;
 - saved state for controls, progression, and variation progress.
+
+Jazz note:
+
+- Cadence still stores four-note chord slots, so extensions above sevenths are
+  not represented literally yet. The current Jazz pass stays inside that state
+  format and uses `Color` to bias candidate scoring toward ii-V-I roles,
+  dominant/diminished tension, tritone-sub approaches, and seventh qualities.
 
 Current wrapper choice:
 

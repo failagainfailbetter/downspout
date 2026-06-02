@@ -57,6 +57,7 @@ std::string serializeControls(const Controls& controls)
            "granularity=" + std::to_string(controls.granularity) + "\n"
            "complexity=" + std::to_string(controls.complexity) + "\n"
            "movement=" + std::to_string(controls.movement) + "\n"
+           "color=" + std::to_string(controls.color) + "\n"
            "chord_size=" + std::to_string(controls.chord_size) + "\n"
            "note_length=" + std::to_string(controls.note_length) + "\n"
            "reg=" + std::to_string(controls.reg) + "\n"
@@ -113,6 +114,10 @@ std::optional<Controls> deserializeControls(const std::string& text)
         else if (key == "movement" && parseFloat(value, floatValue))
         {
             controls.movement = floatValue;
+        }
+        else if (key == "color" && parseFloat(value, floatValue))
+        {
+            controls.color = floatValue;
         }
         else if (key == "chord_size" && parseInteger(value, intValue))
         {

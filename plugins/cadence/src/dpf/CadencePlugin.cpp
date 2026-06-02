@@ -27,6 +27,7 @@ enum ParameterIndex : uint32_t {
     kParamStatusReady,
     kParamVary,
     kParamComp,
+    kParamColor,
     kParameterCount
 };
 
@@ -300,6 +301,13 @@ protected:
             parameter.ranges.max = 100.0f;
             parameter.ranges.def = 0.0f;
             break;
+        case kParamColor:
+            parameter.name = "Color";
+            parameter.symbol = "color";
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
+            break;
         }
     }
 
@@ -343,6 +351,7 @@ protected:
         case kParamOutputChannel: return static_cast<float>(controls_.output_channel);
         case kParamVary: return controls_.vary * 100.0f;
         case kParamComp: return controls_.comp * 100.0f;
+        case kParamColor: return controls_.color;
         case kParamStatusReady: return readyStatus_;
         case kParamActionLearn:
         default:
@@ -369,6 +378,7 @@ protected:
         case kParamActionLearn: if (value > 0.5f) ++controls_.action_learn; break;
         case kParamVary: controls_.vary = value / 100.0f; break;
         case kParamComp: controls_.comp = value / 100.0f; break;
+        case kParamColor: controls_.color = value; break;
         case kParamStatusReady: break;
         }
 

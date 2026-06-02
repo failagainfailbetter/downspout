@@ -34,6 +34,8 @@ reuse the same ideas after the bass behavior is stable.
 - [x] Make Cadence's custom UI expose the expanded scale list explicitly.
 - [x] Mirror the general `Color` idea into `melgen` as melodic tension,
       chromatic approach, and enclosure behavior.
+- [x] Mirror `Color` into `cadence` as learned-harmony tension, ii-V-I bias,
+      seventh preference, and dominant/diminished color.
 
 ## First implementation slice
 
@@ -64,8 +66,14 @@ the existing genre vocabulary.
   meters, and installed/reloaded plugin states.
 - Validate `melgen` Color behavior in a DAW with conservative and high settings
   across inside scales, bebop scales, and altered/diminished scales.
+- Validate `cadence` Color behavior in a DAW using learned cycles with clear,
+  sparse, and ambiguous input material.
+- Plan a larger Cadence chord-extension model before adding true 9ths, 11ths,
+  13ths, altered extensions, or richer voicings. Cadence currently stores
+  four-note chord slots, so this would require a state/model migration rather
+  than only adding UI choices or scoring weights.
 - Consider whether `Color` should be mirrored into `ground` or `counterpointer`
-  after listening tests confirm the melodic version stays musically useful.
+  after listening tests confirm the harmonic version stays musically useful.
 - Decide whether Jazz behavior should remain automatic or gain a second
   advanced control for dominant-color range after real host use.
 - Add audio/MIDI example fixtures once the preferred Jazz behavior is stable

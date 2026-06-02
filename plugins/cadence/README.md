@@ -24,8 +24,12 @@ Implementation status:
 - a host-neutral cadence engine now exists;
 - deterministic cadence core tests now exist and pass;
 - a first DPF-backed `cadence.vst3` wrapper now builds with a custom control UI.
-- scale choices now include Lydian, Melodic Minor, and Whole Tone, appended
-  after the original scale IDs so saved-state scale values remain stable.
+- scale choices now include Lydian, Melodic Minor, Whole Tone, Altered,
+  diminished, and bebop colors, appended after the original scale IDs so
+  saved-state scale values remain stable;
+- the `Color` control adds harmonic tension inside the current four-note chord
+  model, biasing Jazz scales toward ii-V-I motion, stronger V-I resolution,
+  sevenths, dominant color, and diminished/tritone-sub options.
 
 Recommended next steps:
 

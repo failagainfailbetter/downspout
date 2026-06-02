@@ -61,6 +61,7 @@ void testSerializationRoundTrip()
     controls.granularity = GRANULARITY_BAR;
     controls.complexity = 0.72f;
     controls.movement = 0.48f;
+    controls.color = 0.83f;
     controls.chord_size = CHORD_SIZE_SEVENTHS;
     controls.note_length = 0.66f;
     controls.reg = REGISTER_HIGH;
@@ -77,6 +78,7 @@ void testSerializationRoundTrip()
     assert(controlsRoundTrip->scale == SCALE_DORIAN);
     assert(controlsRoundTrip->cycle_bars == 3);
     assert(std::fabs(controlsRoundTrip->note_length - 0.66f) < 1e-6f);
+    assert(std::fabs(controlsRoundTrip->color - 0.83f) < 1e-6f);
     assert(!controlsRoundTrip->pass_input);
     assert(controlsRoundTrip->output_channel == 5);
 
@@ -112,6 +114,41 @@ void testSerializationRoundTrip()
     assert(variationRoundTrip.has_value());
     assert(variationRoundTrip->completed_cycles == 7);
     assert(variationRoundTrip->mutation_serial == 3);
+}
+
+void testHighColorFavorsJazzCadenceRoles()
+{
+    std::array<SegmentCapture, kMaxSegments> capture {};
+    for (int s = 0; s < 4; ++s) {
+        for (int pc = 0; pc < 12; ++pc) {
+            capture[static_cast<std::size_t>(s)].duration[static_cast<std::size_t>(pc)] = 0.02;
+        }
+    }
+
+    Controls controls = defaultControls();
+    controls.key = 0;
+    controls.scale = SCALE_BEBOP_MAJOR;
+    controls.cycle_bars = 1;
+    controls.granularity = GRANULARITY_BEAT;
+    controls.chord_size = CHORD_SIZE_SEVENTHS;
+    controls.complexity = 0.82f;
+    controls.movement = 0.78f;
+    controls.color = 1.0f;
+
+    std::array<ChordSlot, kMaxSegments> slots {};
+    const CadenceBuildOptions options {};
+    const bool built = cadence_build_progression_from_capture(capture.data(), 4, controls, nullptr, 0, options, slots.data());
+
+    assert(built);
+    assert(slots[1].valid);
+    assert(slots[2].valid);
+    assert(slots[3].valid);
+    assert(slots[1].root_pc == 2);
+    assert(slots[1].quality == QUALITY_MIN7 || slots[1].quality == QUALITY_MINOR);
+    assert(slots[2].root_pc == 7);
+    assert(slots[2].quality == QUALITY_DOM7);
+    assert(slots[3].root_pc == 0);
+    assert(slots[3].quality == QUALITY_MAJ7 || slots[3].quality == QUALITY_MAJOR);
 }
 
 void testStoppedTransportPassThrough()
@@ -204,6 +241,7 @@ int main()
 {
     testHarmonyBuildFromCapture();
     testSerializationRoundTrip();
+    testHighColorFavorsJazzCadenceRoles();
     testStoppedTransportPassThrough();
     testEngineLearnsAndEmitsOnNextCycle();
     return 0;
