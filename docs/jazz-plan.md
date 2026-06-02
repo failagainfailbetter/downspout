@@ -27,7 +27,7 @@ reuse the same ideas after the bass behavior is stable.
       and bebop dominant material.
 - [x] Target chord tones explicitly on strong beats, especially roots, thirds,
       fifths, and sevenths.
-- [ ] Add approach-tone and enclosure behavior around chord tones.
+- [x] Add approach-tone and enclosure behavior around chord tones.
 - [ ] Decide whether the UI needs a simple `Jazz Color` control after the core
       model proves useful.
 - [x] Mirror useful Jazz scales into the other plugins that already expose
@@ -49,4 +49,5 @@ These scales are useful immediately as selectable pitch vocabularies. Jazz bars
 now carry explicit chord roles, and dominant bars can choose altered,
 diminished, whole-tone, or bebop dominant color internally. Beat starts now
 prefer root, third, fifth, and seventh targets while late pickup notes handle
-motion into the next bar.
+motion into the next bar. One- and two-subdivision pickups now use chromatic
+approaches and simple above/below enclosures into the next chord-tone target.

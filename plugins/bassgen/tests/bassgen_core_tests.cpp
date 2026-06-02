@@ -339,6 +339,43 @@ void testJazzStrongBeatsTargetChordTones() {
     assert(pitchClassInSet(relativePitchClass(turnaroundSeventh->note, controls.rootNote), kTurnaroundChord, 4));
 }
 
+void testJazzApproachAndEnclosureNotesTargetChordTones() {
+    Controls controls;
+    controls.seed = 1u;
+    controls.genre = GenreId::jazz;
+    controls.scale = ScaleId::major;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.95f;
+    controls.hold = 0.20f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    const NoteEvent* upperEnclosure = eventStartingAt(pattern, 2);
+    const NoteEvent* lowerEnclosure = eventStartingAt(pattern, 3);
+    const NoteEvent* target = eventStartingAt(pattern, 4);
+
+    assert(upperEnclosure != nullptr);
+    assert(lowerEnclosure != nullptr);
+    assert(target != nullptr);
+    assert(relativePitchClass(upperEnclosure->note, controls.rootNote) == 6);
+    assert(relativePitchClass(lowerEnclosure->note, controls.rootNote) == 4);
+    assert(relativePitchClass(target->note, controls.rootNote) == 5);
+
+    controls.seed = 5u;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    const NoteEvent* lowerApproach = eventStartingAt(pattern, 31);
+    const NoteEvent* nextBarRoot = eventStartingAt(pattern, 32);
+
+    assert(lowerApproach != nullptr);
+    assert(nextBarRoot != nullptr);
+    assert(relativePitchClass(lowerApproach->note, controls.rootNote) == 11);
+    assert(relativePitchClass(nextBarRoot->note, controls.rootNote) == 0);
+}
+
 void testJazzScaleIdsAreAppended() {
     assert(static_cast<int>(ScaleId::minor) == 0);
     assert(static_cast<int>(ScaleId::wholeTone) == 13);
@@ -719,6 +756,7 @@ int main() {
     testJazzRoleColorsUseModalChordTones();
     testJazzDominantBarCanUseAlteredColor();
     testJazzStrongBeatsTargetChordTones();
+    testJazzApproachAndEnclosureNotesTargetChordTones();
     testJazzScaleIdsAreAppended();
     testBebopDominantScaleConstrainsGeneratedNotes();
     testStateSanitization();

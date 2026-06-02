@@ -34,8 +34,9 @@ Implementation status:
   Mixolydian/altered, and Major/Lydian color for ordinary scales. Dominant
   bars choose from Mixolydian, altered, half-whole diminished, whole-tone, and
   bebop dominant material, and beat-start notes target roots, thirds, fifths,
-  and sevenths while explicitly selected Jazz color scales remain constrained
-  to their chosen vocabulary;
+  and sevenths. One- and two-subdivision pickups add chromatic approaches and
+  simple enclosures around the next chord-tone target while explicitly selected
+  Jazz color scales remain constrained to their chosen vocabulary;
 - incoming MIDI follow/dodge controls are wired through the wrapper, core, and
   UI.
 
