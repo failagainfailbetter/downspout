@@ -100,6 +100,23 @@ void testStoppedTransportPassThrough()
     assert(result.events[0].data[1] == 60);
 }
 
+void testRunningTransportPassThroughBeforePhraseReady()
+{
+    EngineState state;
+    activate(state);
+
+    Controls controls = defaultControls();
+    controls.cycle_bars = 1;
+    controls.pass_input = true;
+    const InputMidiEvent event = makeEvent(0, 0x90, 64, 100);
+
+    const BlockResult result = processBlock(state, controls, runningTransport(0.0), 256, 48000.0, &event, 1);
+    assert(!result.ready);
+    assert(result.eventCount == 1);
+    assert(result.events[0].data[0] == 0x90);
+    assert(result.events[0].data[1] == 64);
+}
+
 void testSerializationRoundTrip()
 {
     Controls controls = defaultControls();
@@ -228,6 +245,52 @@ void testLearnsIncomingPatternAndEmitsCounterMelody()
     assert((playback.events[0].data[0] & 0x0f) == 1 || playback.eventCount > 1);
 }
 
+void testLearnsIncomingPatternAcrossHostBlocks()
+{
+    EngineState state;
+    activate(state);
+
+    Controls controls = defaultControls();
+    controls.cycle_bars = 1;
+    controls.granularity = GRANULARITY_BEAT;
+    controls.pass_input = false;
+    controls.density = 1.0f;
+    controls.rhythm_follow = 0.8f;
+
+    constexpr std::uint32_t beatFrames = 24000;
+    const std::array<InputMidiEvent, 2> beat0 = {{
+        makeEvent(0, 0x90, 48, 100),
+        makeEvent(12000, 0x80, 48, 0),
+    }};
+    const std::array<InputMidiEvent, 2> beat1 = {{
+        makeEvent(0, 0x90, 50, 96),
+        makeEvent(12000, 0x80, 50, 0),
+    }};
+    const std::array<InputMidiEvent, 2> beat2 = {{
+        makeEvent(0, 0x90, 52, 96),
+        makeEvent(12000, 0x80, 52, 0),
+    }};
+    const std::array<InputMidiEvent, 2> beat3 = {{
+        makeEvent(0, 0x90, 55, 104),
+        makeEvent(12000, 0x80, 55, 0),
+    }};
+
+    BlockResult result = processBlock(state, controls, runningTransport(0.0, 0.0), beatFrames, 48000.0, beat0.data(), beat0.size());
+    assert(!result.ready);
+    result = processBlock(state, controls, runningTransport(0.0, 1.0), beatFrames, 48000.0, beat1.data(), beat1.size());
+    assert(!result.ready);
+    result = processBlock(state, controls, runningTransport(0.0, 2.0), beatFrames, 48000.0, beat2.data(), beat2.size());
+    assert(!result.ready);
+    result = processBlock(state, controls, runningTransport(0.0, 3.0), beatFrames, 48000.0, beat3.data(), beat3.size());
+    assert(result.ready);
+    assert(state.playbackPhrase.ready);
+
+    const BlockResult playback =
+        processBlock(state, controls, runningTransport(1.0), beatFrames, 48000.0, nullptr, 0);
+    assert(playback.ready);
+    assert(hasNoteOn(playback));
+}
+
 void testDeterministicForSameInput()
 {
     Controls controls = defaultControls();
@@ -340,8 +403,10 @@ int main()
 {
     testTransportHelpers();
     testStoppedTransportPassThrough();
+    testRunningTransportPassThroughBeforePhraseReady();
     testSerializationRoundTrip();
     testLearnsIncomingPatternAndEmitsCounterMelody();
+    testLearnsIncomingPatternAcrossHostBlocks();
     testDeterministicForSameInput();
     testEmbellishCanOutnumberInputNotes();
     testFreezeKeepsLearnedPhrase();

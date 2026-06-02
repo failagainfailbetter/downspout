@@ -32,6 +32,11 @@ transport-synced cycle.
 - `register`, `span`, `gate`, `velocity_follow`: output voice shaping.
 - `pass_input`, `output_channel`: wrapper-facing MIDI routing behavior.
 
+The wrapper exposes live `MIDI In` and `MIDI Out` status parameters in addition
+to phrase readiness. These are diagnostic UI signals: `MIDI In` confirms that
+the host send reaches Counterpointer, while `MIDI Out` confirms either input
+pass-through or generated counter-melody events leaving the plugin.
+
 ## Algorithm
 
 Each cycle builds segment captures from incoming MIDI. At the next cycle

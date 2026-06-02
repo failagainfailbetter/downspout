@@ -23,3 +23,16 @@ Current status:
 - a first DPF-backed `counterpointer.vst3` wrapper and custom UI exist.
 - scale choices now include Lydian, Melodic Minor, and Whole Tone, appended
   after the original scale IDs so saved-state scale values remain stable.
+- the UI reports separate `MIDI In`, `MIDI Out`, and phrase-ready status so
+  host routing can be checked before the learned counter-melody starts.
+
+Routing notes:
+
+- with `Pass` enabled, incoming MIDI is forwarded immediately, including while
+  transport is stopped or before a phrase is ready;
+- Counterpointer generates its own counter-melody only after transport is
+  running and a full `BARS` cycle of incoming MIDI has been captured;
+- if `MIDI In` lights but `MIDI Out` does not, the plugin is receiving the send
+  and is probably still learning, muted by density, or not routed onward;
+- if `MIDI In` never lights, the problem is upstream host routing rather than
+  the learned phrase model.

@@ -35,6 +35,8 @@ enum ParameterIndex : uint32_t {
     kParamFreeze,
     kParamActionLearn,
     kParamStatusReady,
+    kParamStatusInput,
+    kParamStatusOutput,
     kParameterCount
 };
 
@@ -261,6 +263,22 @@ protected:
             parameter.ranges.max = 1.0f;
             parameter.ranges.def = 0.0f;
             break;
+        case kParamStatusInput:
+            parameter.name = "MIDI Input Activity";
+            parameter.symbol = "status_midi_input";
+            parameter.hints = kParameterIsOutput;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
+            break;
+        case kParamStatusOutput:
+            parameter.name = "MIDI Output Activity";
+            parameter.symbol = "status_midi_output";
+            parameter.hints = kParameterIsOutput;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
+            break;
         }
     }
 
@@ -312,6 +330,8 @@ protected:
         case kParamOutputChannel: return static_cast<float>(controls_.output_channel);
         case kParamFreeze: return controls_.freeze ? 1.0f : 0.0f;
         case kParamStatusReady: return readyStatus_;
+        case kParamStatusInput: return midiInputStatus_;
+        case kParamStatusOutput: return midiOutputStatus_;
         case kParamActionLearn:
         default:
             return 0.0f;
@@ -345,6 +365,8 @@ protected:
         case kParamFreeze: controls_.freeze = value >= 0.5f; break;
         case kParamActionLearn: if (value > 0.5f) ++controls_.action_learn; break;
         case kParamStatusReady: break;
+        case kParamStatusInput: break;
+        case kParamStatusOutput: break;
         }
 
         controls_ = downspout::counterpointer::clampControls(controls_);
@@ -427,6 +449,13 @@ protected:
                                                     inputEvents.data(),
                                                     eventCount);
 
+        const float decay = static_cast<float>(frames) / static_cast<float>(std::max(1.0, getSampleRate()) * 0.20);
+        midiInputStatus_ = std::max(0.0f, midiInputStatus_ - decay);
+        midiOutputStatus_ = std::max(0.0f, midiOutputStatus_ - decay);
+        if (eventCount > 0)
+            midiInputStatus_ = 1.0f;
+        if (result.eventCount > 0)
+            midiOutputStatus_ = 1.0f;
         readyStatus_ = result.ready ? 1.0f : 0.0f;
 
         for (int i = 0; i < result.eventCount; ++i)
@@ -437,6 +466,8 @@ private:
     CoreControls controls_ {};
     CoreEngineState engine_ {};
     float readyStatus_ = 0.0f;
+    float midiInputStatus_ = 0.0f;
+    float midiOutputStatus_ = 0.0f;
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CounterpointerPlugin)
 };

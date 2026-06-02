@@ -35,6 +35,8 @@ enum ParameterIndex : uint32_t {
     kParamFreeze,
     kParamActionLearn,
     kParamStatusReady,
+    kParamStatusInput,
+    kParamStatusOutput,
     kParameterCount
 };
 
@@ -189,6 +191,8 @@ public:
         values_[kParamOutputChannel] = 0.0f;
         values_[kParamFreeze] = 0.0f;
         values_[kParamStatusReady] = 0.0f;
+        values_[kParamStatusInput] = 0.0f;
+        values_[kParamStatusOutput] = 0.0f;
 
        #ifdef DGL_NO_SHARED_RESOURCES
         createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
@@ -342,7 +346,10 @@ private:
         fillColor(166, 184, 178, 255);
         text(x + 26.0f, y + 56.0f, "Learns incoming MIDI and answers with a transport-locked counter-melody", nullptr);
 
-        drawReadyPill(x + w - 210.0f, y + 22.0f, 184.0f, 32.0f, values_[kParamStatusReady] >= 0.5f);
+        const float pillY = y + 22.0f;
+        drawReadyPill(x + w - 394.0f, pillY, 154.0f, 32.0f, values_[kParamStatusReady] >= 0.5f);
+        drawActivityPill(x + w - 226.0f, pillY, 96.0f, 32.0f, "MIDI In", values_[kParamStatusInput]);
+        drawActivityPill(x + w - 116.0f, pillY, 96.0f, 32.0f, "MIDI Out", values_[kParamStatusOutput]);
     }
 
     void drawReadyPill(const float x, const float y, const float w, const float h, const bool ready)
@@ -360,6 +367,42 @@ private:
         textAlign(ALIGN_CENTER | ALIGN_MIDDLE);
         fillColor(ready ? 204 : 236, ready ? 247 : 198, ready ? 222 : 166, 255);
         text(x + w * 0.5f, y + h * 0.5f + 1.0f, ready ? "Phrase Ready" : "Listening", nullptr);
+    }
+
+    void drawActivityPill(const float x,
+                          const float y,
+                          const float w,
+                          const float h,
+                          const char* label,
+                          const float activity)
+    {
+        const float level = clampf(activity, 0.0f, 1.0f);
+
+        beginPath();
+        roundedRect(x, y, w, h, h * 0.5f);
+        fillColor(38, 52, 54, 70);
+        fill();
+        strokeColor(70 + static_cast<int>(level * 90.0f),
+                    92 + static_cast<int>(level * 120.0f),
+                    96 + static_cast<int>(level * 62.0f),
+                    180);
+        strokeWidth(1.2f);
+        stroke();
+        closePath();
+
+        beginPath();
+        circle(x + 17.0f, y + h * 0.5f, 5.0f);
+        fillColor(83 + static_cast<int>(level * 122.0f),
+                  97 + static_cast<int>(level * 135.0f),
+                  101 + static_cast<int>(level * 55.0f),
+                  255);
+        fill();
+        closePath();
+
+        fontSize(11.0f);
+        textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
+        fillColor(206, 221, 216, 255);
+        text(x + 28.0f, y + h * 0.5f + 1.0f, label, nullptr);
     }
 
     void drawSliders(const float x, const float y, const float w, const float h)
