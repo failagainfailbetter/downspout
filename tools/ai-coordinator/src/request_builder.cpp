@@ -55,6 +55,7 @@ std::string buildSoloRequestJson(const TuneState& state)
     out << "    \"Return only JSON matching response_schema.\",\n";
     out << "    \"Use beat positions relative to the phrase start.\",\n";
     out << "    \"Keep events monophonic, sorted, and inside the phrase length.\",\n";
+    out << "    \"Keep note values inside tune_state.register_low and tune_state.register_high.\",\n";
     out << "    \"Prefer guide pitch classes on strong beats when supplied.\"\n";
     out << "  ],\n";
     out << "  \"tune_state\": ";

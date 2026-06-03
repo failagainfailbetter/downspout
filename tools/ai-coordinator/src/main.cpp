@@ -20,19 +20,36 @@ void printUsage()
         << "  downspout-ai-coordinator build-request-from-midi source.mid --out request.json\n"
         << "  downspout-ai-coordinator render-response response.json --out solo.mid [--phrase phrase.txt] [--state state.json]\n"
         << "  downspout-ai-coordinator openai state.json --out solo.mid [--phrase phrase.txt] [--raw raw.json]\n"
-        << "  downspout-ai-coordinator openai-from-midi source.mid --out solo.mid [--phrase phrase.txt] [--raw raw.json]\n";
+        << "  downspout-ai-coordinator openai-from-midi source.mid --out solo.mid [--phrase phrase.txt] [--raw raw.json]\n"
+        << "  downspout-ai-coordinator serve [--port 37371]\n";
 }
 
 }  // namespace
 
 int main(const int argc, char** argv)
 {
+    downspout::ai_coordinator::loadCoordinatorEnvironment();
+
     if (argc < 2 || std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h") {
         printUsage();
         return argc < 2 ? 1 : 0;
     }
 
     const std::string command = argv[1];
+    if (command == "serve") {
+        int port = 37371;
+        for (int i = 2; i < argc; ++i) {
+            const std::string arg = argv[i];
+            if (arg == "--port" && i + 1 < argc) {
+                port = std::stoi(argv[++i]);
+            } else {
+                std::cerr << "unknown or incomplete argument: " << arg << '\n';
+                return 1;
+            }
+        }
+        return downspout::ai_coordinator::runLiveServer(port);
+    }
+
     if (command != "generate" && command != "generate-from-midi" &&
         command != "analyze-midi" && command != "build-request" &&
         command != "build-request-from-midi" && command != "render-response" &&
@@ -168,13 +185,15 @@ int main(const int argc, char** argv)
             return 1;
         }
 
+        const downspout::sidecar::Phrase constrainedPhrase =
+            downspout::ai_coordinator::constrainPhraseToTuneState(*phrase, *state);
         const downspout::sidecar::Controls controls = downspout::ai_coordinator::controlsFromTuneState(*state);
-        if (!downspout::sidecar::validatePhrase(*phrase, controls).valid) {
+        if (!downspout::sidecar::validatePhrase(constrainedPhrase, controls).valid) {
             std::cerr << "OpenAI phrase is outside the requested state constraints\n";
             return 1;
         }
 
-        if (!downspout::ai_coordinator::writeMidiFile(outputPath, *phrase, state->tempo, state->channel, phrase->beatsPerBar)) {
+        if (!downspout::ai_coordinator::writeMidiFile(outputPath, constrainedPhrase, state->tempo, state->channel, constrainedPhrase.beatsPerBar)) {
             std::cerr << "could not write MIDI file: " << outputPath << '\n';
             return 1;
         }
@@ -184,9 +203,9 @@ int main(const int argc, char** argv)
                 std::cerr << "could not write phrase file: " << phrasePath << '\n';
                 return 1;
             }
-            phraseOutput << downspout::sidecar::serializePhrase(*phrase);
+            phraseOutput << downspout::sidecar::serializePhrase(constrainedPhrase);
         }
-        std::cout << "wrote " << outputPath << " with " << phrase->eventCount << " OpenAI events\n";
+        std::cout << "wrote " << outputPath << " with " << constrainedPhrase.eventCount << " OpenAI events\n";
         return 0;
     }
 

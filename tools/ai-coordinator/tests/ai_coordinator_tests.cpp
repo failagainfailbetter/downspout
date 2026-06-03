@@ -185,6 +185,34 @@ void testBuildSoloRequest()
             "request should include response schema");
 }
 
+void testConstrainPhraseToTuneState()
+{
+    downspout::ai_coordinator::TuneState state {};
+    state.bars = 1;
+    state.beatsPerBar = 4;
+    state.registerLow = 60;
+    state.registerHigh = 72;
+
+    downspout::sidecar::Phrase phrase {};
+    phrase.bars = 4;
+    phrase.beatsPerBar = 4;
+    phrase.eventCount = 3;
+    phrase.events[0] = {0.0f, 1.0f, 58, 90};
+    phrase.events[1] = {0.5f, 1.0f, 76, 88};
+    phrase.events[2] = {4.5f, 1.0f, 64, 82};
+
+    const downspout::sidecar::Phrase constrained =
+        downspout::ai_coordinator::constrainPhraseToTuneState(phrase, state);
+    const downspout::sidecar::Controls controls = downspout::ai_coordinator::controlsFromTuneState(state);
+    require(downspout::sidecar::validatePhrase(constrained, controls).valid,
+            "constrained phrase should validate");
+    require(constrained.eventCount == 2, "events outside the phrase should be dropped");
+    require(constrained.events[0].note >= 60 && constrained.events[0].note <= 72,
+            "low note should be folded into register");
+    require(constrained.events[1].beat >= constrained.events[0].beat + constrained.events[0].duration,
+            "overlap should be removed");
+}
+
 }  // namespace
 
 int main()
@@ -196,6 +224,7 @@ int main()
     testSerializeTuneStateRoundTrip();
     testPhraseResponseValidation();
     testBuildSoloRequest();
+    testConstrainPhraseToTuneState();
     std::cout << "ai coordinator tests passed\n";
     return 0;
 }

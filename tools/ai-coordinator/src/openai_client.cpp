@@ -22,7 +22,9 @@ namespace {
     return text.substr(first, last - first + 1);
 }
 
-void loadDotEnv()
+}  // namespace
+
+void loadCoordinatorEnvironment()
 {
     if (std::getenv("OPENAI_API_KEY") != nullptr)
         return;
@@ -53,6 +55,15 @@ void loadDotEnv()
         }
     }
 }
+
+bool hasOpenAiApiKey()
+{
+    loadCoordinatorEnvironment();
+    const char* apiKey = std::getenv("OPENAI_API_KEY");
+    return apiKey != nullptr && *apiKey != '\0';
+}
+
+namespace {
 
 [[nodiscard]] std::string jsonEscape(const std::string& text)
 {
@@ -223,7 +234,7 @@ std::optional<downspout::sidecar::Phrase> requestOpenAiPhrase(const TuneState& s
                                                               std::string* rawResponse,
                                                               std::string* extractedText)
 {
-    loadDotEnv();
+    loadCoordinatorEnvironment();
     const char* apiKey = std::getenv("OPENAI_API_KEY");
     if (apiKey == nullptr || *apiKey == '\0')
         return std::nullopt;

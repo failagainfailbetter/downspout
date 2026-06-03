@@ -3,6 +3,7 @@
 #include "sidecar_protocol.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cctype>
 #include <cstdlib>
@@ -132,6 +133,81 @@ std::optional<downspout::sidecar::Phrase> loadPhraseResponseJson(const std::stri
     std::ostringstream buffer;
     buffer << input.rdbuf();
     return parsePhraseResponseJson(buffer.str());
+}
+
+downspout::sidecar::Phrase constrainPhraseToTuneState(const downspout::sidecar::Phrase& rawPhrase,
+                                                      const TuneState& rawState)
+{
+    TuneState state = rawState;
+    state.bars = clampi(state.bars, 1, 8);
+    state.beatsPerBar = clampi(state.beatsPerBar, 1, 12);
+    state.registerLow = clampi(state.registerLow, 0, 127);
+    state.registerHigh = clampi(state.registerHigh, 0, 127);
+    if (state.registerHigh < state.registerLow)
+        std::swap(state.registerLow, state.registerHigh);
+
+    std::array<downspout::sidecar::PhraseEvent, downspout::sidecar::kMaxPhraseEvents> events = rawPhrase.events;
+    const int rawCount = clampi(rawPhrase.eventCount, 0, downspout::sidecar::kMaxPhraseEvents);
+    std::stable_sort(events.begin(), events.begin() + rawCount, [](const auto& left, const auto& right) {
+        return left.beat < right.beat;
+    });
+
+    downspout::sidecar::Phrase phrase {};
+    phrase.version = downspout::sidecar::kPhraseStateVersion;
+    phrase.bars = state.bars;
+    phrase.beatsPerBar = state.beatsPerBar;
+
+    const float totalBeats = static_cast<float>(phrase.bars * phrase.beatsPerBar);
+    float previousEnd = 0.0f;
+    for (int i = 0; i < rawCount; ++i) {
+        downspout::sidecar::PhraseEvent event = events[static_cast<std::size_t>(i)];
+        event.beat = std::max(0.0f, event.beat);
+        if (event.beat < previousEnd)
+            event.beat = previousEnd;
+        if (event.beat >= totalBeats)
+            continue;
+
+        event.duration = std::max(0.05f, event.duration);
+        event.duration = std::min(event.duration, totalBeats - event.beat);
+        if (event.duration <= 0.01f)
+            continue;
+
+        while (event.note < state.registerLow && event.note + 12 <= state.registerHigh)
+            event.note += 12;
+        while (event.note > state.registerHigh && event.note - 12 >= state.registerLow)
+            event.note -= 12;
+        event.note = clampi(event.note, state.registerLow, state.registerHigh);
+        event.velocity = clampi(event.velocity, 1, 127);
+
+        phrase.events[static_cast<std::size_t>(phrase.eventCount++)] = event;
+        previousEnd = event.beat + event.duration;
+        if (phrase.eventCount >= downspout::sidecar::kMaxPhraseEvents)
+            break;
+    }
+
+    return phrase;
+}
+
+std::string serializePhraseResponseJson(const downspout::sidecar::Phrase& phrase)
+{
+    std::ostringstream out;
+    out << "{";
+    out << "\"version\":" << downspout::sidecar::kPhraseStateVersion << ',';
+    out << "\"bars\":" << phrase.bars << ',';
+    out << "\"beats_per_bar\":" << phrase.beatsPerBar << ',';
+    out << "\"events\":[";
+    for (int i = 0; i < phrase.eventCount; ++i) {
+        if (i > 0)
+            out << ',';
+        const downspout::sidecar::PhraseEvent& event = phrase.events[static_cast<std::size_t>(i)];
+        out << "{\"beat\":" << event.beat
+            << ",\"duration\":" << event.duration
+            << ",\"note\":" << event.note
+            << ",\"velocity\":" << event.velocity
+            << '}';
+    }
+    out << "]}";
+    return out.str();
 }
 
 }  // namespace downspout::ai_coordinator

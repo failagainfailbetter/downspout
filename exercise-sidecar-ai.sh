@@ -21,6 +21,9 @@ response_phrase_txt="$out_dir/sidecar-response-render-phrase.txt"
 openai_midi="$out_dir/sidecar-openai.mid"
 openai_phrase_txt="$out_dir/sidecar-openai-phrase.txt"
 openai_raw_json="$out_dir/sidecar-openai-raw.json"
+openai_from_midi_midi="$out_dir/sidecar-openai-from-midi.mid"
+openai_from_midi_phrase_txt="$out_dir/sidecar-openai-from-midi-phrase.txt"
+openai_from_midi_raw_json="$out_dir/sidecar-openai-from-midi-raw.json"
 
 if [[ ! -f "$state_file" ]]; then
   echo "Missing state file: $state_file" >&2
@@ -69,6 +72,9 @@ echo "Rendering validated response JSON"
 if [[ "${DOWNSPOUT_RUN_OPENAI:-0}" != "0" ]]; then
   echo "Calling OpenAI for a validated phrase"
   "$coordinator" openai "$state_file" --out "$openai_midi" --phrase "$openai_phrase_txt" --raw "$openai_raw_json"
+
+  echo "Calling OpenAI from analyzed MIDI context"
+  "$coordinator" openai-from-midi "$solo_midi" --out "$openai_from_midi_midi" --phrase "$openai_from_midi_phrase_txt" --raw "$openai_from_midi_raw_json"
 fi
 
 if [[ ! -s "$solo_midi" ]]; then
@@ -111,6 +117,11 @@ if [[ "${DOWNSPOUT_RUN_OPENAI:-0}" != "0" && ! -s "$openai_midi" ]]; then
   exit 1
 fi
 
+if [[ "${DOWNSPOUT_RUN_OPENAI:-0}" != "0" && ! -s "$openai_from_midi_midi" ]]; then
+  echo "Expected non-empty OpenAI-from-MIDI output: $openai_from_midi_midi" >&2
+  exit 1
+fi
+
 echo
 echo "Generated:"
 echo "  MIDI:   $solo_midi"
@@ -126,6 +137,9 @@ if [[ "${DOWNSPOUT_RUN_OPENAI:-0}" != "0" ]]; then
   echo "  OpenAI MIDI:         $openai_midi"
   echo "  OpenAI phrase:       $openai_phrase_txt"
   echo "  OpenAI raw response: $openai_raw_json"
+  echo "  OpenAI from MIDI:    $openai_from_midi_midi"
+  echo "  OpenAI MIDI phrase:  $openai_from_midi_phrase_txt"
+  echo "  OpenAI MIDI raw:     $openai_from_midi_raw_json"
 fi
 
 echo
