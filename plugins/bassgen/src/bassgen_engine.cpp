@@ -20,6 +20,16 @@ namespace {
     return value;
 }
 
+[[nodiscard]] float clampf(const float value, const float minValue, const float maxValue) {
+    if (value < minValue) {
+        return minValue;
+    }
+    if (value > maxValue) {
+        return maxValue;
+    }
+    return value;
+}
+
 void appendMidi(BlockResult& result,
                 MidiEventType type,
                 std::uint32_t frame,
@@ -147,7 +157,17 @@ PatternUpdateResult updatePatternIfNeeded(EngineState& state,
     }
     const int channel = static_cast<int>(event.data[0] & 0x0fu) + 1;
     const int note = static_cast<int>(event.data[1]);
-    return channel == controls.listenChannel && note == controls.listenNote;
+    switch (controls.inputMatchMode) {
+    case InputMatchModeId::exact:
+        return channel == controls.listenChannel && note == controls.listenNote;
+    case InputMatchModeId::channel:
+        return channel == controls.listenChannel;
+    case InputMatchModeId::any:
+        return true;
+    case InputMatchModeId::count:
+        break;
+    }
+    return false;
 }
 
 void consumeInputMidi(EngineState& state, const InputMidiEvent& event) {
@@ -156,6 +176,7 @@ void consumeInputMidi(EngineState& state, const InputMidiEvent& event) {
     }
     state.inputTriggerPending = true;
     state.inputTriggerVelocity = clampi(static_cast<int>(event.data[2]), 1, 127);
+    state.inputTriggerNote = clampi(static_cast<int>(event.data[1]), 0, 127);
 }
 
 void consumeInputUntil(EngineState& state,
@@ -219,6 +240,18 @@ void consumeInputUntil(EngineState& state,
         generated.note = clampi(state.controls.rootNote + registerOffset(state.controls.reg), 0, 127);
         generated.velocity = 96;
     }
+    if (state.inputTriggerNote >= 0 && state.controls.inputMatchMode != InputMatchModeId::exact) {
+        const int octaveTarget = clampi(state.inputTriggerNote + 12, 0, 127);
+        const int fifthTarget = clampi(state.inputTriggerNote + 7, 0, 127);
+        const int guideTarget = std::abs(generated.note - octaveTarget) <= std::abs(generated.note - fifthTarget)
+            ? octaveTarget
+            : fifthTarget;
+        const float sensitivity = clampf(state.controls.inputSensitivity, 0.0f, 1.0f);
+        generated.note = clampi(static_cast<int>(std::lround(static_cast<float>(generated.note) * (1.0f - sensitivity) +
+                                                             static_cast<float>(guideTarget) * sensitivity)),
+                                0,
+                                127);
+    }
     if (state.inputTriggerVelocity > 0) {
         generated.velocity = clampi((generated.velocity + state.inputTriggerVelocity) / 2, 1, 127);
     }
@@ -251,22 +284,23 @@ void processBoundary(EngineState& state,
     }
 
     const NoteEvent* startEvent = findEventStartingAt(state.pattern, localStep);
+    const float responseAmount = std::fabs(state.controls.followDodge) * clampf(state.controls.inputSensitivity, 0.0f, 1.0f);
     if (startEvent) {
         const std::uint32_t onFrame = static_cast<std::uint32_t>(
             clampi(static_cast<int>(frame) + kSafetyGapSamples, 0, static_cast<int>(nframes) - 1));
         const bool dodge = matchedInput && state.controls.followDodge < -0.001f &&
-            chancePasses(state, localStep, -state.controls.followDodge);
+            chancePasses(state, localStep, responseAmount);
         clearActiveNote(state, result, frame);
         if (dodge) {
             return;
         }
         const int velocity = matchedInput && state.controls.followDodge > 0.001f
-            ? clampi(startEvent->velocity + static_cast<int>(std::lround(state.controls.followDodge * 16.0f)), 1, 127)
+            ? clampi(startEvent->velocity + static_cast<int>(std::lround(responseAmount * 16.0f)), 1, 127)
             : startEvent->velocity;
         emitNoteOn(result, state, onFrame, startEvent->note, velocity);
         state.activeNote = startEvent->note;
     } else if (matchedInput && state.controls.followDodge > 0.001f &&
-               chancePasses(state, localStep, state.controls.followDodge)) {
+               chancePasses(state, localStep, responseAmount)) {
         const NoteEvent followEvent = noteForFollowStep(state, localStep);
         const std::uint32_t onFrame = static_cast<std::uint32_t>(
             clampi(static_cast<int>(frame) + kSafetyGapSamples, 0, static_cast<int>(nframes) - 1));
@@ -322,6 +356,7 @@ BlockResult processBlock(EngineState& state,
     if (std::fabs(state.controls.followDodge) <= 0.001f) {
         state.inputTriggerPending = false;
         state.inputTriggerVelocity = 0;
+        state.inputTriggerNote = -1;
         midiEvents = nullptr;
         midiEventCount = 0;
     }

@@ -63,6 +63,8 @@ std::string serializeControls(const Controls& controls) {
     out << "followDodge=" << controls.followDodge << '\n';
     out << "listenChannel=" << controls.listenChannel << '\n';
     out << "listenNote=" << controls.listenNote << '\n';
+    out << "inputMatchMode=" << static_cast<int>(controls.inputMatchMode) << '\n';
+    out << "inputSensitivity=" << controls.inputSensitivity << '\n';
     out << "seed=" << controls.seed << '\n';
     out << "actionNew=" << controls.actionNew << '\n';
     out << "actionNotes=" << controls.actionNotes << '\n';
@@ -149,6 +151,10 @@ std::optional<Controls> deserializeControls(const std::string& text) {
             controls.listenChannel = intValue;
         } else if (key == "listenNote" && parseInteger(value, intValue)) {
             controls.listenNote = intValue;
+        } else if (key == "inputMatchMode" && parseInteger(value, intValue)) {
+            controls.inputMatchMode = static_cast<InputMatchModeId>(intValue);
+        } else if (key == "inputSensitivity" && parseFloat(value, floatValue)) {
+            controls.inputSensitivity = floatValue;
         } else if (key == "seed" && parseInteger(value, uintValue)) {
             controls.seed = uintValue;
         } else if (key == "actionNew" && parseInteger(value, intValue)) {

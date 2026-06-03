@@ -11,7 +11,11 @@ effectively `4/4`. It also now exposes explicit style modes:
 
 The DPF wrapper accepts incoming MIDI as context. The `Follow/Dodge` control
 can make bass notes more likely on incoming drum/bass hits or suppress bass
-notes on those beats, with listen controls for MIDI channel and note focus.
+notes on those beats. `Input Match` chooses whether input must match one exact
+note, any note on the listen channel, or any note at all. `Input Sensitivity`
+scales how strongly that input affects follow/dodge probability and, in channel
+or any-note matching, how far injected follow notes are pulled toward a
+companion interval above the incoming guide pitch.
 The `Color` control adjusts harmonic tension: for Jazz it moves dominant bars
 from inside/bebop material toward altered, diminished, and whole-tone colors,
 for Fugue it adds leading-tone pickup behavior, while other genres use it for
@@ -49,7 +53,8 @@ Implementation status:
   Jazz dominant color, Fugue leading tones, and genre-specific tension choices
   for Funk, Acid, Dub, Ambient, Sabbath, and the electronic styles;
 - incoming MIDI follow/dodge controls are wired through the wrapper, core, and
-  UI.
+  UI, including channel/any-note input matching and input sensitivity for
+  Ground-guided companion lines.
 
 Reference docs:
 

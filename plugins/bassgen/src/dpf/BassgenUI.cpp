@@ -31,6 +31,8 @@ enum ParameterIndex : uint32_t {
     kParamListenChannel,
     kParamListenNote,
     kParamColor,
+    kParamInputMatchMode,
+    kParamInputSensitivity,
     kParameterCount
 };
 
@@ -77,6 +79,7 @@ constexpr SliderDef kSliders[] = {
     {kParamSeed, "Seed", 1.0f, 65535.0f, true},
     {kParamVary, "Vary", 0.0f, 100.0f, true},
     {kParamFollowDodge, "Follow/Dodge", -100.0f, 100.0f, true},
+    {kParamInputSensitivity, "Input Sens", 0.0f, 100.0f, true},
     {kParamListenChannel, "Listen Ch", 1.0f, 16.0f, true},
     {kParamListenNote, "Listen Note", 0.0f, 127.0f, true},
 };
@@ -105,12 +108,17 @@ constexpr const char* kChannelNames[] = {
     "9", "10", "11", "12", "13", "14", "15", "16"
 };
 
+constexpr const char* kInputMatchNames[] = {
+    "Exact", "Channel", "Any"
+};
+
 constexpr SelectorDef kSelectors[] = {
     {kParamScale, "Scale", kScaleNames, 20},
     {kParamGenre, "Genre", kGenreNames, 10},
     {kParamStyleMode, "Style", kStyleNames, 6},
     {kParamSubdivision, "Subdivision", kSubdivisionNames, 3},
     {kParamChannel, "Channel", kChannelNames, 16},
+    {kParamInputMatchMode, "Input", kInputMatchNames, 3},
 };
 
 constexpr ButtonDef kButtons[] = {
@@ -162,6 +170,7 @@ constexpr ButtonDef kButtons[] = {
     case kParamHold:
     case kParamAccent:
     case kParamColor:
+    case kParamInputSensitivity:
         std::snprintf(buf, sizeof(buf), "%.2f", value);
         return buf;
     default:
@@ -198,6 +207,8 @@ public:
         values_[kParamSeed] = 1.0f;
         values_[kParamVary] = 0.0f;
         values_[kParamFollowDodge] = 0.0f;
+        values_[kParamInputMatchMode] = 0.0f;
+        values_[kParamInputSensitivity] = 100.0f;
         values_[kParamListenChannel] = 10.0f;
         values_[kParamListenNote] = 36.0f;
         values_[kParamActionNew] = 0.0f;
@@ -351,8 +362,8 @@ private:
         const float innerX = pad + 20.0f;
         const float innerY = contentY + 52.0f;
         const float innerW = leftW - 40.0f;
-        const float rowGap = 14.0f;
-        const float rowH = 44.0f;
+        const float rowGap = 10.0f;
+        const float rowH = 40.0f;
         const float colGap = 16.0f;
         const float colW = (innerW - colGap) * 0.5f;
 
@@ -449,8 +460,8 @@ private:
         const float innerX = x + 20.0f;
         const float innerY = y + 52.0f;
         const float innerW = w - 40.0f;
-        const float rowGap = 14.0f;
-        const float rowH = 44.0f;
+        const float rowGap = 10.0f;
+        const float rowH = 40.0f;
         const float colGap = 16.0f;
         const float colW = (innerW - colGap) * 0.5f;
 

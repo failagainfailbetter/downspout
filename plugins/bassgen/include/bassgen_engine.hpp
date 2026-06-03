@@ -16,6 +16,7 @@ struct EngineState {
     int activeNote = -1;
     bool inputTriggerPending = false;
     int inputTriggerVelocity = 0;
+    int inputTriggerNote = -1;
     std::int64_t injectedNoteEndBoundary = -1;
     std::int64_t lastTransportStep = -1;
     bool wasPlaying = false;

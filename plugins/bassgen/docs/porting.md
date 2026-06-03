@@ -20,10 +20,12 @@ Current `downspout`-specific port note:
   `Reel`, `Waltz`, `Jig`, and `Slip Jig`, and those modes are implemented in
   the portable pattern generator rather than only as UI labels;
 - incoming MIDI influence is modeled in the portable engine. DPF only enables
-  MIDI input and adapts host `MidiEvent`s into core `InputMidiEvent`s. The
-  response controls listen to one MIDI channel/note, defaulting to channel 10
-  note 36, and use a bipolar follow/dodge amount to either suppress matching
-  bass onsets or inject a short bass note on matching input hits;
+  MIDI input and adapts host `MidiEvent`s into core `InputMidiEvent`s.
+  `Input Match` can require one exact channel/note, any note on the listen
+  channel, or any note. `Input Sensitivity` scales the bipolar follow/dodge
+  response. In channel or any-note matching, matched input pitch is retained so
+  injected follow notes can become a fifth or octave companion above a guide
+  line such as Ground;
 - Jazz is implemented as an appended genre value for state compatibility. It
   adds ii-V-I-turnaround roots, walking beat anchors, explicit chord-role
   targets, dominant color choices, and chromatic approach/enclosure behavior.

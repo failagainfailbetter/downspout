@@ -73,6 +73,13 @@ enum class StyleModeId : std::int32_t {
     count
 };
 
+enum class InputMatchModeId : std::int32_t {
+    exact = 0,
+    channel,
+    any,
+    count
+};
+
 struct Controls {
     int rootNote = 36;
     ScaleId scale = ScaleId::minor;
@@ -90,6 +97,8 @@ struct Controls {
     float followDodge = 0.0f;
     int listenChannel = 10;
     int listenNote = 36;
+    InputMatchModeId inputMatchMode = InputMatchModeId::exact;
+    float inputSensitivity = 1.0f;
     std::uint32_t seed = 1u;
     int actionNew = 0;
     int actionNotes = 0;

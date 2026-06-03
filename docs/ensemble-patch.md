@@ -52,6 +52,26 @@ the same ideas apply in any host that can route MIDI between plugins.
 - M-Mix is different: it is a MIDI gate/effect, so passing or muting incoming
   notes is its main job rather than an auxiliary routing option.
 
+## Guided bass layers
+
+Use this when Ground should own the form but BassGen should add a second
+instrument above it:
+
+1. Route `Ground` MIDI to a low bass instrument.
+2. Also send `Ground` MIDI to `BassGen`'s MIDI input.
+3. Route `BassGen` MIDI to a separate low-mid pluck, muted bass, or continuo
+   instrument.
+
+Useful BassGen settings:
+
+- `Input` set to `Channel`.
+- `Listen Ch` set to Ground's output channel.
+- `Follow/Dodge` positive for companion notes, negative for avoidance.
+- `Input Sens` around 35-60 for gentle interaction, higher for a line that
+  closely follows Ground's pitch contour.
+- Keep BassGen `Register` above Ground, or use a brighter instrument, so the
+  two parts read as guide plus response rather than doubled bass.
+
 ## Fugue/classical patch
 
 Suggested routing:

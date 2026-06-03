@@ -34,6 +34,8 @@ enum ParameterIndex : uint32_t {
     kParamListenChannel,
     kParamListenNote,
     kParamColor,
+    kParamInputMatchMode,
+    kParamInputSensitivity,
     kParameterCount
 };
 
@@ -54,6 +56,12 @@ using CoreInputMidiEvent = downspout::bassgen::InputMidiEvent;
 using CoreTransport = downspout::bassgen::TransportSnapshot;
 using CoreMidiEvent = downspout::bassgen::ScheduledMidiEvent;
 using CoreMidiEventType = downspout::bassgen::MidiEventType;
+
+ParameterEnumerationValue kInputMatchEnumValues[] = {
+    {0.0f, "Exact"},
+    {1.0f, "Channel"},
+    {2.0f, "Any"},
+};
 
 CoreTransport toCoreTransport(const TimePosition& timePos) {
     CoreTransport transport;
@@ -282,6 +290,25 @@ protected:
             parameter.ranges.max = 127.0f;
             parameter.ranges.def = 36.0f;
             break;
+        case kParamInputMatchMode:
+            parameter.name = "Input Match";
+            parameter.symbol = "input_match";
+            parameter.hints |= kParameterIsInteger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 2.0f;
+            parameter.ranges.def = 0.0f;
+            parameter.enumValues.count = static_cast<uint8_t>(std::size(kInputMatchEnumValues));
+            parameter.enumValues.restrictedMode = true;
+            parameter.enumValues.values = kInputMatchEnumValues;
+            parameter.enumValues.deleteLater = false;
+            break;
+        case kParamInputSensitivity:
+            parameter.name = "Input Sensitivity";
+            parameter.symbol = "input_sensitivity";
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 100.0f;
+            parameter.ranges.def = 100.0f;
+            break;
         case kParamActionNew:
             parameter.name = "New";
             parameter.symbol = "new";
@@ -350,6 +377,8 @@ protected:
         case kParamFollowDodge: return controls_.followDodge * 100.0f;
         case kParamListenChannel: return static_cast<float>(controls_.listenChannel);
         case kParamListenNote: return static_cast<float>(controls_.listenNote);
+        case kParamInputMatchMode: return static_cast<float>(static_cast<int>(controls_.inputMatchMode));
+        case kParamInputSensitivity: return controls_.inputSensitivity * 100.0f;
         case kParamActionNew: return static_cast<float>(controls_.actionNew);
         case kParamActionNotes: return static_cast<float>(controls_.actionNotes);
         case kParamActionRhythm: return static_cast<float>(controls_.actionRhythm);
@@ -378,6 +407,8 @@ protected:
         case kParamFollowDodge: controls_.followDodge = value / 100.0f; break;
         case kParamListenChannel: controls_.listenChannel = static_cast<int>(value); break;
         case kParamListenNote: controls_.listenNote = static_cast<int>(value); break;
+        case kParamInputMatchMode: controls_.inputMatchMode = static_cast<downspout::bassgen::InputMatchModeId>(static_cast<int>(value)); break;
+        case kParamInputSensitivity: controls_.inputSensitivity = value / 100.0f; break;
         case kParamActionNew: controls_.actionNew = static_cast<int>(value); break;
         case kParamActionNotes: controls_.actionNotes = static_cast<int>(value); break;
         case kParamActionRhythm: controls_.actionRhythm = static_cast<int>(value); break;
@@ -441,7 +472,7 @@ protected:
     void run(const float**, float**, uint32_t frames, const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
         std::array<CoreInputMidiEvent, downspout::bassgen::kMaxInputMidiEvents> inputEvents {};
-        const bool responseEnabled = std::fabs(controls_.followDodge) > 0.001f;
+        const bool responseEnabled = std::fabs(controls_.followDodge) > 0.001f && controls_.inputSensitivity > 0.001f;
         const uint32_t inputCount = responseEnabled && midiEvents != nullptr
             ? std::min<uint32_t>(midiEventCount, static_cast<uint32_t>(inputEvents.size()))
             : 0u;

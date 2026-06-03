@@ -1464,6 +1464,8 @@ Controls clampControls(const Controls& raw) {
     controls.followDodge = clampf(controls.followDodge, -1.0f, 1.0f);
     controls.listenChannel = clampi(controls.listenChannel, 1, 16);
     controls.listenNote = clampi(controls.listenNote, 0, 127);
+    controls.inputMatchMode = static_cast<InputMatchModeId>(clampi(static_cast<int>(controls.inputMatchMode), 0, static_cast<int>(InputMatchModeId::count) - 1));
+    controls.inputSensitivity = clampf(controls.inputSensitivity, 0.0f, 1.0f);
     controls.actionNew = clampi(controls.actionNew, 0, 1048576);
     controls.actionNotes = clampi(controls.actionNotes, 0, 1048576);
     controls.actionRhythm = clampi(controls.actionRhythm, 0, 1048576);
