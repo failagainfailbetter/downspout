@@ -9,5 +9,6 @@ namespace downspout::sidecar {
 
 [[nodiscard]] std::string serializePhrase(const Phrase& phrase);
 [[nodiscard]] std::optional<Phrase> deserializePhrase(const std::string& text);
+[[nodiscard]] std::optional<Phrase> deserializePhraseJson(const std::string& text);
 
 }  // namespace downspout::sidecar

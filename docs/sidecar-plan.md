@@ -15,9 +15,12 @@ stays realtime-safe and only queues validated MIDI phrases.
 - [x] Add deterministic core tests.
 - [x] Wire CMake build target and root build option.
 - [x] Add coordinator CLI at `tools/ai-coordinator`.
-- [ ] Add OpenAI API client in coordinator.
+- [x] Add OpenAI API client in coordinator.
 - [x] Add `state.json -> solo.mid` workflow.
 - [x] Add offline MIDI-derived tune context in coordinator.
+- [x] Add local phrase-response validation/rendering.
+- [x] Add provider-neutral solo request JSON builder.
+- [x] Add CLI-only OpenAI request path.
 - [ ] Add live MIDI-derived tune context in Sidecar/coordinator.
 - [ ] Add localhost live request/response.
 - [x] Add state summaries for Ground and Cadence.
@@ -86,7 +89,37 @@ This keeps the architecture modular:
 
 - `downspout-ai-coordinator generate-from-midi source.mid --out solo.mid`
   analyzes a Standard MIDI File.
+- `downspout-ai-coordinator analyze-midi source.mid --out state.json` exports
+  the inferred context as hand-editable JSON.
 - The analyzer derives pitch-class guides, approximate key/scale, register,
   density, phrase length, and seed from note events.
 - The deterministic phrase generator uses guide pitch classes from the analyzed
   material when choosing phrase targets.
+
+## Implemented response-validation slice
+
+- `downspout-ai-coordinator render-response response.json --out solo.mid`
+  validates a model-style phrase response from a local JSON file and renders it.
+- The response path rejects invalid timing, overlap, register, note, duration,
+  and velocity through Sidecar phrase validation before writing MIDI.
+
+## Implemented request-builder slice
+
+- `downspout-ai-coordinator build-request state.json --out request.json` writes a
+  provider-neutral solo-generation request.
+- `downspout-ai-coordinator build-request-from-midi source.mid --out request.json`
+  derives MIDI context first, then writes the request.
+- The request includes protocol name, instructions, tune state, guide pitch
+  classes, and a response schema. It does not call any remote API.
+
+## Implemented API client slice
+
+- `downspout-ai-coordinator openai state.json --out solo.mid` calls OpenAI from
+  the coordinator process, never from the plugin.
+- `downspout-ai-coordinator openai-from-midi source.mid --out solo.mid` derives
+  MIDI context first, then calls OpenAI.
+- The API key is loaded from `OPENAI_API_KEY` or `.env` and is not printed.
+- The raw response can be saved with `--raw`, but MIDI is written only after the
+  extracted phrase JSON validates through Sidecar's phrase protocol.
+- `exercise-sidecar-ai.sh` keeps this path opt-in through
+  `DOWNSPOUT_RUN_OPENAI=1` so routine local checks do not spend quota.

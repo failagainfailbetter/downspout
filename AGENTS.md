@@ -1,5 +1,7 @@
 # downspout agent notes
 
+API keys are sacred. They must not be shared.
+
 ## Purpose
 
 `downspout` exists to port selected `flues` LV2 plugins into more broadly usable native plugin formats, with DPF as the current framework candidate and VST3 as the primary initial target.

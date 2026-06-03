@@ -113,6 +113,106 @@ void testAnalyzeMidiFileToTuneState()
     std::remove(path.c_str());
 }
 
+void testSerializeTuneStateRoundTrip()
+{
+    downspout::ai_coordinator::TuneState state {};
+    state.key = 5;
+    state.scale = "mixolydian";
+    state.hasMidiContext = true;
+    state.guidePitchClassCount = 3;
+    state.guidePitchClasses[0] = 5;
+    state.guidePitchClasses[1] = 9;
+    state.guidePitchClasses[2] = 0;
+
+    const std::string json = downspout::ai_coordinator::serializeTuneStateJson(state);
+    const auto roundTrip = downspout::ai_coordinator::parseTuneStateJson(json);
+    require(roundTrip.has_value(), "serialized tune state should parse");
+    require(roundTrip->key == 5, "serialized key should survive");
+    require(roundTrip->scale == "mixolydian", "serialized scale should survive");
+    require(roundTrip->guidePitchClassCount == 3, "guide pitch classes should survive");
+    require(roundTrip->guidePitchClasses[1] == 9, "guide pitch class values should survive");
+}
+
+void testPhraseResponseValidation()
+{
+    const std::string json = R"json({
+      "version": 1,
+      "bars": 2,
+      "beats_per_bar": 4,
+      "events": [
+        {"beat": 0.0, "duration": 0.5, "note": 60, "velocity": 90},
+        {"beat": 1.0, "duration": 0.5, "note": 64, "velocity": 88},
+        {"beat": 2.0, "duration": 0.5, "note": 67, "velocity": 92}
+      ]
+    })json";
+
+    const auto phrase = downspout::ai_coordinator::parsePhraseResponseJson(json);
+    require(phrase.has_value(), "valid phrase response should parse");
+    require(phrase->eventCount == 3, "phrase response event count should parse");
+    require(phrase->events[1].note == 64, "phrase response note should parse");
+
+    const std::string overlap = R"json({
+      "version": 1,
+      "bars": 2,
+      "events": [
+        {"beat": 0.0, "duration": 1.0, "note": 60, "velocity": 90},
+        {"beat": 0.5, "duration": 0.5, "note": 64, "velocity": 88}
+      ]
+    })json";
+    require(!downspout::ai_coordinator::parsePhraseResponseJson(overlap).has_value(),
+            "overlapping phrase response should be rejected");
+}
+
+void testBuildSoloRequest()
+{
+    downspout::ai_coordinator::TuneState state {};
+    state.key = 2;
+    state.scale = "dorian";
+    state.genre = "midi";
+    state.hasMidiContext = true;
+    state.guidePitchClassCount = 2;
+    state.guidePitchClasses[0] = 2;
+    state.guidePitchClasses[1] = 7;
+
+    const std::string request = downspout::ai_coordinator::buildSoloRequestJson(state);
+    require(request.find("\"protocol\": \"downspout.ai_solo.v1\"") != std::string::npos,
+            "request should include protocol");
+    require(request.find("\"tune_state\"") != std::string::npos,
+            "request should include tune state");
+    require(request.find("\"guide_pitch_classes\":[2,7]") != std::string::npos,
+            "request should include guide pitch classes");
+    require(request.find("\"response_schema\"") != std::string::npos,
+            "request should include response schema");
+}
+
+void testConstrainPhraseToTuneState()
+{
+    downspout::ai_coordinator::TuneState state {};
+    state.bars = 1;
+    state.beatsPerBar = 4;
+    state.registerLow = 60;
+    state.registerHigh = 72;
+
+    downspout::sidecar::Phrase phrase {};
+    phrase.bars = 4;
+    phrase.beatsPerBar = 4;
+    phrase.eventCount = 3;
+    phrase.events[0] = {0.0f, 1.0f, 58, 90};
+    phrase.events[1] = {0.5f, 1.0f, 76, 88};
+    phrase.events[2] = {4.5f, 1.0f, 64, 82};
+
+    const downspout::sidecar::Phrase constrained =
+        downspout::ai_coordinator::constrainPhraseToTuneState(phrase, state);
+    const downspout::sidecar::Controls controls = downspout::ai_coordinator::controlsFromTuneState(state);
+    require(downspout::sidecar::validatePhrase(constrained, controls).valid,
+            "constrained phrase should validate");
+    require(constrained.eventCount == 2, "events outside the phrase should be dropped");
+    require(constrained.events[0].note >= 60 && constrained.events[0].note <= 72,
+            "low note should be folded into register");
+    require(constrained.events[1].beat >= constrained.events[0].beat + constrained.events[0].duration,
+            "overlap should be removed");
+}
+
 }  // namespace
 
 int main()
@@ -121,6 +221,10 @@ int main()
     testGeneratePhraseValidates();
     testWriteMidiFile();
     testAnalyzeMidiFileToTuneState();
+    testSerializeTuneStateRoundTrip();
+    testPhraseResponseValidation();
+    testBuildSoloRequest();
+    testConstrainPhraseToTuneState();
     std::cout << "ai coordinator tests passed\n";
     return 0;
 }
