@@ -38,3 +38,30 @@ The first JSON shape is intentionally small and hand-writable:
 No API key, HTTP server, or model call is involved yet. The next step is to
 replace the deterministic generator with validated OpenAI output while keeping
 the MIDI writer and phrase validation path unchanged.
+
+## MIDI-First Context
+
+The coordinator should primarily derive tune context from MIDI routed to
+Sidecar or captured into a local request file. That keeps the system modular:
+any existing plugin, external sequencer, hardware input, or manually played
+track can become source material without changing the source plugin.
+
+Useful derived context:
+
+- pitch-class histogram for key/scale hints;
+- note density and rests for phrase density;
+- register range for solo bounds;
+- recent bass/chord tones for guide targets;
+- bar/beat positions for call-and-response timing.
+
+## Optional State Summary Helpers
+
+Ground and Cadence now expose core-library summary helpers:
+
+- `downspout::ground::summarizeGroundAiState(...)`
+- `downspout::cadence::summarizeCadenceAiState(...)`
+
+They produce compact JSON fragments for the coordinator: Ground supplies form,
+phrase-role, meter, and guide-bass context; Cadence supplies learned harmony,
+voicing, and chord-quality context. These are optional diagnostics/hints and
+are not required for the MIDI-first workflow.

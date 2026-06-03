@@ -17,8 +17,9 @@ stays realtime-safe and only queues validated MIDI phrases.
 - [x] Add coordinator CLI at `tools/ai-coordinator`.
 - [ ] Add OpenAI API client in coordinator.
 - [x] Add `state.json -> solo.mid` workflow.
+- [ ] Add MIDI-derived tune context in Sidecar/coordinator.
 - [ ] Add localhost live request/response.
-- [ ] Add state summaries for Ground and Cadence.
+- [x] Add state summaries for Ground and Cadence.
 - [ ] Add Sidecar to release packaging and screenshot documentation once the
   first plugin slice is accepted.
 
@@ -51,3 +52,31 @@ stays realtime-safe and only queues validated MIDI phrases.
 - The output path writes a Standard MIDI File that can be imported into a DAW.
 - Optional `--phrase phrase.txt` writes Sidecar text phrase state for inspection
   and future plugin import work.
+
+## Implemented state-summary slice
+
+- Ground has `summarizeGroundAiState(...)`, producing host-neutral JSON with
+  key, scale, style, form/phrase position, current phrase role, meter, shaping
+  controls, and bounded guide bass events.
+- Cadence has `summarizeCadenceAiState(...)`, producing host-neutral JSON with
+  key, scale, chord size, color/spread/arpeggio settings, progression readiness,
+  and bounded chord slots with roots, qualities, and notes.
+- These helpers are core-library functions with deterministic tests and no
+  change to current plugin behavior. They are optional diagnostics/export
+  helpers, not the primary AI input path.
+
+## MIDI-first coordinator direction
+
+The musical material for Sidecar should come from MIDI routed to it in the DAW.
+The coordinator should derive tune context from captured MIDI notes, timing,
+density, register, and recent harmonic/bass movement before it uses any
+plugin-specific summaries.
+
+This keeps the architecture modular:
+
+- no direct dependency from Sidecar to Ground, Cadence, BassGen, or DrumGen;
+- no behavior changes required in existing plugins;
+- any plugin, hardware controller, or hand-played MIDI track can provide source
+  material;
+- optional plugin summaries can still be used later as hints if they remain
+  passive and do not affect current plugin behavior.

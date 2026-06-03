@@ -1,4 +1,5 @@
 add_library(downspout_cadence_core STATIC
+    src/cadence_ai_state.cpp
     src/cadence_comping.cpp
     src/cadence_engine.cpp
     src/cadence_harmony.cpp

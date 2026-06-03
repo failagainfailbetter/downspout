@@ -1,3 +1,4 @@
+#include "ground_ai_state.hpp"
 #include "ground_engine.hpp"
 #include "ground_pattern.hpp"
 #include "ground_serialization.hpp"
@@ -7,6 +8,7 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <string>
 
 using namespace downspout::ground;
 
@@ -245,6 +247,29 @@ void testFugalFormPlansSubjectAnswerPedalCadence()
     assert(firstPhraseNote(form, 1) == controls.rootNote + 7);
 }
 
+void testAiStateSummaryIncludesCurrentPhraseContext()
+{
+    Controls controls;
+    controls.rootNote = 38;
+    controls.scale = ScaleId::dorian;
+    controls.style = StyleId::climb;
+    controls.formBars = 16;
+    controls.phraseBars = 4;
+    controls.color = 0.72f;
+
+    FormState form;
+    regenerateForm(form, controls, ::downspout::Meter {});
+
+    const std::string summary = summarizeGroundAiState(controls, form, 1);
+    assert(summary.find("\"plugin\":\"ground\"") != std::string::npos);
+    assert(summary.find("\"key\":2") != std::string::npos);
+    assert(summary.find("\"scale\":\"dorian\"") != std::string::npos);
+    assert(summary.find("\"style\":\"climb\"") != std::string::npos);
+    assert(summary.find("\"current_phrase_index\":1") != std::string::npos);
+    assert(summary.find("\"current_role\"") != std::string::npos);
+    assert(summary.find("\"guide_events\"") != std::string::npos);
+}
+
 void testEngineRestartPhraseStatusAndStop()
 {
     Controls controls;
@@ -367,6 +392,7 @@ int main()
     testCompoundMeterShape();
     testGroundedPhraseGetsSyncopationAndLegato();
     testFugalFormPlansSubjectAnswerPedalCadence();
+    testAiStateSummaryIncludesCurrentPhraseContext();
     testEngineRestartPhraseStatusAndStop();
     testSerializationRoundTrip();
     return 0;

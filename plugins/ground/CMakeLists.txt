@@ -1,4 +1,5 @@
 add_library(downspout_ground_core STATIC
+    src/ground_ai_state.cpp
     src/ground_engine.cpp
     src/ground_pattern.cpp
     src/ground_serialization.cpp

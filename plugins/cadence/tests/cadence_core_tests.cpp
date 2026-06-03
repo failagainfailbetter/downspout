@@ -1,3 +1,4 @@
+#include "cadence_ai_state.hpp"
 #include "cadence_engine.hpp"
 #include "cadence_harmony.hpp"
 #include "cadence_serialization.hpp"
@@ -5,6 +6,7 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <string>
 
 using namespace downspout::cadence;
 
@@ -235,6 +237,40 @@ void testExtendedChordSizeBuildsExtensionVoicings()
     assert(roundTrip->slots[0].notes[4] == slots[0].notes[4]);
 }
 
+void testAiStateSummaryIncludesProgressionContext()
+{
+    Controls controls = defaultControls();
+    controls.key = 0;
+    controls.scale = SCALE_BEBOP_MAJOR;
+    controls.chord_size = CHORD_SIZE_EXTENDED;
+    controls.color = 0.85f;
+    controls.spread = 0.45f;
+    controls.arpeggio = 0.25f;
+
+    ProgressionState progression;
+    progression.ready = true;
+    progression.segmentCount = 2;
+    progression.slots[0].valid = true;
+    progression.slots[0].root_pc = 2;
+    progression.slots[0].quality = QUALITY_MIN9;
+    progression.slots[0].note_count = 5;
+    progression.slots[0].notes = {50, 53, 57, 60, 64, 0};
+    progression.slots[1].valid = true;
+    progression.slots[1].root_pc = 7;
+    progression.slots[1].quality = QUALITY_DOM13;
+    progression.slots[1].note_count = 6;
+    progression.slots[1].notes = {55, 59, 62, 65, 69, 76};
+
+    const std::string summary = summarizeCadenceAiState(controls, progression);
+    assert(summary.find("\"plugin\":\"cadence\"") != std::string::npos);
+    assert(summary.find("\"scale\":\"bebop_major\"") != std::string::npos);
+    assert(summary.find("\"chord_size\":\"extended\"") != std::string::npos);
+    assert(summary.find("\"progression_ready\":true") != std::string::npos);
+    assert(summary.find("\"quality\":\"minor_9\"") != std::string::npos);
+    assert(summary.find("\"quality\":\"dominant_13\"") != std::string::npos);
+    assert(summary.find("\"notes\":[55,59,62,65,69,76]") != std::string::npos);
+}
+
 void testSpreadControlWidensVoicings()
 {
     std::array<SegmentCapture, kMaxSegments> capture {};
@@ -421,6 +457,7 @@ int main()
     testHighColorFavorsJazzCadenceRoles();
     testHighColorFavorsCircleOfFifthsAndSuspendedDominant();
     testExtendedChordSizeBuildsExtensionVoicings();
+    testAiStateSummaryIncludesProgressionContext();
     testSpreadControlWidensVoicings();
     testStoppedTransportPassThrough();
     testEngineLearnsAndEmitsOnNextCycle();

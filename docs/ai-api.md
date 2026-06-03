@@ -4,10 +4,11 @@ This note sketches how Downspout could add AI-assisted soloing without trying
 to force improvised melody into the existing deterministic generator model.
 
 The core idea is to keep plugin audio/MIDI processing deterministic and
-real-time safe, then move HTTP/API work into a separate local coordinator. The
-plugins would publish a compact description of the current tune state; the
-coordinator would ask a model for a structured solo phrase; the result would be
-validated and converted back into scheduled MIDI.
+real-time safe, then move HTTP/API work into a separate local coordinator.
+Sidecar should publish bounded MIDI material routed to it in the DAW; the
+coordinator derives tune context from that MIDI, asks a model for a structured
+solo phrase, and validates the result before converting it back into scheduled
+MIDI.
 
 ## Why a coordinator
 
@@ -41,10 +42,10 @@ The practical system has three distinct roles.
 
 ### VST plugin clients
 
-The plugin clients are Ground, BassGen, Cadence, MelGen, Counterpointer, or the
-future `Sidecar` plugin. They should only do local, bounded work:
+The primary plugin client is Sidecar. Other plugins do not need to change just
+to participate; their MIDI output can be routed to Sidecar in the DAW. A plugin
+client should only do local, bounded work:
 
-- summarize their current musical state;
 - publish short quantized event windows;
 - request or receive a generated phrase;
 - queue already-validated MIDI at musical boundaries;
@@ -57,8 +58,9 @@ requests, or parse untrusted model output in the audio callback.
 
 The coordinator is the local non-realtime process. It owns:
 
-- collecting state from one or more plugin clients;
-- merging state into one tune description;
+- collecting bounded MIDI windows from Sidecar or other plugin clients;
+- deriving one tune description from notes, timing, register, density, and
+  recent harmonic/bass movement;
 - deciding when enough context is available to request a phrase;
 - calling the OpenAI API;
 - validating and post-processing the returned phrase;
@@ -315,28 +317,38 @@ Sidecar should not need direct knowledge of Ground, BassGen, or Cadence. It can
 consume merged tune state from the coordinator. That keeps the first plugin
 small: MIDI scheduling, request state, UI, and state persistence.
 
-### State providers
+### Optional State Providers
 
-After Sidecar exists, add small state-summary helpers to the existing musical
-plugins:
+Sidecar should not require state providers from other plugins. Its main source
+material is whatever MIDI the DAW routes to it. Still, passive state-summary
+helpers can be useful for diagnostics or later optional hints.
+
+The first two optional helpers are:
 
 ```text
 plugins/ground/include/ground_ai_state.hpp
-plugins/bassgen/include/bassgen_ai_state.hpp
 plugins/cadence/include/cadence_ai_state.hpp
+```
+
+Further helpers could follow the same shape, but they are not required for the
+MIDI-first workflow:
+
+```text
+plugins/bassgen/include/bassgen_ai_state.hpp
 plugins/drumgen/include/drumgen_ai_state.hpp
 ```
 
-Each helper should produce a compact, host-neutral description of the plugin's
-current musical role. Start with Ground and Cadence because they are the most
-useful for solo context:
+Each helper produces a compact, host-neutral description of the plugin's current
+musical role:
 
 - Ground: form position, phrase role, root/scale, guide bass events.
 - Cadence: learned harmony, chord size, color, current voicing style.
 - BassGen: genre, scale, color, response mode, recent bass events.
 - DrumGen: genre, density, pulse/fill feel.
 
-Do not wire these directly to Sidecar at first. Let the coordinator merge them.
+Do not wire these directly to Sidecar as a requirement. Let the coordinator
+derive context from MIDI first. The helpers should remain deterministic,
+passive, and behavior-neutral.
 
 ## First implementation path
 
@@ -349,8 +361,9 @@ Do not wire these directly to Sidecar at first. Let the coordinator merge them.
 6. Make the coordinator validate AI output with the same protocol tests.
 7. Add a manual workflow: export or hand-write `state.json`, generate
    `solo.mid`, import into the DAW.
-8. Add localhost request/response between Sidecar and the coordinator.
-9. Add Ground/Cadence state summaries once the live path works.
+8. Add MIDI-derived context extraction from Sidecar/coordinator input.
+9. Add localhost request/response between Sidecar and the coordinator.
+10. Use passive plugin summaries only as optional hints or diagnostics.
 
 ## OpenAI API fit
 
