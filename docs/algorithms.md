@@ -19,8 +19,9 @@ current Downspout plugins.
   cadences, pedal phrases, color, and high-sequence subject/answer forms across
   sections rather than just local bars.
 - `Cadence`: learned harmony generation from captured MIDI, with scale-aware
-  voicing, chord-size modes, comp scheduling, variation, and arpeggiated
-  playback phrasing.
+  voicing, chord-size modes, comp scheduling, variation, arpeggiated playback
+  phrasing, Jazz ii-V-I bias, and high-color circle-of-fifths/suspended
+  dominant support.
 - `Counterpointer`: learns an incoming MIDI line and answers it with a
   monophonic complementary line that can lean into contrary motion, chromatic
   color, rhythmic response, and strict dominant-answer imitation.

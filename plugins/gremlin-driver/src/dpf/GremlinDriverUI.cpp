@@ -21,6 +21,7 @@ using downspout::gremlin_driver::kLaneParamSpecs;
 using downspout::gremlin_driver::kParamBpm;
 using downspout::gremlin_driver::kParamClockMode;
 using downspout::gremlin_driver::kParamLaneStart;
+using downspout::gremlin_driver::kParamPassInput;
 using downspout::gremlin_driver::kParamRandomize;
 using downspout::gremlin_driver::kParamStatusBpm;
 using downspout::gremlin_driver::kParamStatusLaneStart;
@@ -147,6 +148,7 @@ public:
         for (std::size_t i = 0; i < kTriggerCount * 3; ++i)
             values_[kParamTriggerStart + i] = kTriggerParamSpecs[i].defaultValue;
         values_[kParamStatusBpm] = 120.0f;
+        values_[kParamPassInput] = 1.0f;
 
        #ifdef DGL_NO_SHARED_RESOURCES
         createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
@@ -214,6 +216,11 @@ protected:
         if (randomizeRect_.contains(x, y))
         {
             triggerParameter(kParamRandomize);
+            return true;
+        }
+        if (passInputRect_.contains(x, y))
+        {
+            setValueParameter(kParamPassInput, values_[kParamPassInput] >= 0.5f ? 0.0f : 1.0f);
             return true;
         }
         if (isManualMode() && bpmRect_.contains(x, y))
@@ -326,6 +333,7 @@ private:
     std::array<Rect, 2> clockRects_ {};
     Rect bpmRect_ {};
     Rect randomizeRect_ {};
+    Rect passInputRect_ {};
     std::array<Rect, kLaneCount> laneTargetRects_ {};
     std::array<Rect, kLaneCount> laneShapeRects_ {};
     std::array<Rect, kTriggerCount> triggerActionRects_ {};
@@ -421,7 +429,9 @@ private:
         drawToggleButton(clockRects_[0], "Host", !isManualMode(), 92, 174, 196);
         drawToggleButton(clockRects_[1], "Manual", isManualMode(), 92, 174, 196);
 
-        bpmRect_ = {x + 250.0f, y + 34.0f, 432.0f, 40.0f};
+        randomizeRect_ = {x + w - 178.0f, y + 34.0f, 160.0f, 40.0f};
+        passInputRect_ = {randomizeRect_.x - 128.0f, y + 34.0f, 116.0f, 40.0f};
+        bpmRect_ = {x + 250.0f, y + 34.0f, passInputRect_.x - (x + 262.0f), 40.0f};
         sliderRects_[kBpmSliderIndex] = bpmRect_;
         if (isManualMode())
         {
@@ -439,7 +449,13 @@ private:
                             214);
         }
 
-        randomizeRect_ = {x + w - 178.0f, y + 34.0f, 160.0f, 40.0f};
+        drawToggleButton(passInputRect_,
+                         values_[kParamPassInput] >= 0.5f ? "Pass In" : "Block In",
+                         values_[kParamPassInput] >= 0.5f,
+                         118,
+                         181,
+                         128);
+
         drawActionButton(randomizeRect_,
                          "Randomise Patch",
                          213,

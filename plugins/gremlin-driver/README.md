@@ -7,7 +7,7 @@ and one-shot patch randomisation bursts.
 ## Current VST3 shape
 
 - MIDI in / MIDI out utility plugin
-- passes incoming MIDI through unchanged
+- `Pass Input` switch controls whether incoming MIDI is forwarded unchanged
 - emits Gremlin-compatible macro/master CCs and action notes
 - custom UI for four continuous lanes and two trigger lanes
 - host-following clock by default, with explicit manual BPM mode when needed
@@ -21,4 +21,5 @@ and one-shot patch randomisation bursts.
 ```
 
 That lets notes flow through while the driver adds controller movement and
-discrete Gremlin actions.
+discrete Gremlin actions. Leave `Pass Input` on for that normal chain, or turn
+it off when the driver should emit only its own CCs and action notes.

@@ -12,7 +12,8 @@ generic host parameter list:
 
 ## MIDI behavior
 
-- incoming MIDI is passed through
+- incoming MIDI is passed through by default, controlled by the `Pass Input`
+  parameter
 - active lanes emit Gremlin macro/master CC updates
 - trigger lanes emit Gremlin action notes
 - `Randomise` emits a one-shot burst of direct Gremlin patch CCs

@@ -98,13 +98,17 @@ float Processor::parameterDefault(const std::uint32_t index) const noexcept
     case kParamLedFeedback: return 1.0f;
     case kParamRunning: return 1.0f;
     case kParamSeed: return 0.0f;
+    case kParamPassInput: return 0.0f;
     default: return 0.0f;
     }
 }
 
 void Processor::setParameter(const std::uint32_t index, float value)
 {
-    if (index >= kParameterCount || index >= kParamStatusCellStart)
+    if (index >= kParameterCount)
+        return;
+
+    if (index >= kParamStatusCellStart && index < kParamPassInput)
         return;
 
     if (index < kCellCount)
@@ -138,6 +142,7 @@ void Processor::setParameter(const std::uint32_t index, float value)
         break;
     case kParamLedFeedback:
     case kParamRunning:
+    case kParamPassInput:
         value = value >= 0.5f ? 1.0f : 0.0f;
         break;
     case kParamRandomize:
@@ -359,7 +364,7 @@ bool Processor::handleMidi(const MidiMessage& event, ProcessResult& result)
         return false;
     }
 
-    if (status == 0x90u || status == 0x80u || status == 0xb0u)
+    if (parameters_[kParamPassInput] >= 0.5f && (status == 0x90u || status == 0x80u || status == 0xb0u))
         appendMidi(result, event.frame, event.data[0], data1, data2);
     return false;
 }

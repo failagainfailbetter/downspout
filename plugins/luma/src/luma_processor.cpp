@@ -104,6 +104,7 @@ float Processor::parameterDefault(const std::uint32_t index) const noexcept
     case kParamOutputMode: return 0.0f;
     case kParamBaseChannel: return 1.0f;
     case kParamLedFeedback: return 1.0f;
+    case kParamPassInput: return 0.0f;
     default: return 0.0f;
     }
 }
@@ -113,7 +114,7 @@ void Processor::setParameter(const std::uint32_t index, float value)
     if (index >= kParameterCount)
         return;
 
-    if (index >= kParamStatusCellStart)
+    if (index >= kParamStatusCellStart && index < kParamPassInput)
         return;
 
     if (index < kCellCount)
@@ -142,6 +143,7 @@ void Processor::setParameter(const std::uint32_t index, float value)
         value = static_cast<float>(clampValue(static_cast<int>(std::lround(value)), 1, 16));
         break;
     case kParamLedFeedback:
+    case kParamPassInput:
         value = value >= 0.5f ? 1.0f : 0.0f;
         break;
     case kParamRandomize:
@@ -249,11 +251,17 @@ bool Processor::handleMidi(const MidiMessage& event, ProcessResult& result)
     const std::uint8_t data2 = event.data[2];
 
     if (status == 0x90u && data2 > 0u)
-        return handleGridPress(data1);
+    {
+        if (handleGridPress(data1))
+            return true;
+    }
     if (status == 0xb0u && data2 > 0u)
-        return handleTopButton(data1) || handleSideButton(data1);
+    {
+        if (handleTopButton(data1) || handleSideButton(data1))
+            return true;
+    }
 
-    if (status == 0x90u || status == 0x80u || status == 0xb0u)
+    if (parameters_[kParamPassInput] >= 0.5f && (status == 0x90u || status == 0x80u || status == 0xb0u))
         appendMidi(result, event.frame, event.data[0], data1, data2);
 
     return false;

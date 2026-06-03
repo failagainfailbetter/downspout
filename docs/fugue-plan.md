@@ -26,6 +26,8 @@ plugins that can use it musically.
       `Structure`, `Leap`, `Rest`, and `Color` controls.
 - [x] Add Fugue-friendly long-form behavior to `ground` using existing
       `Sequence` and `Cadence` controls.
+- [x] Add Cadence support for circle-of-fifths and suspension-heavy harmonic
+      backing using existing `Color`, scale, and chord-size controls.
 
 ## First Implementation Slice
 
@@ -54,6 +56,11 @@ long-form region. It plans a stable subject entry, dominant answer, middle
 entries, a penultimate pedal phrase, and a cadence while keeping the existing
 form controls.
 
+`cadence` now uses high `Color` on major/minor-style scales to support more
+classical harmonic motion. Ambiguous learned material can resolve through
+descending fifths, including vi-ii-V-I support, and a suspended dominant can
+prepare the final tonic.
+
 ## Next Steps
 
 - Validate BassGen Fugue in a DAW with major, minor, and harmonic-minor scales.
@@ -63,5 +70,5 @@ form controls.
   and Counterpointer.
 - Validate Ground's high-Sequence/high-Cadence Fugue-friendly form in a DAW,
   especially with MelGen and Counterpointer layered above it.
-- Consider Cadence support for circle-of-fifths and suspension-heavy harmonic
-  support after the melodic subject behavior is stable.
+- Validate Cadence's high-Color circle-of-fifths and suspended-dominant support
+  against sparse MelGen, BassGen, and Ground input.

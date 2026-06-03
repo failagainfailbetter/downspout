@@ -30,6 +30,7 @@ using downspout::luma::kParamEnergy;
 using downspout::luma::kParamGate;
 using downspout::luma::kParamLedFeedback;
 using downspout::luma::kParamOutputMode;
+using downspout::luma::kParamPassInput;
 using downspout::luma::kParamRandomize;
 using downspout::luma::kParamRootNote;
 using downspout::luma::kParamScale;
@@ -265,6 +266,14 @@ protected:
             parameter.ranges.min = 0.0f;
             parameter.ranges.max = 1.0f;
             parameter.ranges.def = 1.0f;
+            break;
+        case kParamPassInput:
+            parameter.name = "Pass Input";
+            parameter.symbol = "pass_input";
+            parameter.hints |= kParameterIsBoolean | kParameterIsInteger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
             break;
         case kParamRandomize:
             parameter.name = "Scatter";

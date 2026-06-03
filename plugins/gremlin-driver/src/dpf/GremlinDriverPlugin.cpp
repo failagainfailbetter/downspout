@@ -25,6 +25,7 @@ using downspout::gremlin_driver::kLaneStatusNames;
 using downspout::gremlin_driver::kParamBpm;
 using downspout::gremlin_driver::kParamClockMode;
 using downspout::gremlin_driver::kParamLaneStart;
+using downspout::gremlin_driver::kParamPassInput;
 using downspout::gremlin_driver::kParamRandomize;
 using downspout::gremlin_driver::kParamStatusBpm;
 using downspout::gremlin_driver::kParamStatusLaneStart;
@@ -296,6 +297,17 @@ protected:
             return;
         }
 
+        if (index == kParamPassInput)
+        {
+            parameter.name = "Pass Input";
+            parameter.symbol = "pass_input";
+            parameter.hints = kParameterIsAutomatable | kParameterIsBoolean | kParameterIsInteger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 1.0f;
+            return;
+        }
+
         parameter.name = "Effective BPM";
         parameter.symbol = "status_bpm";
         parameter.hints = kParameterIsOutput;
@@ -342,6 +354,9 @@ protected:
 
         if (index == kParamRandomize)
             return 0.0f;
+
+        if (index == kParamPassInput)
+            return processor_.getPassInput() ? 1.0f : 0.0f;
 
         const auto& status = processor_.getStatus();
         if (index >= kParamStatusLaneStart && index < kParamStatusTriggerStart)
@@ -399,6 +414,9 @@ protected:
 
         if (index == kParamRandomize && value > 0.5f)
             processor_.triggerRandomize();
+
+        if (index == kParamPassInput)
+            processor_.setPassInput(value >= 0.5f);
     }
 
     void activate() override

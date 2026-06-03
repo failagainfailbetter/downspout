@@ -33,6 +33,7 @@ int main()
 
     require(processor.getClockMode() == 1, "gremlin-driver default clock mode mismatch");
     require(nearlyEqual(processor.getBpm(), 120.0f), "gremlin-driver default bpm mismatch");
+    require(processor.getPassInput(), "gremlin-driver should pass input MIDI by default");
 
     for (std::size_t shape = 0; shape < downspout::gremlin_driver::kShapeCount; ++shape)
     {
@@ -66,6 +67,22 @@ int main()
         }
     }
     require(foundPassThrough, "gremlin-driver should pass through input MIDI");
+
+    processor.setPassInput(false);
+    const auto blocked = processor.processBlock(32, TransportSnapshot {}, &note, 1);
+    bool foundBlockedInput = false;
+    for (std::uint32_t i = 0; i < blocked.eventCount; ++i)
+    {
+        if (blocked.events[i].size == 3 &&
+            blocked.events[i].frame == 7 &&
+            blocked.events[i].data[0] == 0x90 &&
+            blocked.events[i].data[1] == 60)
+        {
+            foundBlockedInput = true;
+            break;
+        }
+    }
+    require(!foundBlockedInput, "gremlin-driver pass input switch should block incoming MIDI");
 
     return 0;
 }

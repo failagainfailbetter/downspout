@@ -29,7 +29,9 @@ Implementation status:
   saved-state scale values remain stable;
 - the `Color` control adds harmonic tension, biasing Jazz scales toward ii-V-I
   motion, stronger V-I resolution, sevenths, dominant color, and
-  diminished/tritone-sub options;
+  diminished/tritone-sub options. On major/minor-style scales, high `Color`
+  also biases ambiguous learned material toward circle-of-fifths support and
+  suspended dominant preparation;
 - the `Extended` chord-size mode expands stored chord slots to six notes and
   can generate 9th, 11th, and 13th voicings while Triads and Sevenths remain
   available for simpler output;

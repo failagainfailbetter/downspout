@@ -68,7 +68,8 @@ inline constexpr std::uint32_t kParamClear = 75;
 inline constexpr std::uint32_t kParamStatusActive = 76;
 inline constexpr std::uint32_t kParamStatusStep = 77;
 inline constexpr std::uint32_t kParamStatusCellStart = 78;
-inline constexpr std::uint32_t kParameterCount = kParamStatusCellStart + static_cast<std::uint32_t>(kCellCount);
+inline constexpr std::uint32_t kParamPassInput = kParamStatusCellStart + static_cast<std::uint32_t>(kCellCount);
+inline constexpr std::uint32_t kParameterCount = kParamPassInput + 1;
 
 inline constexpr std::array<const char*, static_cast<std::size_t>(ScaleId::count)> kScaleNames = {{
     "Major",

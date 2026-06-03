@@ -34,6 +34,7 @@ using downspout::lifeform::kParamLedFeedback;
 using downspout::lifeform::kParamMutation;
 using downspout::lifeform::kParamOutputMode;
 using downspout::lifeform::kParamPanic;
+using downspout::lifeform::kParamPassInput;
 using downspout::lifeform::kParamRandomize;
 using downspout::lifeform::kParamRootNote;
 using downspout::lifeform::kParamRunning;
@@ -290,6 +291,14 @@ protected:
             parameter.ranges.min = 0.0f;
             parameter.ranges.max = 1.0f;
             parameter.ranges.def = 1.0f;
+            break;
+        case kParamPassInput:
+            parameter.name = "Pass Input";
+            parameter.symbol = "pass_input";
+            parameter.hints |= kParameterIsBoolean | kParameterIsInteger;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
+            parameter.ranges.def = 0.0f;
             break;
         case kParamRunning:
             parameter.name = "Running";

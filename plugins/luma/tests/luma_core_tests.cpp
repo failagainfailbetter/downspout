@@ -61,6 +61,7 @@ int main()
     using downspout::luma::kParamDensity;
     using downspout::luma::kParamEnergy;
     using downspout::luma::kParamLedFeedback;
+    using downspout::luma::kParamPassInput;
     using downspout::luma::kParamStatusCellStart;
     using downspout::luma::kParamStatusActive;
 
@@ -102,6 +103,18 @@ int main()
     processor.setParameter(kParamLedFeedback, 0.0f);
     result = processor.processBlock(64, stopped, nullptr, 0);
     require(result.eventCount == 0, "luma LED disabled should suppress idle LED output");
+
+    MidiMessage foreignNote {};
+    foreignNote.size = 3;
+    foreignNote.data[0] = 0x99;
+    foreignNote.data[1] = 100;
+    foreignNote.data[2] = 64;
+    result = processor.processBlock(64, stopped, &foreignNote, 1);
+    require(!hasMessage(result, 0x99, 100, 64), "luma should block unhandled input MIDI by default");
+
+    processor.setParameter(kParamPassInput, 1.0f);
+    result = processor.processBlock(64, stopped, &foreignNote, 1);
+    require(hasMessage(result, 0x99, 100, 64), "luma pass input switch should forward unhandled MIDI");
 
     return 0;
 }

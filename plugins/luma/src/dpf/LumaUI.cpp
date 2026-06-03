@@ -24,6 +24,7 @@ using downspout::luma::kParamEnergy;
 using downspout::luma::kParamGate;
 using downspout::luma::kParamLedFeedback;
 using downspout::luma::kParamOutputMode;
+using downspout::luma::kParamPassInput;
 using downspout::luma::kParamRandomize;
 using downspout::luma::kParamRootNote;
 using downspout::luma::kParamScale;
@@ -111,6 +112,7 @@ public:
         values_[kParamOutputMode] = 0.0f;
         values_[kParamBaseChannel] = 1.0f;
         values_[kParamLedFeedback] = 1.0f;
+        values_[kParamPassInput] = 0.0f;
 
        #ifdef DGL_NO_SHARED_RESOURCES
         createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
@@ -187,6 +189,11 @@ protected:
             commitParameter(kParamLedFeedback, values_[kParamLedFeedback] >= 0.5f ? 0.0f : 1.0f);
             return true;
         }
+        if (passRect_.contains(x, y))
+        {
+            commitParameter(kParamPassInput, values_[kParamPassInput] >= 0.5f ? 0.0f : 1.0f);
+            return true;
+        }
 
         for (std::size_t i = 0; i < sliderRects_.size(); ++i)
         {
@@ -219,6 +226,7 @@ private:
     Rect scatterRect_ {};
     Rect clearRect_ {};
     Rect ledRect_ {};
+    Rect passRect_ {};
     int activeSlider_ = -1;
 
     [[nodiscard]] float padValue(const std::size_t index) const noexcept
@@ -450,13 +458,15 @@ private:
 
     void drawButtons(const float x, const float y, const float w)
     {
-        const float buttonW = (w - 16.0f) / 3.0f;
+        const float buttonW = (w - 24.0f) / 4.0f;
         scatterRect_ = {x, y, buttonW, 42.0f};
         clearRect_ = {x + buttonW + 8.0f, y, buttonW, 42.0f};
         ledRect_ = {x + (buttonW + 8.0f) * 2.0f, y, buttonW, 42.0f};
+        passRect_ = {x + (buttonW + 8.0f) * 3.0f, y, buttonW, 42.0f};
         drawButton(scatterRect_, "Scatter", 211, 151, 66, false);
         drawButton(clearRect_, "Clear", 206, 80, 74, false);
         drawButton(ledRect_, values_[kParamLedFeedback] >= 0.5f ? "LED On" : "LED Off", 78, 147, 210, values_[kParamLedFeedback] >= 0.5f);
+        drawButton(passRect_, values_[kParamPassInput] >= 0.5f ? "Pass" : "Block", 83, 166, 113, values_[kParamPassInput] >= 0.5f);
     }
 
     void drawButton(const Rect& rect, const char* label, const int r, const int g, const int b, const bool active)

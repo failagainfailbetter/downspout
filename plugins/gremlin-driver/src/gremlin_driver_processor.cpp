@@ -45,6 +45,7 @@ void Processor::resetToDefaults()
 {
     clockMode_ = static_cast<int>(kGlobalParamSpecs[0].defaultValue);
     bpm_ = kGlobalParamSpecs[1].defaultValue;
+    passInput_ = true;
 
     for (std::size_t i = 0; i < kLaneCount; ++i)
     {
@@ -138,6 +139,11 @@ void Processor::triggerRandomize()
     status_.randomizeFlash = 1.0f;
 }
 
+void Processor::setPassInput(const bool enabled)
+{
+    passInput_ = enabled;
+}
+
 int Processor::getClockMode() const noexcept
 {
     return clockMode_;
@@ -161,6 +167,11 @@ const TriggerConfig& Processor::getTrigger(const std::size_t triggerIndex) const
 const Status& Processor::getStatus() const noexcept
 {
     return status_;
+}
+
+bool Processor::getPassInput() const noexcept
+{
+    return passInput_;
 }
 
 ProcessResult Processor::processBlock(const std::uint32_t frameCount,
@@ -235,8 +246,11 @@ ProcessResult Processor::processBlock(const std::uint32_t frameCount,
                     127u);
     }
 
-    for (std::uint32_t i = 0; i < inputEventCount; ++i)
-        appendPassThrough(result, inputEvents[i]);
+    if (passInput_)
+    {
+        for (std::uint32_t i = 0; i < inputEventCount; ++i)
+            appendPassThrough(result, inputEvents[i]);
+    }
 
     return result;
 }

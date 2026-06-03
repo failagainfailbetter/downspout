@@ -12,6 +12,7 @@ generation, and living cells emit MIDI before the board evolves.
 - `Random` fills the grid using the `Density` control.
 - `Clear` empties the board.
 - `LED` enables Launchpad feedback.
+- `Pass` forwards unhandled input MIDI when enabled; it is off by default.
 - `Scale`, `Root`, `Output`, and `Emit` choose how cells become notes.
 - `Mutation` adds a small amount of random cellular drift.
 
@@ -63,6 +64,9 @@ the current generation column, and newly born cells. Drum mode uses the palette
 
 The plugin has no audio I/O. Route its MIDI output to an instrument track, and
 route the same MIDI output back to the Launchpad if you want hardware LEDs.
+`Pass` is off by default so unrecognised controller note/CC input does not leak
+into the instrument route. Enable it only when you intentionally want unhandled
+input MIDI to continue downstream.
 
 ## LED Mapping
 

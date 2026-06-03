@@ -354,6 +354,21 @@ double color_amount(const Controls& controls) {
     return is_jazz_scale(controls.scale) ? color : color * 0.45;
 }
 
+double classical_support_amount(const Controls& controls) {
+    const double color = clampd((double)controls.color, 0.0, 1.0);
+    switch (controls.scale) {
+        case SCALE_MAJOR:
+        case SCALE_NAT_MINOR:
+        case SCALE_HARM_MINOR:
+        case SCALE_DORIAN:
+        case SCALE_PHRYGIAN:
+        case SCALE_PHRYGIAN_DOMINANT:
+            return color;
+        default:
+            return 0.0;
+    }
+}
+
 double jazz_role_bonus(const Candidate& candidate, const Controls& controls) {
     const double color = color_amount(controls);
     if (color <= 0.0001) {
@@ -390,6 +405,38 @@ double jazz_role_bonus(const Candidate& candidate, const Controls& controls) {
     return score;
 }
 
+double classical_role_bonus(const Candidate& candidate, const Controls& controls) {
+    const double amount = classical_support_amount(controls);
+    if (amount <= 0.0001) {
+        return 0.0;
+    }
+
+    const int rel = wrap12((int)candidate.root_pc - controls.key);
+    double score = 0.0;
+
+    if (rel == 0 && (candidate.quality == QUALITY_MAJOR ||
+                     candidate.quality == QUALITY_MINOR ||
+                     candidate.quality == QUALITY_MAJ7)) {
+        score += 0.12 + amount * 0.26;
+    } else if (rel == 7 && (candidate.quality == QUALITY_SUS4 ||
+                            candidate.quality == QUALITY_DOM7 ||
+                            candidate.quality == QUALITY_MAJOR)) {
+        score += 0.14 + amount * 0.34;
+        if (candidate.quality == QUALITY_SUS4) {
+            score += amount * 0.28;
+        }
+    } else if ((rel == 2 || rel == 9) &&
+               (candidate.quality == QUALITY_MINOR ||
+                candidate.quality == QUALITY_MIN7)) {
+        score += 0.10 + amount * 0.22;
+    } else if (rel == 5 && (candidate.quality == QUALITY_MAJOR ||
+                            candidate.quality == QUALITY_SUS4)) {
+        score += amount * 0.16;
+    }
+
+    return score;
+}
+
 double jazz_cadence_position_bonus(const Candidate& candidate,
                                    const Controls& controls,
                                    const int segment_index,
@@ -420,6 +467,45 @@ double jazz_cadence_position_bonus(const Candidate& candidate,
         }
     } else if (from_end == 1 && rel == 1 && candidate.quality == QUALITY_DOM7) {
         score += color * 0.34;
+    }
+
+    return score;
+}
+
+double classical_cadence_position_bonus(const Candidate& candidate,
+                                        const Controls& controls,
+                                        const int segment_index,
+                                        const int segment_count) {
+    const double amount = classical_support_amount(controls);
+    if (amount <= 0.0001 || segment_count < 3) {
+        return 0.0;
+    }
+
+    const int rel = wrap12((int)candidate.root_pc - controls.key);
+    const int from_end = segment_count - 1 - segment_index;
+    const int circle_target = wrap12(-5 * from_end);
+    double score = 0.0;
+
+    if (rel == circle_target) {
+        score += 0.36 + amount * 0.76;
+    }
+
+    if (from_end == 0 && rel == 0) {
+        score += 0.32 + amount * 0.70;
+        if (candidate.quality == QUALITY_MAJOR || candidate.quality == QUALITY_MINOR || candidate.quality == QUALITY_MAJ7) {
+            score += amount * 0.34;
+        }
+    } else if (from_end == 1 && rel == 7) {
+        score += 0.28 + amount * 0.62;
+        if (candidate.quality == QUALITY_SUS4) {
+            score += 0.24 + amount * 0.88;
+        } else if (candidate.quality == QUALITY_DOM7) {
+            score += amount * 0.54;
+        }
+    } else if ((from_end == 2 && rel == 2) || (from_end == 3 && rel == 9)) {
+        if (candidate.quality == QUALITY_MINOR || candidate.quality == QUALITY_MIN7) {
+            score += 0.18 + amount * 0.48;
+        }
     }
 
     return score;
@@ -812,6 +898,7 @@ double score_candidate(const SegmentCapture& segment,
     }
 
     score += jazz_role_bonus(candidate, controls);
+    score += classical_role_bonus(candidate, controls);
 
     return score / (total + 1e-9);
 }
@@ -878,6 +965,27 @@ double transition_score(const Candidate& previous,
         }
         if (prev_rel == 1 && previous.quality == QUALITY_DOM7 && next_rel == 0) {
             score += color * 0.38;
+        }
+    }
+
+    const double classical = classical_support_amount(controls);
+    if (classical > 0.0001) {
+        const int prev_rel = wrap12((int)previous.root_pc - controls.key);
+        const int next_rel = wrap12((int)next.root_pc - controls.key);
+        if (interval == 5) {
+            score += classical * (0.34 + movement * 0.20);
+        }
+        if (prev_rel == 9 && next_rel == 2) {
+            score += classical * 0.34;
+        }
+        if (prev_rel == 2 && next_rel == 7) {
+            score += classical * 0.42;
+        }
+        if (prev_rel == 7 && next_rel == 0) {
+            score += classical * 0.54;
+            if (previous.quality == QUALITY_SUS4) {
+                score += classical * 0.34;
+            }
         }
     }
 
@@ -1057,6 +1165,7 @@ bool cadence_build_progression_from_capture(const SegmentCapture* capture,
         for (int c = 0; c < candidate_count; ++c) {
             local_scores[s][c] = score_candidate(capture[s], candidates[c], controls);
             local_scores[s][c] += jazz_cadence_position_bonus(candidates[c], controls, s, segment_count);
+            local_scores[s][c] += classical_cadence_position_bonus(candidates[c], controls, s, segment_count);
             if (!(root_prefs[s].mask & (uint16_t)(1u << candidates[c].root_pc))) {
                 local_scores[s][c] -= 0.18 + (double)controls.movement * 0.86 - color_amount(controls) * 0.16;
             }

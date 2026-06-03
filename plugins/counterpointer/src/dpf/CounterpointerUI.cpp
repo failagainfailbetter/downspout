@@ -595,6 +595,9 @@ private:
         const SelectorDef& def = kSelectors[static_cast<std::size_t>(selectorIndex)];
         const int selected = selectorValueForDisplay(def, values_[def.index]);
         const Rect menuRect = selectorMenuRect(selectorIndex);
+        const int columns = selectorMenuColumnCount(def);
+        const int rows = selectorMenuRowCount(def);
+        const float columnW = menuRect.w / static_cast<float>(columns);
 
         beginPath();
         roundedRect(menuRect.x, menuRect.y, menuRect.w, menuRect.h, 14.0f);
@@ -606,19 +609,22 @@ private:
         closePath();
 
         for (int i = 0; i < def.count; ++i) {
-            const float rowY = menuRect.y + static_cast<float>(i) * kSelectorItemHeight;
+            const int col = i / rows;
+            const int row = i % rows;
+            const float itemX = menuRect.x + static_cast<float>(col) * columnW;
+            const float rowY = menuRect.y + static_cast<float>(row) * kSelectorItemHeight;
             if (i == selected) {
                 beginPath();
-                roundedRect(menuRect.x + 4.0f, rowY + 3.0f, menuRect.w - 8.0f, kSelectorItemHeight - 6.0f, 10.0f);
+                roundedRect(itemX + 4.0f, rowY + 3.0f, columnW - 8.0f, kSelectorItemHeight - 6.0f, 10.0f);
                 fillColor(74, 96, 122, 255);
                 fill();
                 closePath();
             }
 
-            fontSize(12.0f);
+            fontSize(columns > 1 ? 11.0f : 12.0f);
             textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
             fillColor(236, 240, 243, 255);
-            text(menuRect.x + 14.0f, rowY + kSelectorItemHeight * 0.5f + 1.0f, def.items[i], nullptr);
+            text(itemX + 14.0f, rowY + kSelectorItemHeight * 0.5f + 1.0f, def.items[i], nullptr);
         }
     }
 
@@ -636,18 +642,37 @@ private:
         if (!menuRect.contains(x, y))
             return false;
 
-        const int item = clampi(static_cast<int>((y - menuRect.y) / kSelectorItemHeight), 0, def.count - 1);
+        const int columns = selectorMenuColumnCount(def);
+        const int rows = selectorMenuRowCount(def);
+        const float columnW = menuRect.w / static_cast<float>(columns);
+        const int col = clampi(static_cast<int>((x - menuRect.x) / columnW), 0, columns - 1);
+        const int row = clampi(static_cast<int>((y - menuRect.y) / kSelectorItemHeight), 0, rows - 1);
+        const int item = col * rows + row;
+        if (item >= def.count)
+            return true;
+
         setParameter(def.index, selectorParameterValue(def, item));
         openSelector_ = -1;
         repaint();
         return true;
     }
 
+    [[nodiscard]] int selectorMenuColumnCount(const SelectorDef& def) const
+    {
+        return def.count > 12 ? 2 : 1;
+    }
+
+    [[nodiscard]] int selectorMenuRowCount(const SelectorDef& def) const
+    {
+        const int columns = selectorMenuColumnCount(def);
+        return (def.count + columns - 1) / columns;
+    }
+
     [[nodiscard]] Rect selectorMenuRect(const int selectorIndex) const
     {
         const SelectorDef& def = kSelectors[static_cast<std::size_t>(selectorIndex)];
         const Rect& base = selectorRects_[static_cast<std::size_t>(selectorIndex)];
-        const float menuH = static_cast<float>(def.count) * kSelectorItemHeight;
+        const float menuH = static_cast<float>(selectorMenuRowCount(def)) * kSelectorItemHeight;
         const float margin = 14.0f;
         float menuY = base.y + base.h + 6.0f;
         if (menuY + menuH > static_cast<float>(getHeight()) - margin)

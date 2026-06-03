@@ -27,6 +27,7 @@ using downspout::lifeform::kParamLedFeedback;
 using downspout::lifeform::kParamMutation;
 using downspout::lifeform::kParamOutputMode;
 using downspout::lifeform::kParamPanic;
+using downspout::lifeform::kParamPassInput;
 using downspout::lifeform::kParamRandomize;
 using downspout::lifeform::kParamRootNote;
 using downspout::lifeform::kParamRunning;
@@ -109,6 +110,7 @@ public:
         values_[kParamBaseChannel] = 4.0f;
         values_[kParamLedFeedback] = 1.0f;
         values_[kParamRunning] = 1.0f;
+        values_[kParamPassInput] = 0.0f;
 
        #ifdef DGL_NO_SHARED_RESOURCES
         createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
@@ -200,6 +202,11 @@ protected:
             commitParameter(kParamLedFeedback, values_[kParamLedFeedback] >= 0.5f ? 0.0f : 1.0f);
             return true;
         }
+        if (passRect_.contains(x, y))
+        {
+            commitParameter(kParamPassInput, values_[kParamPassInput] >= 0.5f ? 0.0f : 1.0f);
+            return true;
+        }
 
         for (std::size_t i = 0; i < sliderRects_.size(); ++i)
         {
@@ -234,6 +241,7 @@ private:
     Rect clearRect_ {};
     Rect ledRect_ {};
     Rect panicRect_ {};
+    Rect passRect_ {};
     int activeSlider_ = -1;
 
     [[nodiscard]] float padValue(const std::size_t index) const noexcept
@@ -459,17 +467,19 @@ private:
 
     void drawButtons(const float x, const float y, const float w)
     {
-        const float buttonW = (w - 16.0f) / 3.0f;
+        const float buttonW = (w - 24.0f) / 4.0f;
         const float rowGap = 8.0f;
         runRect_ = {x, y, buttonW, 38.0f};
         stepRect_ = {x + buttonW + 8.0f, y, buttonW, 38.0f};
         randomRect_ = {x + (buttonW + 8.0f) * 2.0f, y, buttonW, 38.0f};
+        passRect_ = {x + (buttonW + 8.0f) * 3.0f, y, buttonW, 38.0f};
         clearRect_ = {x, y + 38.0f + rowGap, buttonW, 38.0f};
         panicRect_ = {x + buttonW + 8.0f, y + 38.0f + rowGap, buttonW, 38.0f};
         ledRect_ = {x + (buttonW + 8.0f) * 2.0f, y + 38.0f + rowGap, buttonW, 38.0f};
         drawButton(runRect_, values_[kParamRunning] >= 0.5f ? "Run" : "Stop", 72, 188, 112, values_[kParamRunning] >= 0.5f);
         drawButton(stepRect_, "Step", 82, 143, 221, false);
         drawButton(randomRect_, "Random", 173, 92, 215, false);
+        drawButton(passRect_, values_[kParamPassInput] >= 0.5f ? "Pass" : "Block", 88, 176, 112, values_[kParamPassInput] >= 0.5f);
         drawButton(clearRect_, "Clear", 204, 76, 70, false);
         drawButton(panicRect_, "Panic", 232, 70, 58, false);
         drawButton(ledRect_, values_[kParamLedFeedback] >= 0.5f ? "LED" : "No LED", 75, 146, 214, values_[kParamLedFeedback] >= 0.5f);

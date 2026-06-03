@@ -30,6 +30,11 @@ In split output mode, melodic/chord agents use the base channel, bass agents
 use the next channel, and drum agents use channel 10. In single output mode,
 all generated notes use the base channel.
 
+`Pass Input` is off by default. Luma consumes recognised Launchpad controls and
+blocks other incoming note/CC messages so controller pads do not leak into
+instrument or drum tracks. Turn `Pass` on only when you intentionally want
+unhandled input MIDI forwarded with Luma's generated notes and LED feedback.
+
 ## Launchpad controls
 
 - grid pads toggle musical agents;

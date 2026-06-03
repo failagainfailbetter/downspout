@@ -154,6 +154,44 @@ void testHighColorFavorsJazzCadenceRoles()
     assert(slots[3].quality == QUALITY_MAJ7 || slots[3].quality == QUALITY_MAJOR);
 }
 
+void testHighColorFavorsCircleOfFifthsAndSuspendedDominant()
+{
+    std::array<SegmentCapture, kMaxSegments> capture {};
+    for (int s = 0; s < 4; ++s) {
+        for (int pc = 0; pc < 12; ++pc) {
+            capture[static_cast<std::size_t>(s)].duration[static_cast<std::size_t>(pc)] = 0.02;
+        }
+    }
+
+    Controls controls = defaultControls();
+    controls.key = 0;
+    controls.scale = SCALE_MAJOR;
+    controls.cycle_bars = 1;
+    controls.granularity = GRANULARITY_BEAT;
+    controls.chord_size = CHORD_SIZE_TRIADS;
+    controls.complexity = 0.90f;
+    controls.movement = 0.88f;
+    controls.color = 1.0f;
+
+    std::array<ChordSlot, kMaxSegments> slots {};
+    const CadenceBuildOptions options {};
+    const bool built = cadence_build_progression_from_capture(capture.data(), 4, controls, nullptr, 0, options, slots.data());
+
+    assert(built);
+    assert(slots[0].valid);
+    assert(slots[1].valid);
+    assert(slots[2].valid);
+    assert(slots[3].valid);
+    assert(slots[0].root_pc == 9);
+    assert(slots[0].quality == QUALITY_MINOR);
+    assert(slots[1].root_pc == 2);
+    assert(slots[1].quality == QUALITY_MINOR);
+    assert(slots[2].root_pc == 7);
+    assert(slots[2].quality == QUALITY_SUS4);
+    assert(slots[3].root_pc == 0);
+    assert(slots[3].quality == QUALITY_MAJOR);
+}
+
 void testExtendedChordSizeBuildsExtensionVoicings()
 {
     std::array<SegmentCapture, kMaxSegments> capture {};
@@ -381,6 +419,7 @@ int main()
     testHarmonyBuildFromCapture();
     testSerializationRoundTrip();
     testHighColorFavorsJazzCadenceRoles();
+    testHighColorFavorsCircleOfFifthsAndSuspendedDominant();
     testExtendedChordSizeBuildsExtensionVoicings();
     testSpreadControlWidensVoicings();
     testStoppedTransportPassThrough();

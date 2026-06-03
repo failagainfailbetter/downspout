@@ -52,12 +52,14 @@ public:
     void setTriggerRate(std::size_t triggerIndex, float rate);
     void setTriggerChance(std::size_t triggerIndex, float chance);
     void triggerRandomize();
+    void setPassInput(bool enabled);
 
     [[nodiscard]] int getClockMode() const noexcept;
     [[nodiscard]] float getBpm() const noexcept;
     [[nodiscard]] const LaneConfig& getLane(std::size_t laneIndex) const noexcept;
     [[nodiscard]] const TriggerConfig& getTrigger(std::size_t triggerIndex) const noexcept;
     [[nodiscard]] const Status& getStatus() const noexcept;
+    [[nodiscard]] bool getPassInput() const noexcept;
 
     ProcessResult processBlock(std::uint32_t frameCount,
                                const TransportSnapshot& transport,
@@ -99,6 +101,7 @@ private:
     int randomizeBlocksRemaining_ = 0;
     int clockMode_ = static_cast<int>(ClockMode::Transport);
     float bpm_ = 120.0f;
+    bool passInput_ = true;
     Status status_ {};
 };
 

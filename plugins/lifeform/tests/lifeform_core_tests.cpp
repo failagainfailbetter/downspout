@@ -129,6 +129,7 @@ int main()
     using downspout::lifeform::kParamEmitMode;
     using downspout::lifeform::kParamLedFeedback;
     using downspout::lifeform::kParamPanic;
+    using downspout::lifeform::kParamPassInput;
     using downspout::lifeform::kParamRunning;
     using downspout::lifeform::kParamSeed;
     using downspout::lifeform::kParamStatusCellStart;
@@ -235,6 +236,21 @@ int main()
     result = processor.processBlock(128, transport, &press, 1);
     require(processor.getParameter(kParamStatusCellStart + cellIndex(5, 6)) == 0.0f,
             "lifeform Launchpad pad press should flip a cell off");
+
+    processor.activate();
+    processor.setParameter(kParamLedFeedback, 0.0f);
+    processor.setParameter(kParamRunning, 0.0f);
+    MidiMessage foreignNote {};
+    foreignNote.size = 3;
+    foreignNote.data[0] = 0x99;
+    foreignNote.data[1] = 100;
+    foreignNote.data[2] = 64;
+    result = processor.processBlock(128, transport, &foreignNote, 1);
+    require(!containsMidi(result, 0x99, 100, 64), "lifeform should block unhandled input MIDI by default");
+
+    processor.setParameter(kParamPassInput, 1.0f);
+    result = processor.processBlock(128, transport, &foreignNote, 1);
+    require(containsMidi(result, 0x99, 100, 64), "lifeform pass input switch should forward unhandled MIDI");
 
     processor.activate();
     processor.setParameter(kParamLedFeedback, 0.0f);
