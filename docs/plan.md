@@ -150,6 +150,10 @@ Progress as of 2026-05-27:
 - `cadence` now has a portable core library, a host-neutral learning/playback engine, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `counterpointer` now has a portable core, deterministic tests, text state
   serialization, and a first DPF/VST3 wrapper with custom UI;
+- `sidecar` now exists as an original AI-ready MIDI phrase player with local
+  phrase validation, deterministic fallback generation, text state
+  serialization, transport-aware playback, deterministic tests, and a first
+  DPF/VST3 wrapper with custom UI;
 - `gremlin` now has a portable core library, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `gremlin-driver` now has a portable MIDI modulation core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
 - `ground` now exists as an original long-form MIDI bass generator with a portable form-planning core, deterministic tests, and a first VST3 wrapper target with UI via vendored DPF;
@@ -163,10 +167,11 @@ Progress as of 2026-05-27:
 Current main gap:
 
 - DPF is now vendored and all current wrapper targets build successfully.
-- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `m_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, `ground.vst3`, `floozy.vst3`, `basilico.vst3`, `luma.vst3`, `paunchlad.vst3`, and `lifeform.vst3` bundles.
-- both `install.sh` and `scripts/package-release.sh` are expected to cover the same eighteen-bundle set.
+- `install.sh` now installs real `bassgen.vst3`, `p_mix.vst3`, `e_mix.vst3`, `m_mix.vst3`, `melgen.vst3`, `rift.vst3`, `drumgen.vst3`, `drumkit.vst3`, `cadence.vst3`, `counterpointer.vst3`, `sidecar.vst3`, `gremlin.vst3`, `gremlin_driver.vst3`, `ground.vst3`, `floozy.vst3`, `basilico.vst3`, `luma.vst3`, `paunchlad.vst3`, and `lifeform.vst3` bundles.
+- `scripts/package-release.sh` still needs an explicit release-glue update before
+  `sidecar.vst3` is included in public release archives.
 - `bassgen` now has a richer Jazz model with ii-V-I-turnaround roles, dominant color, chord-tone targeting, approaches/enclosures, and a general `Color` control.
-- the main remaining gaps are host validation across the full plugin set, validating the first tagged GitHub Actions release, and pushing the shared meter/style/color model further up the musical stack where it improves generator behavior.
+- the main remaining gaps are host validation across the full plugin set, validating the first tagged GitHub Actions release, adding the Sidecar coordinator/OpenAI workflow, and pushing the shared meter/style/color model further up the musical stack where it improves generator behavior.
 
 ## Meter direction
 

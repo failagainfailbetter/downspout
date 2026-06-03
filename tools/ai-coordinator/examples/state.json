@@ -1,0 +1,14 @@
+{
+  "key": "D",
+  "scale": "dorian",
+  "genre": "jazz",
+  "tempo": 132,
+  "bars": 4,
+  "beats_per_bar": 4,
+  "channel": 1,
+  "register_low": 60,
+  "register_high": 84,
+  "density": 0.62,
+  "risk": 0.38,
+  "seed": 7
+}
