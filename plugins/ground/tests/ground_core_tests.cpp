@@ -30,6 +30,21 @@ PhraseSnapshot capturePhrase(const FormState& form, const int phraseIndex)
     return snapshot;
 }
 
+int firstPhraseNote(const FormState& form, const int phraseIndex)
+{
+    const PhrasePlan& phrase = form.phrases[static_cast<std::size_t>(phraseIndex)];
+    int bestStep = form.patternSteps + 1;
+    int note = -1;
+    for (int i = 0; i < phrase.eventCount; ++i) {
+        const NoteEvent& event = form.events[static_cast<std::size_t>(phrase.eventStartIndex + i)];
+        if (event.startStep < bestStep) {
+            bestStep = event.startStep;
+            note = event.note;
+        }
+    }
+    return note;
+}
+
 void assertPhraseEqual(const PhraseSnapshot& a, const PhraseSnapshot& b)
 {
     assert(a.plan.role == b.plan.role);
@@ -201,6 +216,35 @@ void testGroundedPhraseGetsSyncopationAndLegato()
     assert(hasLegatoTie);
 }
 
+void testFugalFormPlansSubjectAnswerPedalCadence()
+{
+    Controls controls;
+    controls.rootNote = 36;
+    controls.scale = ScaleId::major;
+    controls.formBars = 16;
+    controls.phraseBars = 2;
+    controls.sequence = 0.95f;
+    controls.cadence = 0.85f;
+    controls.density = 0.45f;
+    controls.color = 0.0f;
+    controls.seed = 7331u;
+
+    FormState form;
+    regenerateForm(form, controls, ::downspout::Meter {});
+
+    assert(form.phraseCount == 8);
+    assert(form.phrases[0].role == PhraseRoleId::statement);
+    assert(form.phrases[0].rootDegree == 0);
+    assert(form.phrases[1].role == PhraseRoleId::answer);
+    assert(form.phrases[1].rootDegree == 4);
+    assert(form.phrases[6].role == PhraseRoleId::pedal);
+    assert(form.phrases[6].rootDegree == 0);
+    assert(form.phrases[7].role == PhraseRoleId::cadence);
+    assert(form.phrases[7].rootDegree == 4);
+    assert(firstPhraseNote(form, 0) == controls.rootNote);
+    assert(firstPhraseNote(form, 1) == controls.rootNote + 7);
+}
+
 void testEngineRestartPhraseStatusAndStop()
 {
     Controls controls;
@@ -322,6 +366,7 @@ int main()
     testVariationChangesOnLoop();
     testCompoundMeterShape();
     testGroundedPhraseGetsSyncopationAndLegato();
+    testFugalFormPlansSubjectAnswerPedalCadence();
     testEngineRestartPhraseStatusAndStop();
     testSerializationRoundTrip();
     return 0;

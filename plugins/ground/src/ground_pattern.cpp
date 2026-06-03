@@ -68,6 +68,9 @@ constexpr ScaleDef kScales[] = {
     {kScaleBebopMinor, 8},
 };
 
+static_assert((sizeof(kScales) / sizeof(kScales[0])) == static_cast<int>(ScaleId::count),
+              "Ground scale table must match the scale enum");
+
 [[nodiscard]] float clampf(const float value, const float minValue, const float maxValue)
 {
     return value < minValue ? minValue : (value > maxValue ? maxValue : value);
@@ -202,6 +205,52 @@ constexpr ScaleDef kScales[] = {
     case PhraseRoleId::release: return motion * 0.35f;
     }
     return motion;
+}
+
+[[nodiscard]] bool fugalFormMode(const Controls& controls)
+{
+    return controls.sequence >= 0.78f &&
+           controls.cadence >= 0.62f &&
+           controls.density >= 0.22f;
+}
+
+[[nodiscard]] PhraseRoleId fugalRoleForPhrase(const int phraseIndex, const int phraseCount)
+{
+    if (phraseIndex <= 0) {
+        return PhraseRoleId::statement;
+    }
+    if (phraseIndex == phraseCount - 1) {
+        return PhraseRoleId::cadence;
+    }
+    if (phraseCount >= 4 && phraseIndex == phraseCount - 2) {
+        return PhraseRoleId::pedal;
+    }
+    if ((phraseIndex % 2) == 1) {
+        return PhraseRoleId::answer;
+    }
+    if (phraseIndex >= std::max(2, phraseCount / 2)) {
+        return PhraseRoleId::climb;
+    }
+    return PhraseRoleId::statement;
+}
+
+[[nodiscard]] int fugalRootDegreeForRole(const PhraseRoleId role, const int phraseIndex)
+{
+    switch (role) {
+    case PhraseRoleId::statement:
+        return phraseIndex <= 0 ? 0 : 2;
+    case PhraseRoleId::answer:
+        return 4;
+    case PhraseRoleId::climb:
+        return (phraseIndex % 2) == 0 ? 2 : 5;
+    case PhraseRoleId::pedal:
+    case PhraseRoleId::breakdown:
+    case PhraseRoleId::release:
+        return 0;
+    case PhraseRoleId::cadence:
+        return 4;
+    }
+    return 0;
 }
 
 [[nodiscard]] int noteFromDegree(const Controls& controls, int degreeIndex, const int phraseRegisterOffset)
@@ -814,8 +863,13 @@ void buildPhrasePlan(FormState& form, const Controls& controls, const ::downspou
         phrase.bars = form.phraseBars;
         phrase.startStep = phrase.startBar * form.stepsPerBar;
         phrase.stepCount = form.phraseBars * form.stepsPerBar;
-        phrase.role = chooseRole(controls, plannerRng, index, form.phraseCount, peakPhrase);
-        phrase.rootDegree = roleBaseDegree(phrase.role, plannerRng);
+        if (fugalFormMode(controls)) {
+            phrase.role = fugalRoleForPhrase(index, form.phraseCount);
+            phrase.rootDegree = fugalRootDegreeForRole(phrase.role, index);
+        } else {
+            phrase.role = chooseRole(controls, plannerRng, index, form.phraseCount, peakPhrase);
+            phrase.rootDegree = roleBaseDegree(phrase.role, plannerRng);
+        }
         phrase.registerOffset = phraseRegisterOffset(controls, phrase.role, index, form.phraseCount);
         phrase.intensity = roleIntensity(phrase.role);
         phrase.motionBias = roleMotionBias(phrase.role, clampf(controls.motion + colorAmount(controls) * 0.15f, 0.0f, 1.0f));
@@ -866,8 +920,13 @@ void regenerateSinglePhrasePlan(PhrasePlan& phrase,
                                                                (0.35 + clampf(controls.tension + colorAmount(controls) * 0.12f, 0.0f, 1.0f) * 0.40))),
                                   1,
                                   std::max(1, phraseCount - 1));
-    phrase.role = chooseRole(controls, rng, phraseIndex, phraseCount, peakPhrase);
-    phrase.rootDegree = roleBaseDegree(phrase.role, rng);
+    if (fugalFormMode(controls)) {
+        phrase.role = fugalRoleForPhrase(phraseIndex, phraseCount);
+        phrase.rootDegree = fugalRootDegreeForRole(phrase.role, phraseIndex);
+    } else {
+        phrase.role = chooseRole(controls, rng, phraseIndex, phraseCount, peakPhrase);
+        phrase.rootDegree = roleBaseDegree(phrase.role, rng);
+    }
     phrase.registerOffset = phraseRegisterOffset(controls, phrase.role, phraseIndex, phraseCount);
     phrase.intensity = roleIntensity(phrase.role);
     phrase.motionBias = roleMotionBias(phrase.role, clampf(controls.motion + colorAmount(controls) * 0.15f, 0.0f, 1.0f));
@@ -1007,10 +1066,11 @@ void regenerateForm(FormState& form, const Controls& rawControls, const ::downsp
         rng.seed(seedMix(controls, form.generationSerial, phraseIndex, 0xa511e9b3u));
         const PhrasePlan* previousPlan = phraseIndex > 0 ? &form.phrases[static_cast<std::size_t>(phraseIndex - 1)] : nullptr;
         const PhraseEventList* previousEvents = phraseIndex > 0 ? &phraseEvents[static_cast<std::size_t>(phraseIndex - 1)] : nullptr;
-        const bool useSequence = controls.sequence > 0.35f &&
-                                 phraseIndex > 0 &&
-                                 (form.phrases[static_cast<std::size_t>(phraseIndex)].role == PhraseRoleId::answer ||
-                                  form.phrases[static_cast<std::size_t>(phraseIndex)].role == PhraseRoleId::release);
+        const bool roleCanSequence = form.phrases[static_cast<std::size_t>(phraseIndex)].role == PhraseRoleId::answer ||
+                                     form.phrases[static_cast<std::size_t>(phraseIndex)].role == PhraseRoleId::release;
+        const bool useSequence = phraseIndex > 0 &&
+                                 roleCanSequence &&
+                                 (fugalFormMode(controls) || controls.sequence > 0.35f);
 
         generatePhraseEvents(phraseEvents[static_cast<std::size_t>(phraseIndex)],
                              form.phrases[static_cast<std::size_t>(phraseIndex)],
@@ -1052,10 +1112,11 @@ void refreshPhrase(FormState& form, const Controls& rawControls, const int phras
     rng.seed(seedMix(controls, form.generationSerial, index, 0xc1426ba3u));
     const PhrasePlan* previousPlan = index > 0 ? &form.phrases[static_cast<std::size_t>(index - 1)] : nullptr;
     const PhraseEventList* previousEvents = index > 0 ? &phraseEvents[static_cast<std::size_t>(index - 1)] : nullptr;
-    const bool useSequence = controls.sequence > 0.35f &&
-                             index > 0 &&
-                             (form.phrases[static_cast<std::size_t>(index)].role == PhraseRoleId::answer ||
-                              form.phrases[static_cast<std::size_t>(index)].role == PhraseRoleId::release);
+    const bool roleCanSequence = form.phrases[static_cast<std::size_t>(index)].role == PhraseRoleId::answer ||
+                                 form.phrases[static_cast<std::size_t>(index)].role == PhraseRoleId::release;
+    const bool useSequence = index > 0 &&
+                             roleCanSequence &&
+                             (fugalFormMode(controls) || controls.sequence > 0.35f);
 
     generatePhraseEvents(phraseEvents[static_cast<std::size_t>(index)],
                          form.phrases[static_cast<std::size_t>(index)],

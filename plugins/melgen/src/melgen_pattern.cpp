@@ -73,6 +73,9 @@ constexpr ScaleDef kScales[] = {
     {kScaleBebopMinor, 8},
 };
 
+static_assert((sizeof(kScales) / sizeof(kScales[0])) == static_cast<int>(ScaleId::count),
+              "MelGen scale table must match the scale enum");
+
 [[nodiscard]] float clampf(float value, float minValue, float maxValue)
 {
     return std::max(minValue, std::min(value, maxValue));
@@ -130,6 +133,14 @@ constexpr ScaleDef kScales[] = {
     const int degree = degreeIndex % scale.count;
     const int interval = scale.intervals[degree] + 12 * octave;
     return clampi(controls.rootNote + registerOffset(controls.reg) + interval, 0, 127);
+}
+
+[[nodiscard]] bool strictFugueMode(const Controls& controls)
+{
+    return controls.period == PeriodId::callAnswer &&
+           controls.structure >= 0.88f &&
+           controls.leap <= 0.22f &&
+           controls.rest <= 0.25f;
 }
 
 [[nodiscard]] bool isJazzColorScale(const ScaleId scale)
@@ -328,6 +339,37 @@ void appendMotifEvent(Motif& motif, const MotifEvent& event)
 
     const ScaleDef& scale = kScales[static_cast<int>(controls.scale)];
     const int maxDegree = clampi(scale.count - 1 + static_cast<int>(std::lround(controls.range * 17.0f)), 3, scale.count * 4 - 1);
+
+    if (strictFugueMode(controls)) {
+        constexpr int kSubjectDegrees[] = {0, 1, 2, 4, 3, 2, 1, 0};
+        const int beatSteps = std::max(1, pattern.stepsPerBeat);
+        const int spacing = controls.density >= 0.78f ? std::max(1, beatSteps / 2) : beatSteps;
+        const int duration = clampi(static_cast<int>(std::lround(static_cast<float>(spacing) * (0.72f + controls.hold * 0.32f))),
+                                    1,
+                                    std::max(1, beatSteps));
+        const int phraseLift = (phraseIndex % 2) == 0 ? 0 : 4;
+
+        for (int step = 0, subjectIndex = 0; step < motif.lengthSteps; step += spacing, ++subjectIndex) {
+            if (controls.density < 0.95f &&
+                subjectIndex > 0 &&
+                (subjectIndex % 5) == 4 &&
+                rng.nextFloat() > controls.density) {
+                continue;
+            }
+            const int degree = clampi(kSubjectDegrees[subjectIndex % static_cast<int>(sizeof(kSubjectDegrees) / sizeof(kSubjectDegrees[0]))] + phraseLift,
+                                      0,
+                                      maxDegree);
+            const bool strong = (step % beatSteps) == 0;
+            const int accent = strong ? static_cast<int>(std::lround(controls.accent * 22.0f)) : 0;
+            appendMotifEvent(motif, {step, duration, degree, 86 + accent});
+        }
+
+        if (motif.eventCount == 0) {
+            appendMotifEvent(motif, {0, beatSteps, 0, 96});
+        }
+        return motif;
+    }
+
     int degree = contourTargetDegree(controls, phraseIndex % 2 == 0 ? 0.12f : 0.36f, maxDegree);
 
     for (int step = 0; step < motif.lengthSteps;) {
@@ -366,10 +408,17 @@ void appendMotifEvent(Motif& motif, const MotifEvent& event)
 
     const ScaleDef& scale = kScales[static_cast<int>(controls.scale)];
     const int maxDegree = clampi(scale.count - 1 + static_cast<int>(std::lround(controls.range * 17.0f)), 3, scale.count * 4 - 1);
-    const int shift = controls.answer == AnswerId::transpose ? rng.nextInt(1, 3) :
-        (role == PhraseRole::answer ? 2 : 0);
-    const bool invert = controls.answer == AnswerId::invert || (role == PhraseRole::answer && rng.nextFloat() < controls.structure * 0.25f);
-    const float mutation = clampf(1.0f - controls.structure + controls.color * 0.25f, 0.0f, 1.0f);
+    const bool strictFugueAnswer = strictFugueMode(controls) && role == PhraseRole::answer;
+    const int shift = strictFugueAnswer ? 4 :
+        (controls.answer == AnswerId::transpose ? rng.nextInt(1, 3) :
+            (role == PhraseRole::answer ? 2 : 0));
+    const bool invert = controls.answer == AnswerId::invert ||
+                        (strictFugueAnswer
+                            ? controls.color >= 0.75f
+                            : (role == PhraseRole::answer && rng.nextFloat() < controls.structure * 0.25f));
+    const float mutation = strictFugueAnswer
+        ? clampf(controls.color * 0.08f, 0.0f, 1.0f)
+        : clampf(1.0f - controls.structure + controls.color * 0.25f, 0.0f, 1.0f);
     const int center = maxDegree / 2;
 
     for (int i = 0; i < motif.eventCount; ++i) {
@@ -418,7 +467,9 @@ void applyCadence(const Controls& controls, Motif& motif, const PhraseRole role)
         return;
     }
 
-    if (targetStrength > 0.74f) {
+    if (strictFugueMode(controls) && role == PhraseRole::answer) {
+        last.degree = 4;
+    } else if (targetStrength > 0.74f) {
         last.degree = 0;
     } else if (targetStrength > 0.42f) {
         last.degree = 4;

@@ -20,6 +20,13 @@ not a chord-extension model yet; it increases melodic tension by making scalar
 movement looser, answer phrases more mutable, and weak/pickup notes more likely
 to use chromatic approaches or simple above/below enclosures.
 
+Fugue-friendly melodic behavior is intentionally mapped onto the existing
+phrase controls instead of a new genre enum. With `Period` set to `Call Answer`,
+high `Structure`, and low `Leap`/`Rest`, the generator uses a compact scalar
+subject and derives the answer at the dominant. This keeps the visible UI
+general-purpose while giving Bach-like setups a repeatable subject/answer
+region to target.
+
 `Follow` adds one MIDI input role to the generator. Incoming note-on events set
 an active influence note; generated notes are pulled toward the nearest octave
 of that note, capped below a full copy and quantized back to the selected scale.

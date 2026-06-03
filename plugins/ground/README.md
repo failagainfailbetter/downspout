@@ -40,6 +40,9 @@ ties than the first `ground` build.
   How much the register climbs across the form.
 - `Sequence`
   How likely answer/release phrases are to derive their material from the previous phrase.
+  High `Sequence` with high `Cadence` enters a Fugue-friendly long-form region:
+  Ground plans subject, dominant-answer, pedal, and cadence phrases while
+  keeping the same visible controls.
 - `Seed`
   Deterministic random seed.
 - `Vary`
@@ -75,6 +78,8 @@ It is supposed to help users think in sections rather than in parameter soup.
   saved-state scale values remain stable.
 - the `Color` control is serialized and exposed in the UI, defaulting to zero
   so the original long-form behavior remains the baseline.
+- high `Sequence` plus high `Cadence` gives a deterministic Fugue-friendly
+  subject/answer/pedal/cadence arc without adding a dedicated genre selector.
 
 Reference docs:
 

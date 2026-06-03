@@ -16,6 +16,9 @@ The musical core is new:
   toward another line, such as `bassgen`, without copying it exactly.
 - a `Color` control that increases melodic tension through wider scalar
   movement, phrase mutation, chromatic approaches, and simple enclosures.
+- a strict, Fugue-friendly region of the existing phrase controls: `Call Answer`
+  period, high `Structure`, and low `Leap`/`Rest` produces a tonic subject and
+  dominant answer without adding a separate genre selector.
 - scale choices include minor, major, Dorian, Phrygian, Mixolydian, harmonic
   minor, Lydian, melodic minor, whole tone, altered, diminished, bebop,
   pentatonic, blues, Locrian, and Phrygian dominant colors.

@@ -13,9 +13,11 @@ current Downspout plugins.
   modes, genre vocabularies, pattern mutation around the current cycle, and a
   sparse Fugue pulse mode.
 - `MelGen`: phrase-aware monophonic melody generation with contour, call and
-  answer, structure, range, color, and follow controls.
+  answer, structure, range, color, follow controls, and a high-structure
+  Fugue-friendly subject/dominant-answer region.
 - `Ground`: longer-horizon bass generation that plans phrase roles, movement,
-  cadences, and color across sections rather than just local bars.
+  cadences, pedal phrases, color, and high-sequence subject/answer forms across
+  sections rather than just local bars.
 - `Cadence`: learned harmony generation from captured MIDI, with scale-aware
   voicing, chord-size modes, comp scheduling, variation, and arpeggiated
   playback phrasing.

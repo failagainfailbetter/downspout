@@ -46,6 +46,22 @@ int phraseEndNote(const PatternState& pattern, int phraseIndex)
     return note;
 }
 
+int phraseStartNote(const PatternState& pattern, int phraseIndex)
+{
+    const PhraseInfo& phrase = pattern.phrases[phraseIndex];
+    const int end = phrase.startStep + phrase.lengthSteps;
+    int note = -1;
+    int earliest = pattern.patternSteps + 1;
+    for (int i = 0; i < pattern.eventCount; ++i) {
+        const NoteEvent& event = pattern.events[i];
+        if (event.startStep >= phrase.startStep && event.startStep < end && event.startStep < earliest) {
+            earliest = event.startStep;
+            note = event.note;
+        }
+    }
+    return note;
+}
+
 InputMidiEvent noteOn(std::uint32_t frame, std::uint8_t note, std::uint8_t velocity = 100)
 {
     InputMidiEvent event {};
@@ -152,6 +168,33 @@ void testColorInfluencesGeneratedLine()
     assert(restrained.eventCount > 0);
     assert(colored.eventCount > 0);
     assert(!patternsEqual(restrained, colored));
+}
+
+void testStrictFugueRegionAnswersAtDominant()
+{
+    Controls controls;
+    controls.rootNote = 60;
+    controls.scale = ScaleId::major;
+    controls.lengthBeats = 8;
+    controls.phraseLengthBars = 1;
+    controls.period = PeriodId::callAnswer;
+    controls.answer = AnswerId::related;
+    controls.structure = 1.0f;
+    controls.leap = 0.0f;
+    controls.rest = 0.0f;
+    controls.density = 1.0f;
+    controls.cadence = 0.0f;
+    controls.color = 0.0f;
+    controls.seed = 2026u;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    assert(pattern.phraseCount == 2);
+    assert(pattern.phrases[0].role == PhraseRole::call);
+    assert(pattern.phrases[1].role == PhraseRole::answer);
+    assert(phraseStartNote(pattern, 0) == 60);
+    assert(phraseStartNote(pattern, 1) == 67);
 }
 
 void testEngineSchedulesMidi()
@@ -274,6 +317,7 @@ int main()
     testStructureChangesPhraseRelationship();
     testCadenceTargetsRoot();
     testColorInfluencesGeneratedLine();
+    testStrictFugueRegionAnswersAtDominant();
     testEngineSchedulesMidi();
     testFollowInfluencesGeneratedNoteWithoutCopyingInput();
     testSerializationRoundTrip();

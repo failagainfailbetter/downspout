@@ -22,6 +22,10 @@ plugins that can use it musically.
 - [x] Add deterministic tests for appended genre IDs and core Fugue behavior.
 - [x] Add subject-answer behavior to `counterpointer` using existing strict
       counterpoint controls instead of a new genre selector.
+- [x] Add Fugue-friendly phrase behavior to `melgen` using existing `Period`,
+      `Structure`, `Leap`, `Rest`, and `Color` controls.
+- [x] Add Fugue-friendly long-form behavior to `ground` using existing
+      `Sequence` and `Cadence` controls.
 
 ## First Implementation Slice
 
@@ -40,14 +44,24 @@ randomness as a strict fugal answering region. In that state the incoming MIDI
 cycle is the subject, and the generated line preserves subject intervals around
 the dominant. High color on Jazz-capable scales can invert those intervals.
 
+`melgen` now treats `Call Answer` period, high `Structure`, and low `Leap`/`Rest`
+as a strict subject/answer region. It generates a compact scalar subject and
+derives the answer at the dominant while leaving the visible control set
+unchanged.
+
+`ground` now treats high `Sequence` plus high `Cadence` as a Fugue-friendly
+long-form region. It plans a stable subject entry, dominant answer, middle
+entries, a penultimate pedal phrase, and a cadence while keeping the existing
+form controls.
+
 ## Next Steps
 
 - Validate BassGen Fugue in a DAW with major, minor, and harmonic-minor scales.
 - Validate Counterpointer's strict fugal answering in a DAW, especially with
   BassGen Fugue driving its input.
-- Add Fugue-friendly phrase behavior to `melgen`, probably through existing
-  `Period`, `Answer`, `Structure`, and `Color` controls rather than a new genre
-  enum.
-- Add longer-form subject-entry and pedal-planning behavior to `ground`.
+- Validate MelGen's Fugue-friendly control region in a DAW with BassGen Fugue
+  and Counterpointer.
+- Validate Ground's high-Sequence/high-Cadence Fugue-friendly form in a DAW,
+  especially with MelGen and Counterpointer layered above it.
 - Consider Cadence support for circle-of-fifths and suspension-heavy harmonic
   support after the melodic subject behavior is stable.
