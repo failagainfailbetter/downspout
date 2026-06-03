@@ -2,6 +2,9 @@ add_executable(downspout-ai-coordinator
     src/main.cpp
     src/midi_context.cpp
     src/midi_file_writer.cpp
+    src/openai_client.cpp
+    src/phrase_response.cpp
+    src/request_builder.cpp
     src/solo_generator.cpp
     src/state_json.cpp
 )
@@ -18,6 +21,9 @@ if(BUILD_TESTING)
         tests/ai_coordinator_tests.cpp
         src/midi_context.cpp
         src/midi_file_writer.cpp
+        src/openai_client.cpp
+        src/phrase_response.cpp
+        src/request_builder.cpp
         src/solo_generator.cpp
         src/state_json.cpp
     )

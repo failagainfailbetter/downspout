@@ -149,6 +149,26 @@ std::optional<TuneState> parseTuneStateJson(const std::string& text)
     readFloat(text, "density", state.density);
     readFloat(text, "risk", state.risk);
     readNumber(text, "seed", state.seed);
+    if (const std::size_t guides = text.find("\"guide_pitch_classes\""); guides != std::string::npos) {
+        const std::size_t open = text.find('[', guides);
+        const std::size_t close = open == std::string::npos ? std::string::npos : text.find(']', open);
+        if (open != std::string::npos && close != std::string::npos) {
+            std::size_t cursor = open + 1;
+            while (cursor < close && state.guidePitchClassCount < kMaxGuidePitchClasses) {
+                while (cursor < close && (std::isspace(static_cast<unsigned char>(text[cursor])) || text[cursor] == ','))
+                    ++cursor;
+                std::size_t end = cursor;
+                while (end < close && text[end] != ',')
+                    ++end;
+                int pc = 0;
+                const auto result = std::from_chars(text.data() + cursor, text.data() + end, pc);
+                if (result.ec == std::errc()) {
+                    state.guidePitchClasses[static_cast<std::size_t>(state.guidePitchClassCount++)] = ((pc % 12) + 12) % 12;
+                }
+                cursor = end + 1;
+            }
+        }
+    }
 
     state.key = clampi(state.key, 0, 11);
     state.tempo = clampi(state.tempo, 30, 300);
@@ -165,8 +185,51 @@ std::optional<TuneState> parseTuneStateJson(const std::string& text)
         state.scale = "major";
     if (state.genre.empty())
         state.genre = "jazz";
+    state.hasMidiContext = state.guidePitchClassCount > 0 || state.hasMidiContext;
 
     return state;
+}
+
+std::string serializeTuneStateJson(const TuneState& rawState)
+{
+    TuneState state = rawState;
+    state.key = clampi(state.key, 0, 11);
+    state.tempo = clampi(state.tempo, 30, 300);
+    state.bars = clampi(state.bars, 1, 8);
+    state.beatsPerBar = clampi(state.beatsPerBar, 1, 12);
+    state.channel = clampi(state.channel, 1, 16);
+    state.registerLow = clampi(state.registerLow, 0, 127);
+    state.registerHigh = clampi(state.registerHigh, 0, 127);
+    if (state.registerHigh < state.registerLow)
+        std::swap(state.registerHigh, state.registerLow);
+    state.density = clampf(state.density, 0.0f, 1.0f);
+    state.risk = clampf(state.risk, 0.0f, 1.0f);
+    state.guidePitchClassCount = clampi(state.guidePitchClassCount, 0, kMaxGuidePitchClasses);
+
+    std::ostringstream out;
+    out << "{\n";
+    out << "  \"key\": " << state.key << ",\n";
+    out << "  \"scale\": \"" << state.scale << "\",\n";
+    out << "  \"genre\": \"" << state.genre << "\",\n";
+    out << "  \"tempo\": " << state.tempo << ",\n";
+    out << "  \"bars\": " << state.bars << ",\n";
+    out << "  \"beats_per_bar\": " << state.beatsPerBar << ",\n";
+    out << "  \"channel\": " << state.channel << ",\n";
+    out << "  \"register_low\": " << state.registerLow << ",\n";
+    out << "  \"register_high\": " << state.registerHigh << ",\n";
+    out << "  \"density\": " << state.density << ",\n";
+    out << "  \"risk\": " << state.risk << ",\n";
+    out << "  \"seed\": " << state.seed << ",\n";
+    out << "  \"midi_context\": " << (state.hasMidiContext ? "true" : "false") << ",\n";
+    out << "  \"guide_pitch_classes\": [";
+    for (int i = 0; i < state.guidePitchClassCount; ++i) {
+        if (i > 0)
+            out << ", ";
+        out << state.guidePitchClasses[static_cast<std::size_t>(i)];
+    }
+    out << "]\n";
+    out << "}\n";
+    return out.str();
 }
 
 std::optional<TuneState> loadTuneStateJson(const std::string& path)

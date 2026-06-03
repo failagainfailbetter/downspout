@@ -31,8 +31,15 @@ struct TuneState {
 };
 
 [[nodiscard]] std::optional<TuneState> parseTuneStateJson(const std::string& text);
+[[nodiscard]] std::string serializeTuneStateJson(const TuneState& state);
 [[nodiscard]] std::optional<TuneState> loadTuneStateJson(const std::string& path);
 [[nodiscard]] std::optional<TuneState> analyzeMidiFileToTuneState(const std::string& path);
+[[nodiscard]] std::optional<downspout::sidecar::Phrase> parsePhraseResponseJson(const std::string& text);
+[[nodiscard]] std::optional<downspout::sidecar::Phrase> loadPhraseResponseJson(const std::string& path);
+[[nodiscard]] std::string buildSoloRequestJson(const TuneState& state);
+[[nodiscard]] std::optional<downspout::sidecar::Phrase> requestOpenAiPhrase(const TuneState& state,
+                                                                            std::string* rawResponse = nullptr,
+                                                                            std::string* extractedText = nullptr);
 
 [[nodiscard]] downspout::sidecar::Controls controlsFromTuneState(const TuneState& state);
 [[nodiscard]] downspout::sidecar::Phrase generateSoloPhrase(const TuneState& state);

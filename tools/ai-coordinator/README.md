@@ -17,6 +17,40 @@ Or derive the request from an existing MIDI clip:
 downspout-ai-coordinator generate-from-midi /tmp/source.mid --out /tmp/solo.mid --phrase /tmp/phrase.txt
 ```
 
+Export inferred MIDI context as JSON:
+
+```bash
+downspout-ai-coordinator analyze-midi /tmp/source.mid --out /tmp/state.json
+```
+
+Build a provider-neutral request JSON file for a future model call:
+
+```bash
+downspout-ai-coordinator build-request /tmp/state.json --out /tmp/request.json
+downspout-ai-coordinator build-request-from-midi /tmp/source.mid --out /tmp/request.json
+```
+
+Render a validated phrase-response JSON file:
+
+```bash
+downspout-ai-coordinator render-response tools/ai-coordinator/examples/response.json --out /tmp/solo.mid --phrase /tmp/phrase.txt
+```
+
+Call OpenAI from the coordinator:
+
+```bash
+downspout-ai-coordinator openai /tmp/state.json --out /tmp/solo.mid --phrase /tmp/phrase.txt --raw /tmp/raw-response.json
+downspout-ai-coordinator openai-from-midi /tmp/source.mid --out /tmp/solo.mid --phrase /tmp/phrase.txt --raw /tmp/raw-response.json
+```
+
+The API key is read from `OPENAI_API_KEY` or from `.env`. The coordinator does
+not print the key. Set `DOWNSPOUT_OPENAI_MODEL` to override the default model.
+The repository exercise script keeps this path opt-in:
+
+```bash
+DOWNSPOUT_RUN_OPENAI=1 ./exercise-sidecar-ai.sh
+```
+
 The `--phrase` output is optional. It writes Sidecar's text phrase state so the
 same phrase can be inspected or used in future plugin import work.
 
@@ -41,9 +75,9 @@ The first JSON shape is intentionally small and hand-writable:
 }
 ```
 
-No API key, HTTP server, or model call is involved yet. The next step is to
-replace the deterministic generator with validated OpenAI output while keeping
-the MIDI writer and phrase validation path unchanged.
+The OpenAI path is CLI-only and outside the plugin. It writes MIDI only after
+the returned text has been parsed as a phrase response and validated by the
+Sidecar protocol.
 
 ## MIDI-First Context
 
