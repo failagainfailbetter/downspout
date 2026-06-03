@@ -2,6 +2,7 @@
 layout: default
 title: Algorithms
 description: A summary of the generation and processing methods used by the current Downspout plugins.
+permalink: /algorithms/
 ---
 
 # Downspout Algorithms
