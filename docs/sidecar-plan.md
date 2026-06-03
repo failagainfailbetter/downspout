@@ -17,7 +17,8 @@ stays realtime-safe and only queues validated MIDI phrases.
 - [x] Add coordinator CLI at `tools/ai-coordinator`.
 - [ ] Add OpenAI API client in coordinator.
 - [x] Add `state.json -> solo.mid` workflow.
-- [ ] Add MIDI-derived tune context in Sidecar/coordinator.
+- [x] Add offline MIDI-derived tune context in coordinator.
+- [ ] Add live MIDI-derived tune context in Sidecar/coordinator.
 - [ ] Add localhost live request/response.
 - [x] Add state summaries for Ground and Cadence.
 - [ ] Add Sidecar to release packaging and screenshot documentation once the
@@ -80,3 +81,12 @@ This keeps the architecture modular:
   material;
 - optional plugin summaries can still be used later as hints if they remain
   passive and do not affect current plugin behavior.
+
+## Implemented MIDI context slice
+
+- `downspout-ai-coordinator generate-from-midi source.mid --out solo.mid`
+  analyzes a Standard MIDI File.
+- The analyzer derives pitch-class guides, approximate key/scale, register,
+  density, phrase length, and seed from note events.
+- The deterministic phrase generator uses guide pitch classes from the analyzed
+  material when choosing phrase targets.

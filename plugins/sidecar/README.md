@@ -7,9 +7,11 @@ local-only: it does not call an API from the realtime plugin thread.
 ## Current behavior
 
 - Generates deterministic fallback phrases from the UI constraints.
+- Captures routed MIDI note-ons as optional local context for Generate/Retry.
 - Stores the accepted phrase in plugin state.
 - Plays the phrase against host BBT transport.
 - Emits MIDI note-on/note-off events on the selected channel.
+- Does not pass routed input MIDI through to the output.
 - Clears active notes immediately when transport stops, Mute is enabled, or the
   phrase is unavailable.
 
@@ -26,6 +28,10 @@ local-only: it does not call an API from the realtime plugin thread.
 - `Generate`: creates a new deterministic fallback phrase.
 - `Accept`: marks the current phrase as accepted for session state.
 - `Retry`: creates an alternate deterministic fallback phrase.
+
+If MIDI has been routed into Sidecar, Generate and Retry use the captured note
+range, density, and event seed as hints. If no MIDI has been routed in, the
+plugin keeps the original local fallback behavior.
 
 ## Planned coordinator work
 

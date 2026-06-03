@@ -365,6 +365,16 @@ passive, and behavior-neutral.
 9. Add localhost request/response between Sidecar and the coordinator.
 10. Use passive plugin summaries only as optional hints or diagnostics.
 
+The first offline MIDI-derived path exists as:
+
+```text
+downspout-ai-coordinator generate-from-midi source.mid --out solo.mid
+```
+
+Sidecar also accepts routed MIDI input now. Locally, Generate/Retry can use the
+captured note range, density, and event seed as hints without passing input MIDI
+through or changing any other plugin.
+
 ## OpenAI API fit
 
 The OpenAI Responses API is the likely API surface for this because current

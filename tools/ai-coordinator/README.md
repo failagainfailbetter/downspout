@@ -11,6 +11,12 @@ and writes a Standard MIDI File.
 downspout-ai-coordinator generate tools/ai-coordinator/examples/state.json --out /tmp/solo.mid --phrase /tmp/phrase.txt
 ```
 
+Or derive the request from an existing MIDI clip:
+
+```bash
+downspout-ai-coordinator generate-from-midi /tmp/source.mid --out /tmp/solo.mid --phrase /tmp/phrase.txt
+```
+
 The `--phrase` output is optional. It writes Sidecar's text phrase state so the
 same phrase can be inspected or used in future plugin import work.
 
@@ -53,6 +59,10 @@ Useful derived context:
 - register range for solo bounds;
 - recent bass/chord tones for guide targets;
 - bar/beat positions for call-and-response timing.
+
+The `generate-from-midi` command implements the first offline version of this:
+it reads a Standard MIDI File, derives key/register/density/guide pitch classes,
+and uses those values to guide the deterministic phrase generator.
 
 ## Optional State Summary Helpers
 

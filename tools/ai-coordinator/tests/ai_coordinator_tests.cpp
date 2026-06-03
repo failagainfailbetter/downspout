@@ -89,6 +89,30 @@ void testWriteMidiFile()
     std::remove(path.c_str());
 }
 
+void testAnalyzeMidiFileToTuneState()
+{
+    downspout::ai_coordinator::TuneState source {};
+    source.key = 2;
+    source.scale = "dorian";
+    source.bars = 2;
+    source.registerLow = 48;
+    source.registerHigh = 72;
+    source.seed = 44;
+
+    const downspout::sidecar::Phrase phrase = downspout::ai_coordinator::generateSoloPhrase(source);
+    const std::string path = "/tmp/downspout-ai-coordinator-analyze.mid";
+    require(downspout::ai_coordinator::writeMidiFile(path, phrase, 120, 1, 4), "analysis fixture MIDI should write");
+
+    const std::optional<downspout::ai_coordinator::TuneState> analyzed =
+        downspout::ai_coordinator::analyzeMidiFileToTuneState(path);
+    require(analyzed.has_value(), "MIDI context should analyze");
+    require(analyzed->hasMidiContext, "analyzed state should mark MIDI context");
+    require(analyzed->guidePitchClassCount > 0, "analyzed state should include guide pitch classes");
+    require(analyzed->registerHigh >= analyzed->registerLow, "analyzed register should be ordered");
+    require(analyzed->density > 0.0f, "analyzed density should be nonzero");
+    std::remove(path.c_str());
+}
+
 }  // namespace
 
 int main()
@@ -96,6 +120,7 @@ int main()
     testParseTuneState();
     testGeneratePhraseValidates();
     testWriteMidiFile();
+    testAnalyzeMidiFileToTuneState();
     std::cout << "ai coordinator tests passed\n";
     return 0;
 }

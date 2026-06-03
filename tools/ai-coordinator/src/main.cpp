@@ -12,7 +12,8 @@ void printUsage()
 {
     std::cout
         << "usage:\n"
-        << "  downspout-ai-coordinator generate state.json --out solo.mid [--phrase phrase.txt]\n";
+        << "  downspout-ai-coordinator generate state.json --out solo.mid [--phrase phrase.txt]\n"
+        << "  downspout-ai-coordinator generate-from-midi source.mid --out solo.mid [--phrase phrase.txt]\n";
 }
 
 }  // namespace
@@ -25,7 +26,7 @@ int main(const int argc, char** argv)
     }
 
     const std::string command = argv[1];
-    if (command != "generate") {
+    if (command != "generate" && command != "generate-from-midi") {
         std::cerr << "unknown command: " << command << '\n';
         printUsage();
         return 1;
@@ -36,7 +37,7 @@ int main(const int argc, char** argv)
         return 1;
     }
 
-    const std::string statePath = argv[2];
+    const std::string inputPath = argv[2];
     std::string outputPath;
     std::string phrasePath;
     for (int i = 3; i < argc; ++i) {
@@ -56,9 +57,11 @@ int main(const int argc, char** argv)
         return 1;
     }
 
-    const auto state = downspout::ai_coordinator::loadTuneStateJson(statePath);
+    const auto state = command == "generate"
+        ? downspout::ai_coordinator::loadTuneStateJson(inputPath)
+        : downspout::ai_coordinator::analyzeMidiFileToTuneState(inputPath);
     if (!state.has_value()) {
-        std::cerr << "could not read tune state: " << statePath << '\n';
+        std::cerr << "could not read input: " << inputPath << '\n';
         return 1;
     }
 

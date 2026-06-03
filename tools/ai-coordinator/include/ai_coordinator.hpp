@@ -3,11 +3,14 @@
 
 #include "sidecar_core_types.hpp"
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
 
 namespace downspout::ai_coordinator {
+
+inline constexpr int kMaxGuidePitchClasses = 16;
 
 struct TuneState {
     int key = 0;
@@ -22,10 +25,14 @@ struct TuneState {
     float density = 0.55f;
     float risk = 0.35f;
     std::uint32_t seed = 1;
+    bool hasMidiContext = false;
+    int guidePitchClassCount = 0;
+    std::array<int, kMaxGuidePitchClasses> guidePitchClasses {};
 };
 
 [[nodiscard]] std::optional<TuneState> parseTuneStateJson(const std::string& text);
 [[nodiscard]] std::optional<TuneState> loadTuneStateJson(const std::string& path);
+[[nodiscard]] std::optional<TuneState> analyzeMidiFileToTuneState(const std::string& path);
 
 [[nodiscard]] downspout::sidecar::Controls controlsFromTuneState(const TuneState& state);
 [[nodiscard]] downspout::sidecar::Phrase generateSoloPhrase(const TuneState& state);

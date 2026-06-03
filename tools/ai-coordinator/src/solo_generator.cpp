@@ -132,7 +132,11 @@ downspout::sidecar::Phrase generateSoloPhrase(const TuneState& state)
             scaleDegree = (scaleDegree + 2 + static_cast<int>(nextRandom(seed) % 3u)) % intervalCount;
 
         const int octaveLift = (emitted % 7 == 5 && randomUnit(seed) < controls.risk) ? 12 : 0;
-        const int pitchClass = (state.key + intervals[static_cast<std::size_t>(scaleDegree)] + 120) % 12;
+        int pitchClass = (state.key + intervals[static_cast<std::size_t>(scaleDegree)] + 120) % 12;
+        if (state.guidePitchClassCount > 0 && (emitted % 4 == 0 || randomUnit(seed) < controls.risk * 0.55f)) {
+            const int guideIndex = static_cast<int>(nextRandom(seed) % static_cast<std::uint32_t>(state.guidePitchClassCount));
+            pitchClass = ((state.guidePitchClasses[static_cast<std::size_t>(guideIndex)] % 12) + 12) % 12;
+        }
         int note = nearestInRegister(pitchClass, controls.registerLow, controls.registerHigh, center + octaveLift);
         if (randomUnit(seed) < controls.risk * 0.25f)
             note = nearestInRegister((pitchClass + 1) % 12, controls.registerLow, controls.registerHigh, note);

@@ -10,6 +10,8 @@ build_type="${CMAKE_BUILD_TYPE:-Release}"
 coordinator="$build_dir/tools/ai-coordinator/downspout-ai-coordinator"
 solo_midi="$out_dir/sidecar-solo.mid"
 phrase_txt="$out_dir/sidecar-phrase.txt"
+derived_midi="$out_dir/sidecar-derived-from-midi.mid"
+derived_phrase_txt="$out_dir/sidecar-derived-from-midi-phrase.txt"
 
 if [[ ! -f "$state_file" ]]; then
   echo "Missing state file: $state_file" >&2
@@ -35,6 +37,9 @@ ctest --test-dir "$build_dir" -R "downspout_(ai_coordinator|sidecar)_.*tests" --
 echo "Generating sample solo MIDI"
 "$coordinator" generate "$state_file" --out "$solo_midi" --phrase "$phrase_txt"
 
+echo "Generating derived solo from sample MIDI"
+"$coordinator" generate-from-midi "$solo_midi" --out "$derived_midi" --phrase "$derived_phrase_txt"
+
 if [[ ! -s "$solo_midi" ]]; then
   echo "Expected non-empty MIDI output: $solo_midi" >&2
   exit 1
@@ -45,10 +50,17 @@ if [[ ! -s "$phrase_txt" ]]; then
   exit 1
 fi
 
+if [[ ! -s "$derived_midi" ]]; then
+  echo "Expected non-empty MIDI-derived output: $derived_midi" >&2
+  exit 1
+fi
+
 echo
 echo "Generated:"
 echo "  MIDI:   $solo_midi"
 echo "  Phrase: $phrase_txt"
+echo "  MIDI-derived solo:   $derived_midi"
+echo "  MIDI-derived phrase: $derived_phrase_txt"
 
 echo
 echo "Phrase preview:"

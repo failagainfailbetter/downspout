@@ -8,6 +8,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <cstdint>
 
 START_NAMESPACE_DISTRHO
 
@@ -88,6 +89,21 @@ void setRanges(Parameter& parameter, const float minValue, const float maxValue,
     parameter.ranges.min = minValue;
     parameter.ranges.max = maxValue;
     parameter.ranges.def = defaultValue;
+}
+
+[[nodiscard]] int clampi(const int value, const int minimum, const int maximum)
+{
+    return std::max(minimum, std::min(value, maximum));
+}
+
+[[nodiscard]] float clampf(const float value, const float minimum, const float maximum)
+{
+    return std::max(minimum, std::min(value, maximum));
+}
+
+[[nodiscard]] const std::uint8_t* midiData(const MidiEvent& event)
+{
+    return event.dataExt != nullptr ? event.dataExt : event.data;
 }
 
 }  // namespace
@@ -241,9 +257,7 @@ protected:
             if (value > generateCounter_)
             {
                 generateCounter_ = value;
-                controls_ = downspout::sidecar::clampControls(controls_);
-                Phrase phrase = downspout::sidecar::makeFallbackPhrase(controls_, static_cast<std::uint32_t>(std::lround(value)) + 1u);
-                downspout::sidecar::setPhrase(engine_, phrase);
+                setGeneratedPhrase(static_cast<std::uint32_t>(std::lround(value)) + 1u);
             }
             break;
         case kParamAccept:
@@ -258,9 +272,7 @@ protected:
             if (value > retryCounter_)
             {
                 retryCounter_ = value;
-                controls_ = downspout::sidecar::clampControls(controls_);
-                Phrase phrase = downspout::sidecar::makeFallbackPhrase(controls_, static_cast<std::uint32_t>(std::lround(value)) + 1009u);
-                downspout::sidecar::setPhrase(engine_, phrase);
+                setGeneratedPhrase(static_cast<std::uint32_t>(std::lround(value)) + 1009u);
             }
             break;
         default:
@@ -299,8 +311,10 @@ protected:
         downspout::sidecar::activate(engine_, controls_);
     }
 
-    void run(const float**, float**, uint32_t frames) override
+    void run(const float**, float**, uint32_t frames, const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
+        consumeInputMidi(midiEvents, midiEventCount);
+
         const BlockResult result = downspout::sidecar::processBlock(engine_,
                                                                     controls_,
                                                                     toCoreTransport(getTimePosition()),
@@ -311,10 +325,72 @@ protected:
     }
 
 private:
+    [[nodiscard]] Controls controlsForGeneration() const
+    {
+        Controls generationControls = downspout::sidecar::clampControls(controls_);
+        if (capturedNoteCount_ < 3)
+            return generationControls;
+
+        generationControls.reg = RegisterId::custom;
+        generationControls.registerLow = clampi(capturedMinNote_ + 7, 0, 127);
+        generationControls.registerHigh = clampi(capturedMaxNote_ + 19, 0, 127);
+        if (generationControls.registerHigh < generationControls.registerLow)
+            std::swap(generationControls.registerHigh, generationControls.registerLow);
+
+        const float densityHint = clampf(0.30f + static_cast<float>(capturedNoteCount_) / 80.0f, 0.25f, 0.95f);
+        generationControls.density = clampf((generationControls.density * 0.65f) + (densityHint * 0.35f), 0.0f, 1.0f);
+
+        const float rangeHint = clampf(static_cast<float>(capturedMaxNote_ - capturedMinNote_) / 72.0f, 0.0f, 1.0f);
+        generationControls.risk = clampf((generationControls.risk * 0.75f) + (rangeHint * 0.25f), 0.0f, 1.0f);
+        return generationControls;
+    }
+
+    void setGeneratedPhrase(const std::uint32_t seed)
+    {
+        controls_ = downspout::sidecar::clampControls(controls_);
+        const Controls generationControls = controlsForGeneration();
+        engine_.controls = generationControls;
+        const std::uint32_t guidedSeed = seed ^ capturedSeed_;
+        Phrase phrase = downspout::sidecar::makeFallbackPhrase(generationControls, guidedSeed == 0u ? seed : guidedSeed);
+        downspout::sidecar::setPhrase(engine_, phrase);
+    }
+
+    void consumeInputMidi(const MidiEvent* midiEvents, const uint32_t midiEventCount)
+    {
+        if (midiEvents == nullptr)
+            return;
+
+        for (uint32_t i = 0; i < midiEventCount; ++i)
+        {
+            const MidiEvent& event = midiEvents[i];
+            if (event.size < 3)
+                continue;
+            const std::uint8_t* data = midiData(event);
+            const std::uint8_t status = data[0] & 0xf0u;
+            if (status != 0x90u || data[2] == 0u)
+                continue;
+
+            const int note = data[1];
+            capturedMinNote_ = std::min(capturedMinNote_, note);
+            capturedMaxNote_ = std::max(capturedMaxNote_, note);
+            ++capturedPitchClasses_[static_cast<std::size_t>(note % 12)];
+            capturedNoteCount_ = std::min(capturedNoteCount_ + 1, 4096);
+            capturedSeed_ ^= static_cast<std::uint32_t>((note << 16) ^ (data[2] << 8) ^ (event.frame & 0xffu));
+            capturedSeed_ = capturedSeed_ * 1664525u + 1013904223u;
+            if (capturedSeed_ == 0u)
+                capturedSeed_ = 1u;
+        }
+    }
+
     Controls controls_ {};
     EngineState engine_ {};
     Phrase acceptedPhrase_ {};
     bool hasAcceptedPhrase_ = false;
+    int capturedNoteCount_ = 0;
+    int capturedMinNote_ = 127;
+    int capturedMaxNote_ = 0;
+    std::uint32_t capturedSeed_ = 1u;
+    std::array<int, 12> capturedPitchClasses_ {};
     float generateCounter_ = 0.0f;
     float acceptCounter_ = 0.0f;
     float retryCounter_ = 0.0f;
