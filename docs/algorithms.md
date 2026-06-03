@@ -56,8 +56,3 @@ current Downspout plugins.
 - `Gremlin`: a chaotic glitch synth with sound modes, scenes, fader macros,
   performance actions, hold pads, and MIDI LED feedback.
 
-## How the site treats these methods
-
-The plugin cards on the GitHub Pages site stay short on purpose. This page is
-the place to read the implementation patterns in one place when comparing
-generators, effects, and instruments.

@@ -1,13 +1,17 @@
 # downspout
 
-`downspout` ports selected [flues](https://github.com/danja/flues) LV2 plugins
-to native plugin formats, with DPF and VST3 as the current practical target.
+A bunch of mostly generative, algorithmic plugins based around DPF and VST3.
 
 The repository is organized around portable C++ cores, deterministic tests, thin
 DPF wrappers, and custom NanoVG UIs. VST3 metadata is normalized across the
 plugins with creator `danja`, group `Downspout`, and plugin-specific categories.
 
-[Example of the plugins in use](https://www.youtube.com/watch?v=DrAHdaJolyc) (YouTube)
+Rough demos -
+
+* [Generative jazz](https://www.youtube.com/shorts/6cv-nQ_2TNM) 
+* [Another example](https://www.youtube.com/watch?v=DrAHdaJolyc) 
+
+See also : [flues](https://github.com/danja/flues) LV2 plugins
 
 ## Install From Releases
 
