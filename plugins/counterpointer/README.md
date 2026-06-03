@@ -26,6 +26,9 @@ Current status:
   saved-state scale values remain stable.
 - the `Color` control makes the generated counterline less strictly consonant
   and more chromatic/adventurous, especially on Jazz-capable scales.
+- strict, Bach-like answering is available through existing controls: high
+  `Regularity`, high `Counter`, and low random amounts preserve learned subject
+  intervals and answer them around the dominant.
 - the UI reports separate `MIDI In`, `MIDI Out`, and phrase-ready status so
   host routing can be checked before the learned counter-melody starts.
 

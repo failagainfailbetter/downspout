@@ -25,6 +25,7 @@ constexpr auto GENRE_AMEN = GenreId::amen;
 constexpr auto GENRE_JUNGLE = GenreId::jungle;
 constexpr auto GENRE_HIPHOP = GenreId::hipHop;
 constexpr auto GENRE_JAZZ = GenreId::jazz;
+constexpr auto GENRE_FUGUE = GenreId::fugue;
 
 constexpr auto RESOLUTION_8TH = ResolutionId::eighth;
 constexpr auto RESOLUTION_16TH = ResolutionId::sixteenth;
@@ -1675,8 +1676,46 @@ void buildBar(PatternState& pattern,
     }
 }
 
+void applyFuguePulseOverlay(PatternState& pattern, const Controls& controls) {
+    if (controls.genre != GENRE_FUGUE ||
+        pattern.totalSteps <= 0 ||
+        pattern.stepsPerBeat <= 0 ||
+        pattern.stepsPerBar <= 0) {
+        return;
+    }
+
+    for (int lane = 0; lane < kLaneCount; ++lane) {
+        for (int step = 0; step < pattern.totalSteps; ++step) {
+            clearStepHit(pattern, lane, step);
+        }
+    }
+
+    for (int bar = 0; bar < pattern.bars; ++bar) {
+        const int barStart = bar * pattern.stepsPerBar;
+        for (int beat = 0; beat < pattern.meter.numerator; ++beat) {
+            const int step = barStart + beat * pattern.stepsPerBeat;
+            if (step >= pattern.totalSteps) {
+                break;
+            }
+
+            const bool downbeat = beat == 0;
+            setStepHit(pattern, LANE_CLOSED_HAT, step, downbeat ? 82 : 66, downbeat ? STEP_FLAG_ACCENT : 0);
+            if (downbeat) {
+                setStepHit(pattern, LANE_KICK, step, 88, STEP_FLAG_ACCENT);
+            } else if (beat == pattern.meter.numerator / 2 && controls.auxAmt > 0.18f) {
+                setStepHit(pattern, LANE_CLAVE, step, 56, 0);
+            }
+        }
+    }
+}
+
 void cleanupPattern(PatternState& pattern, const Controls& controls) {
     if (pattern.totalSteps <= 0) {
+        return;
+    }
+
+    applyFuguePulseOverlay(pattern, controls);
+    if (controls.genre == GENRE_FUGUE) {
         return;
     }
 

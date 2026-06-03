@@ -38,6 +38,13 @@ enum class JazzDominantColor : std::uint8_t {
     bebopDominant
 };
 
+enum class FugueBarRole : std::uint8_t {
+    subject = 0,
+    answer,
+    episode,
+    pedalCadence
+};
+
 constexpr int kScaleMinor[] = {0, 2, 3, 5, 7, 8, 10};
 constexpr int kScaleMajor[] = {0, 2, 4, 5, 7, 9, 11};
 constexpr int kScaleDorian[] = {0, 2, 3, 5, 7, 9, 10};
@@ -146,6 +153,12 @@ constexpr ScaleDef kScales[] = {
             if (roll < 0.88f) return 2;
             return 6;
         }
+        if (genre == GenreId::fugue) {
+            if (roll < 0.52f) return 0;
+            if (roll < 0.74f) return 4;
+            if (roll < 0.90f) return 2;
+            return 6;
+        }
         if (roll < 0.45f) return 0;
         if (roll < 0.70f) return 4;
         if (roll < 0.82f) return 2;
@@ -171,6 +184,12 @@ constexpr ScaleDef kScales[] = {
         if (roll < 0.78f) return 4;
         if (roll < 0.90f) return 2;
         return 6;
+    case GenreId::fugue:
+        if (roll < 0.52f) return clampi(prevDegree + 1, 0, 9);
+        if (roll < 0.72f) return clampi(prevDegree - 1, 0, 9);
+        if (roll < 0.84f) return 4;
+        if (color > 0.55f && roll < 0.92f) return 6;
+        return 2;
     case GenreId::acid:
         if (roll < 0.25f - color * 0.10f) return prevDegree;
         if (roll < 0.55f - color * 0.08f) return clampi(prevDegree + rng.nextInt(-1, 1), 0, 6);
@@ -571,6 +590,97 @@ constexpr ScaleDef kScales[] = {
     return clampi(previousDegree + direction, 0, span * 3 - 1);
 }
 
+[[nodiscard]] FugueBarRole fugueRoleForBar(const int barIndex) {
+    switch (((barIndex % 4) + 4) % 4) {
+    case 0: return FugueBarRole::subject;
+    case 1: return FugueBarRole::answer;
+    case 2: return FugueBarRole::episode;
+    case 3: return FugueBarRole::pedalCadence;
+    default: return FugueBarRole::subject;
+    }
+}
+
+[[nodiscard]] bool fugueUsesMinorSubject(const ScaleId scale) {
+    return scale == ScaleId::minor ||
+           scale == ScaleId::harmonicMinor ||
+           scale == ScaleId::dorian ||
+           scale == ScaleId::phrygian ||
+           scale == ScaleId::melodicMinor;
+}
+
+[[nodiscard]] int fugueSubjectInterval(const ScaleId scale, const int subjectIndex) {
+    static constexpr int kMajorSubject[] = {0, 2, 4, 5, 7, 5, 4, 2};
+    static constexpr int kMinorSubject[] = {0, 2, 3, 5, 7, 5, 3, 2};
+    const int index = clampi(subjectIndex, 0, 7);
+    return fugueUsesMinorSubject(scale) ? kMinorSubject[index] : kMajorSubject[index];
+}
+
+[[nodiscard]] int fugueSubjectIndexForEvent(const PatternState& pattern, const NoteEvent& event) {
+    if (pattern.stepsPerBar <= 0) {
+        return 0;
+    }
+
+    int stepInBar = event.startStep % pattern.stepsPerBar;
+    if (stepInBar < 0) {
+        stepInBar += pattern.stepsPerBar;
+    }
+    return clampi((stepInBar * 8) / pattern.stepsPerBar, 0, 7);
+}
+
+[[nodiscard]] int fugueEpisodeRoot(const int barIndex) {
+    static constexpr int kSequenceRoots[] = {9, 2, 7, 0};
+    return kSequenceRoots[((barIndex % 4) + 4) % 4];
+}
+
+[[nodiscard]] int fugueNoteForEvent(const PatternState& pattern,
+                                    const Controls& controls,
+                                    const NoteEvent& event,
+                                    const int previousNote) {
+    const int barIndex = pattern.stepsPerBar > 0 ? event.startStep / pattern.stepsPerBar : 0;
+    int stepInBar = pattern.stepsPerBar > 0 ? event.startStep % pattern.stepsPerBar : 0;
+    if (stepInBar < 0) {
+        stepInBar += pattern.stepsPerBar;
+    }
+    const int beatIndex = pattern.stepsPerBeat > 0 ? stepInBar / pattern.stepsPerBeat : 0;
+    const int stepInBeat = pattern.stepsPerBeat > 0 ? stepInBar % pattern.stepsPerBeat : 0;
+    const int subjectIndex = fugueSubjectIndexForEvent(pattern, event);
+    const FugueBarRole role = fugueRoleForBar(barIndex);
+
+    int root = 0;
+    int interval = fugueSubjectInterval(controls.scale, subjectIndex);
+
+    switch (role) {
+    case FugueBarRole::subject:
+        root = 0;
+        break;
+    case FugueBarRole::answer:
+        root = 7;
+        break;
+    case FugueBarRole::episode:
+        root = fugueEpisodeRoot(barIndex);
+        interval = fugueSubjectInterval(controls.scale, subjectIndex / 2);
+        break;
+    case FugueBarRole::pedalCadence:
+        if (beatIndex >= std::max(1, pattern.meter.numerator / 2)) {
+            root = 0;
+            interval = 0;
+        } else {
+            root = 7;
+            interval = fugueUsesMinorSubject(controls.scale) ? 11 : 10;
+        }
+        break;
+    default:
+        break;
+    }
+
+    if (controls.color > 0.45f && stepInBeat == std::max(0, pattern.stepsPerBeat - 1)) {
+        const int target = role == FugueBarRole::answer ? 7 : 0;
+        return noteFromSemitoneOffset(controls, target - 1, previousNote);
+    }
+
+    return noteFromSemitoneOffset(controls, root + interval, previousNote);
+}
+
 [[nodiscard]] ::downspout::Meter resolveMeter(const ::downspout::Meter& meter) {
     return ::downspout::sanitizeMeter(meter);
 }
@@ -879,6 +989,7 @@ constexpr ScaleDef kScales[] = {
     case GenreId::funk: return strong ? 0.84f : 1.28f;
     case GenreId::sabbath: return strong ? 1.22f : 0.52f;
     case GenreId::jazz: return strong ? 1.35f : 0.26f;
+    case GenreId::fugue: return strong ? 1.48f : 0.42f;
     default: return 1.0f;
     }
 }
@@ -1020,6 +1131,40 @@ void reinforceJazzWalkingBeats(std::array<bool, kMaxPatternSteps>& onset,
     }
 }
 
+void reinforceFugueSubjectSteps(std::array<bool, kMaxPatternSteps>& onset,
+                                const PatternState& pattern,
+                                const Controls& controls,
+                                Rng& rng) {
+    if (controls.genre != GenreId::fugue ||
+        pattern.stepsPerBeat <= 0 ||
+        pattern.stepsPerBar <= 0 ||
+        pattern.patternSteps <= 0) {
+        return;
+    }
+
+    const int halfBeat = std::max(1, pattern.stepsPerBeat / 2);
+    const int barCount = std::max(1, (pattern.patternSteps + pattern.stepsPerBar - 1) / pattern.stepsPerBar);
+    const float flowProbability = clampf(0.54f + controls.density * 0.34f, 0.50f, 0.92f);
+    for (int bar = 0; bar < barCount; ++bar) {
+        const int barStart = bar * pattern.stepsPerBar;
+        if (barStart < pattern.patternSteps) {
+            onset[barStart] = true;
+        }
+
+        for (int local = halfBeat; local < pattern.stepsPerBar; local += halfBeat) {
+            const int step = barStart + local;
+            if (step >= pattern.patternSteps) {
+                break;
+            }
+            const bool beatStart = (local % pattern.stepsPerBeat) == 0;
+            const float probability = beatStart ? 0.88f : flowProbability;
+            if (rng.nextFloat() < probability) {
+                onset[step] = true;
+            }
+        }
+    }
+}
+
 [[nodiscard]] int nextOnsetStep(const std::array<bool, kMaxPatternSteps>& onset, int patternSteps, int step) {
     for (int index = step + 1; index < patternSteps; ++index) {
         if (onset[index]) {
@@ -1048,6 +1193,9 @@ void reinforceJazzWalkingBeats(std::array<bool, kMaxPatternSteps>& onset,
         break;
     case GenreId::jazz:
         holdBias *= 0.58f;
+        break;
+    case GenreId::fugue:
+        holdBias = clampf(holdBias * 0.82f + 0.12f, 0.0f, 1.0f);
         break;
     default:
         break;
@@ -1211,6 +1359,7 @@ void generateRhythm(PatternState& pattern,
         reinforceStyleAnchors(onset, pattern, controls, rng);
     }
     reinforceJazzWalkingBeats(onset, pattern, controls, rng);
+    reinforceFugueSubjectSteps(onset, pattern, controls, rng);
 
     for (int step = 0; step < pattern.patternSteps && pattern.eventCount < kMaxEvents; ++step) {
         if (!onset[step]) {
@@ -1234,6 +1383,7 @@ void generateRhythm(PatternState& pattern,
 void generateNotes(PatternState& pattern, const Controls& controls, Rng& rng) {
     int prevDegree = 0;
     int prevJazzNote = controls.rootNote + registerOffset(controls.reg);
+    int prevFugueNote = controls.rootNote + registerOffset(controls.reg);
     std::array<int, 4> sabbathCell {0, 4, 6, 0};
     int sabbathCellLen = 0;
     if (controls.genre == GenreId::sabbath) {
@@ -1246,7 +1396,10 @@ void generateNotes(PatternState& pattern, const Controls& controls, Rng& rng) {
         const StepRole role = stepRoleFor(pattern, controls, event.startStep);
         const bool strong = role == StepRole::primary;
         const bool secondaryAccent = role == StepRole::secondary;
-        if (controls.genre == GenreId::jazz && !jazzUsesSelectedScaleVocabulary(controls.scale)) {
+        if (controls.genre == GenreId::fugue) {
+            event.note = fugueNoteForEvent(pattern, controls, event, prevFugueNote);
+            prevFugueNote = event.note;
+        } else if (controls.genre == GenreId::jazz && !jazzUsesSelectedScaleVocabulary(controls.scale)) {
             event.note = jazzRoleColoredNoteForEvent(pattern, controls, rng, event, prevJazzNote);
             prevJazzNote = event.note;
         } else {

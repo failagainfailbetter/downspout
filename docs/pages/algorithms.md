@@ -14,9 +14,11 @@ current Downspout plugins.
 
 - `BassGen`: transport-synced monophonic bass generation with style and scale
   vocabularies, rhythm regeneration, color-driven harmonic tension, MIDI
-  follow/dodge behavior, and Jazz-specific ii-V-I / turnaround targeting.
+  follow/dodge behavior, Jazz-specific ii-V-I / turnaround targeting, and
+  Fugue subject/answer bass behavior.
 - `DrumGen`: transport-aware drum pattern generation with fill logic, style
-  modes, genre vocabularies, and pattern mutation around the current cycle.
+  modes, genre vocabularies, pattern mutation around the current cycle, and a
+  sparse Fugue pulse mode.
 - `MelGen`: phrase-aware monophonic melody generation with contour, call and
   answer, structure, range, color, and follow controls.
 - `Ground`: longer-horizon bass generation that plans phrase roles, movement,
@@ -26,7 +28,7 @@ current Downspout plugins.
   playback phrasing.
 - `Counterpointer`: learns an incoming MIDI line and answers it with a
   monophonic complementary line that can lean into contrary motion, chromatic
-  color, and rhythmic response.
+  color, rhythmic response, and strict dominant-answer imitation.
 - `Lifeform`: Conway's Game of Life drives the MIDI output, advancing the grid
   one beat at a time and turning active cells into musical events.
 - `Luma`: an 8x8 Launchpad grid drives a small set of musical agents where

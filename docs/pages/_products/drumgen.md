@@ -5,11 +5,12 @@ bundle: drumgen.vst3
 kind: MIDI drum generator
 role: Drum pattern generator
 screenshot: /assets/plugins/drumgen.png
-summary: Transport-aware MIDI drum generator with fills, style modes, and Breakbeat/Amen/Jungle/Hip Hop genres.
+summary: Transport-aware MIDI drum generator with fills, style modes, Breakbeat/Jazz/Fugue genres, and sparse pulse options.
 ---
 
 ## Functionality
 
 DrumGen emits MIDI drum patterns that stay aligned with host transport. It can
 create new patterns, mutate the current pattern, target fills, and switch
-between straight, folk-oriented, and breakbeat-inspired rhythmic vocabularies.
+between straight, folk-oriented, breakbeat-inspired, Jazz, and sparse Fugue
+metrical vocabularies.

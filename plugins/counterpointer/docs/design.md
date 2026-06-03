@@ -55,6 +55,12 @@ position. `Embellish` can add extra hits at musically spaced answer positions
 within the same segment. The phrase is deterministic for the same controls,
 transport, input, and variation state.
 
+When `Regularity` and `Counter` are high and both random controls are low, the
+core enters a stricter fugal answering path. The learned input becomes the
+subject, the generated line answers it around the dominant, and high color on
+Jazz-capable scales can invert the subject intervals. This uses the existing
+controls rather than adding a separate genre selector to Counterpointer.
+
 ## Implementation staging
 
 The current implementation includes a first DPF/VST3 wrapper and UI, but the

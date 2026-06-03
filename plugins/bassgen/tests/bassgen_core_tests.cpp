@@ -447,6 +447,39 @@ void testJazzScaleIdsAreAppended() {
     assert(static_cast<int>(ScaleId::count) == 20);
 }
 
+void testFugueGenreIsAppendedAndAnswersAtDominant() {
+    assert(static_cast<int>(GenreId::jazz) == 8);
+    assert(static_cast<int>(GenreId::fugue) == 9);
+    assert(static_cast<int>(GenreId::count) == 10);
+
+    Controls controls;
+    controls.seed = 1701u;
+    controls.genre = GenreId::fugue;
+    controls.scale = ScaleId::harmonicMinor;
+    controls.rootNote = 36;
+    controls.lengthBeats = 16;
+    controls.subdivision = SubdivisionId::sixteenth;
+    controls.density = 0.55f;
+    controls.color = 0.20f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, true, true);
+
+    assert(pattern.stepsPerBar == 16);
+    assert(pattern.patternSteps == 64);
+
+    const NoteEvent* subject = eventStartingAt(pattern, 0);
+    const NoteEvent* answer = eventStartingAt(pattern, 16);
+    const NoteEvent* cadencePedal = eventStartingAt(pattern, 56);
+
+    assert(subject != nullptr);
+    assert(answer != nullptr);
+    assert(cadencePedal != nullptr);
+    assert(relativePitchClass(subject->note, controls.rootNote) == 0);
+    assert(relativePitchClass(answer->note, controls.rootNote) == 7);
+    assert(relativePitchClass(cadencePedal->note, controls.rootNote) == 0);
+}
+
 void testBebopDominantScaleConstrainsGeneratedNotes() {
     Controls controls;
     controls.seed = 1001u;
@@ -869,6 +902,7 @@ int main() {
     testJazzStrongBeatsTargetChordTones();
     testJazzApproachAndEnclosureNotesTargetChordTones();
     testJazzScaleIdsAreAppended();
+    testFugueGenreIsAppendedAndAnswersAtDominant();
     testBebopDominantScaleConstrainsGeneratedNotes();
     testStateSanitization();
     testEngineRewindResyncAndStopNoteOff();

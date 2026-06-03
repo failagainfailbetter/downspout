@@ -32,9 +32,13 @@ Current `downspout`-specific port note:
   and Bebop Minor. Explicitly selected Jazz scales remain constrained
   vocabularies, while ordinary scales use the role model for Dorian,
   Mixolydian/altered, and Major/Lydian color;
+- Fugue is implemented as another appended genre value. It adds a first
+  subject/answer model with tonic subject, dominant answer, short episode, and
+  tonic pedal/cadence bars while preserving existing saved-state genre IDs;
 - the appended `Color` control is serialized in text state and exposed through
   DPF/UI. It is intentionally general rather than Jazz-only: Jazz uses it for
-  dominant color intensity, and other genres use it to increase
+  dominant color intensity, Fugue uses it for leading-tone pickup behavior, and
+  other genres use it to increase
   vocabulary-appropriate tension or motion without changing existing enum IDs.
 
 Likely reusable source modules:

@@ -276,6 +276,14 @@ double consonance_score(const int candidate, const int source, const float conso
     return score * static_cast<double>(consonance);
 }
 
+bool strict_fugue_mode(const Controls& controls)
+{
+    return controls.regularity >= 0.88f &&
+           controls.counter >= 0.72f &&
+           controls.short_random <= 0.18f &&
+           controls.long_random <= 0.12f;
+}
+
 void appendMidi(BlockResult& result,
                 const std::uint32_t frame,
                 const std::uint8_t size,
@@ -568,6 +576,40 @@ PhraseHit make_hit(const Controls& controls,
     return hit;
 }
 
+PhraseHit make_fugue_hit(const Controls& controls,
+                         const int source,
+                         const int subjectRoot,
+                         const int segmentIndex,
+                         const int hitIndex,
+                         const int velocity,
+                         const double inputOnset)
+{
+    PhraseHit hit {};
+    hit.active = true;
+
+    const int dominantRoot = subjectRoot + 7;
+    const int subjectInterval = source - subjectRoot;
+    const bool invert = color_amount(controls) >= 0.55f;
+    const int target = dominantRoot + (invert ? -subjectInterval : subjectInterval);
+    const int center = register_center(controls.reg);
+    const int minNote = clampi(center - 20, 0, 127);
+    const int maxNote = clampi(center + 20, 0, 127);
+    const int ornament = hitIndex == 0 ? 0 : (hitIndex == 1 ? -1 : 1);
+
+    hit.note = static_cast<std::uint8_t>(nearest_scale_note(controls, target + ornament, minNote, maxNote));
+    hit.velocity = static_cast<std::uint8_t>(clampi(static_cast<int>(std::lround(78.0 +
+                                                                                  static_cast<double>(velocity - 78) *
+                                                                                      static_cast<double>(controls.velocity_follow))) -
+                                                        hitIndex * 9,
+                                                    1,
+                                                    127));
+    hit.onset = hitIndex == 0
+        ? clampd(inputOnset * 0.72 + 0.08, 0.0, 0.62)
+        : clampd((hitIndex == 1 ? 0.48 : 0.74) + static_cast<double>(segmentIndex % 2) * 0.04, 0.04, 0.92);
+    hit.gate = clampd(static_cast<double>(controls.gate) * (hitIndex == 0 ? 0.82 : 0.42), 0.10, 0.92);
+    return hit;
+}
+
 bool build_phrase_from_capture(const std::array<SegmentCapture, kMaxSegments>& capture,
                                const int segmentCount,
                                const Controls& rawControls,
@@ -578,6 +620,7 @@ bool build_phrase_from_capture(const std::array<SegmentCapture, kMaxSegments>& c
         return false;
 
     const Controls controls = effective_controls_for_generation(rawControls);
+    const bool fugueMode = strict_fugue_mode(rawControls);
     clear_phrase(out);
     out.version = kPhraseStateVersion;
     out.segmentCount = segmentCount;
@@ -589,6 +632,7 @@ bool build_phrase_from_capture(const std::array<SegmentCapture, kMaxSegments>& c
              mix_u32(static_cast<std::uint32_t>(variation.mutation_serial) * 2246822519u));
 
     int previousSource = 60 + controls.key;
+    const int subjectRoot = source_note_for_segment(capture, 0, previousSource);
     int previousOutput = nearest_scale_note(controls, register_center(controls.reg), 0, 127);
     for (int i = 0; i < segmentCount; ++i)
     {
@@ -610,34 +654,45 @@ bool build_phrase_from_capture(const std::array<SegmentCapture, kMaxSegments>& c
 
         PhraseStep step {};
         step.hitCount = 0;
-        if (rng.nextFloat() <= noteChance)
+        if (fugueMode)
+        {
+            step.hits[static_cast<std::size_t>(step.hitCount++)] =
+                make_fugue_hit(controls, source, subjectRoot, i, 0, velocity, inputOnset);
+        }
+        else if (rng.nextFloat() <= noteChance)
             step.hits[static_cast<std::size_t>(step.hitCount++)] =
                 make_hit(controls, source, previousSource, previousOutput, i, 0, velocity, onset, rng);
 
         const double firstExtraChance =
-            controls.embellish >= 0.999f
+            fugueMode
+                ? clampd(static_cast<double>(controls.embellish) * 0.38, 0.0, 0.44)
+                : (controls.embellish >= 0.999f
                 ? 1.0
                 : clampd(static_cast<double>(controls.embellish) *
                              (0.45 + static_cast<double>(controls.density) * 0.50),
                          0.0,
-                         1.0);
-        const double secondExtraChance = clampd(static_cast<double>(controls.embellish) *
-                                                   static_cast<double>(controls.embellish) *
-                                                   (0.18 + (1.0 - static_cast<double>(controls.regularity)) * 0.24),
-                                               0.0,
-                                               1.0);
+                         1.0));
+        const double secondExtraChance = fugueMode
+            ? 0.0
+            : clampd(static_cast<double>(controls.embellish) *
+                         static_cast<double>(controls.embellish) *
+                         (0.18 + (1.0 - static_cast<double>(controls.regularity)) * 0.24),
+                     0.0,
+                     1.0);
         if (rng.nextFloat() <= firstExtraChance)
         {
             step.hits[static_cast<std::size_t>(step.hitCount++)] =
-                make_hit(controls,
-                         source,
-                         previousSource,
-                         previousOutput,
-                         i,
-                         1,
-                         velocity,
-                         embellish_position(inputOnset, 1, controls),
-                         rng);
+                fugueMode
+                    ? make_fugue_hit(controls, source, subjectRoot, i, 1, velocity, inputOnset)
+                    : make_hit(controls,
+                               source,
+                               previousSource,
+                               previousOutput,
+                               i,
+                               1,
+                               velocity,
+                               embellish_position(inputOnset, 1, controls),
+                               rng);
         }
         if (step.hitCount < kMaxHitsPerSegment && rng.nextFloat() <= secondExtraChance)
         {

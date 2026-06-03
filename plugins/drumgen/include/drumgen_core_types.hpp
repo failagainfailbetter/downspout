@@ -31,6 +31,7 @@ enum class GenreId : std::int32_t {
     jungle,
     hipHop,
     jazz,
+    fugue,
     count
 };
 

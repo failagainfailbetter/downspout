@@ -30,8 +30,10 @@ Implementation status:
 - the wrapper now exposes explicit `Auto`, `Straight`, `Reel`, `Waltz`, `Jig`,
   and `Slip Jig` style modes so users can force rhythmic vocabulary instead of
   relying only on meter-derived auto behavior;
-- genres now include Breakbeat, Amen, Jungle, Hip Hop, and Jazz alongside the
-  earlier Rock, Disco, Shuffle, Electro, Dub, Motorik, Bossa, and Afro options.
+- genres now include Breakbeat, Amen, Jungle, Hip Hop, Jazz, and Fugue
+  alongside the earlier Rock, Disco, Shuffle, Electro, Dub, Motorik, Bossa, and
+  Afro options. Fugue intentionally produces a sparse pulse rather than a full
+  drum style.
 
 Recommended next steps:
 

@@ -52,6 +52,7 @@ enum class GenreId : std::int32_t {
     funk,
     sabbath,
     jazz,
+    fugue,
     count
 };
 

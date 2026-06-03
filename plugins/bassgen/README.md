@@ -14,8 +14,9 @@ can make bass notes more likely on incoming drum/bass hits or suppress bass
 notes on those beats, with listen controls for MIDI channel and note focus.
 The `Color` control adjusts harmonic tension: for Jazz it moves dominant bars
 from inside/bebop material toward altered, diminished, and whole-tone colors,
-while other genres use it for more blues, tritone, modal, or passing-note
-movement without changing the selected scale.
+for Fugue it adds leading-tone pickup behavior, while other genres use it for
+more blues, tritone, modal, or passing-note movement without changing the
+selected scale.
 
 Implementation status:
 
@@ -41,9 +42,12 @@ Implementation status:
   and sevenths. One- and two-subdivision pickups add chromatic approaches and
   simple enclosures around the next chord-tone target while explicitly selected
   Jazz color scales remain constrained to their chosen vocabulary;
+- the appended Fugue genre biases rhythm toward flowing subject steps and maps
+  four-bar phrases across tonic subject, dominant answer, short episode, and
+  tonic pedal/cadence behavior;
 - the general `Color` control is serialized and exposed in the UI, and affects
-  Jazz dominant color as well as genre-specific tension choices for Funk, Acid,
-  Dub, Ambient, Sabbath, and the electronic styles;
+  Jazz dominant color, Fugue leading tones, and genre-specific tension choices
+  for Funk, Acid, Dub, Ambient, Sabbath, and the electronic styles;
 - incoming MIDI follow/dodge controls are wired through the wrapper, core, and
   UI.
 

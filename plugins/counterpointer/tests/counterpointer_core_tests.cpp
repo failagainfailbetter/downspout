@@ -70,6 +70,14 @@ int firstNoteOnPitch(const BlockResult& result)
     return -1;
 }
 
+int firstActiveStepNote(const PhraseState& phrase, const int index)
+{
+    const PhraseStep& step = phrase.steps[static_cast<std::size_t>(index)];
+    if (!step.active || step.hitCount <= 0)
+        return -1;
+    return step.hits[0].note;
+}
+
 void testTransportHelpers()
 {
     Controls controls = defaultControls();
@@ -333,6 +341,49 @@ void testDeterministicForSameInput()
     }
 }
 
+void testStrictCounterpointAnswersSubjectAtDominant()
+{
+    EngineState state;
+    activate(state);
+
+    Controls controls = defaultControls();
+    controls.key = 0;
+    controls.scale = SCALE_MAJOR;
+    controls.cycle_bars = 1;
+    controls.granularity = GRANULARITY_BEAT;
+    controls.pass_input = false;
+    controls.density = 1.0f;
+    controls.counter = 0.92f;
+    controls.follow = 0.12f;
+    controls.regularity = 0.96f;
+    controls.short_random = 0.0f;
+    controls.long_random = 0.0f;
+    controls.embellish = 0.0f;
+    controls.reg = REGISTER_MID;
+
+    constexpr std::uint32_t frameCount = 96000;
+    const std::array<InputMidiEvent, 8> subject = {{
+        makeEvent(0, 0x90, 60, 100),
+        makeEvent(12000, 0x80, 60, 0),
+        makeEvent(24000, 0x90, 62, 100),
+        makeEvent(36000, 0x80, 62, 0),
+        makeEvent(48000, 0x90, 64, 100),
+        makeEvent(60000, 0x80, 64, 0),
+        makeEvent(72000, 0x90, 65, 100),
+        makeEvent(84000, 0x80, 65, 0),
+    }};
+
+    const BlockResult learned =
+        processBlock(state, controls, runningTransport(0.0), frameCount, 48000.0, subject.data(), subject.size());
+    assert(learned.ready);
+    assert(state.playbackPhrase.ready);
+    assert(state.playbackPhrase.segmentCount == 4);
+    assert(firstActiveStepNote(state.playbackPhrase, 0) == 67);
+    assert(firstActiveStepNote(state.playbackPhrase, 1) == 69);
+    assert(firstActiveStepNote(state.playbackPhrase, 2) == 71);
+    assert(firstActiveStepNote(state.playbackPhrase, 3) == 72);
+}
+
 void testEmbellishCanOutnumberInputNotes()
 {
     EngineState state;
@@ -410,6 +461,7 @@ int main()
     testLearnsIncomingPatternAndEmitsCounterMelody();
     testLearnsIncomingPatternAcrossHostBlocks();
     testDeterministicForSameInput();
+    testStrictCounterpointAnswersSubjectAtDominant();
     testEmbellishCanOutnumberInputNotes();
     testFreezeKeepsLearnedPhrase();
     return 0;

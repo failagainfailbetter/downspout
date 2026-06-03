@@ -102,6 +102,18 @@ int countHits(const PatternState& pattern, const LaneId lane) {
     return count;
 }
 
+int countAllHits(const PatternState& pattern) {
+    int count = 0;
+    for (int lane = 0; lane < kLaneCount; ++lane) {
+        for (int step = 0; step < pattern.totalSteps; ++step) {
+            if (pattern.lanes[lane].steps[step].velocity > 0) {
+                count += 1;
+            }
+        }
+    }
+    return count;
+}
+
 void testDeterministicGeneration() {
     Controls controls;
     controls.seed = 12345u;
@@ -302,6 +314,37 @@ void testJazzGenrePinsSwingRideShape() {
     assert(hasHit(pattern, LaneId::openHat, 12));
     assert(hasHit(pattern, LaneId::snare, 6));
     assert(hasHit(pattern, LaneId::snare, 10));
+}
+
+void testFugueGenrePinsSparsePulse() {
+    assert(static_cast<int>(GenreId::jazz) == 12);
+    assert(static_cast<int>(GenreId::fugue) == 13);
+    assert(static_cast<int>(GenreId::count) == 14);
+
+    Controls controls;
+    controls.seed = 933u;
+    controls.genre = GenreId::fugue;
+    controls.bars = 1;
+    controls.resolution = ResolutionId::sixteenth;
+    controls.density = 0.90f;
+    controls.variation = 0.90f;
+    controls.fill = 0.90f;
+    controls.metalAmt = 1.0f;
+
+    PatternState pattern;
+    regeneratePattern(pattern, controls, ::downspout::Meter {}, false);
+
+    assert(pattern.stepsPerBar == 16);
+    assert(hasHit(pattern, LaneId::kick, 0));
+    assert(hasHit(pattern, LaneId::closedHat, 0));
+    assert(hasHit(pattern, LaneId::closedHat, 4));
+    assert(hasHit(pattern, LaneId::closedHat, 8));
+    assert(hasHit(pattern, LaneId::closedHat, 12));
+    assert(!hasHit(pattern, LaneId::snare, 4));
+    assert(!hasHit(pattern, LaneId::snare, 12));
+    assert(countHits(pattern, LaneId::crash) == 0);
+    assert(countHits(pattern, LaneId::bash) == 0);
+    assert(countAllHits(pattern) <= 6);
 }
 
 void testCrashCymbalsStaySparseByDefault() {
@@ -700,6 +743,7 @@ int main() {
     testAmenGenrePinsBreakSignature();
     testHipHopGenrePinsSparseBackbeat();
     testJazzGenrePinsSwingRideShape();
+    testFugueGenrePinsSparsePulse();
     testCrashCymbalsStaySparseByDefault();
     testRefreshBarKeepsOtherBars();
     testRefreshFillBarTargetsChosenBar();
