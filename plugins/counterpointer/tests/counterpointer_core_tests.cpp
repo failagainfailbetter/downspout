@@ -78,6 +78,25 @@ int firstActiveStepNote(const PhraseState& phrase, const int index)
     return step.hits[0].note;
 }
 
+int wrap12(const int value)
+{
+    int out = value % 12;
+    if (out < 0)
+        out += 12;
+    return out;
+}
+
+bool pitchClassInScale(const int note, const int key, const int* intervals, const int intervalCount)
+{
+    const int rel = wrap12(note - key);
+    for (int i = 0; i < intervalCount; ++i)
+    {
+        if (intervals[i] == rel)
+            return true;
+    }
+    return false;
+}
+
 void testTransportHelpers()
 {
     Controls controls = defaultControls();
@@ -87,6 +106,19 @@ void testTransportHelpers()
     assert(counterpointer_segment_index_for_time(controls, 4.0, 8, 0.0) == 0);
     assert(counterpointer_segment_index_for_time(controls, 4.0, 8, 3.25) == 3);
     assert(counterpointer_segment_index_for_time(controls, 4.0, 8, 7.99) == 7);
+}
+
+void testScaleIdsStayAppendOnly()
+{
+    assert(SCALE_BEBOP_MINOR == 17);
+    assert(SCALE_PHRYGIAN == 18);
+    assert(SCALE_LOCRIAN == 19);
+    assert(SCALE_PHRYGIAN_DOMINANT == 20);
+    assert(SCALE_COUNT == 21);
+
+    Controls controls = defaultControls();
+    controls.scale = 999;
+    assert(clampControls(controls).scale == SCALE_PHRYGIAN_DOMINANT);
 }
 
 void testStoppedTransportPassThrough()
@@ -384,6 +416,65 @@ void testStrictCounterpointAnswersSubjectAtDominant()
     assert(firstActiveStepNote(state.playbackPhrase, 3) == 72);
 }
 
+void testNewModalScalesConstrainGeneratedNotes()
+{
+    struct Case {
+        int scale;
+        std::array<int, 7> intervals;
+    };
+
+    constexpr std::array<Case, 3> cases = {{
+        {SCALE_PHRYGIAN, {0, 1, 3, 5, 7, 8, 10}},
+        {SCALE_LOCRIAN, {0, 1, 3, 5, 6, 8, 10}},
+        {SCALE_PHRYGIAN_DOMINANT, {0, 1, 4, 5, 7, 8, 10}},
+    }};
+
+    constexpr std::uint32_t frameCount = 96000;
+    const std::array<InputMidiEvent, 8> subject = {{
+        makeEvent(0, 0x90, 60, 100),
+        makeEvent(12000, 0x80, 60, 0),
+        makeEvent(24000, 0x90, 62, 100),
+        makeEvent(36000, 0x80, 62, 0),
+        makeEvent(48000, 0x90, 64, 100),
+        makeEvent(60000, 0x80, 64, 0),
+        makeEvent(72000, 0x90, 65, 100),
+        makeEvent(84000, 0x80, 65, 0),
+    }};
+
+    for (const Case& item : cases)
+    {
+        EngineState state;
+        activate(state);
+
+        Controls controls = defaultControls();
+        controls.key = 0;
+        controls.scale = item.scale;
+        controls.cycle_bars = 1;
+        controls.granularity = GRANULARITY_BEAT;
+        controls.pass_input = false;
+        controls.density = 1.0f;
+        controls.counter = 0.92f;
+        controls.follow = 0.12f;
+        controls.regularity = 0.96f;
+        controls.short_random = 0.0f;
+        controls.long_random = 0.0f;
+        controls.embellish = 0.0f;
+        controls.reg = REGISTER_MID;
+
+        const BlockResult learned =
+            processBlock(state, controls, runningTransport(0.0), frameCount, 48000.0, subject.data(), subject.size());
+        assert(learned.ready);
+        assert(state.playbackPhrase.ready);
+
+        for (int segment = 0; segment < state.playbackPhrase.segmentCount; ++segment)
+        {
+            const int note = firstActiveStepNote(state.playbackPhrase, segment);
+            assert(note >= 0);
+            assert(pitchClassInScale(note, controls.key, item.intervals.data(), static_cast<int>(item.intervals.size())));
+        }
+    }
+}
+
 void testEmbellishCanOutnumberInputNotes()
 {
     EngineState state;
@@ -462,6 +553,8 @@ int main()
     testLearnsIncomingPatternAcrossHostBlocks();
     testDeterministicForSameInput();
     testStrictCounterpointAnswersSubjectAtDominant();
+    testScaleIdsStayAppendOnly();
+    testNewModalScalesConstrainGeneratedNotes();
     testEmbellishCanOutnumberInputNotes();
     testFreezeKeepsLearnedPhrase();
     return 0;

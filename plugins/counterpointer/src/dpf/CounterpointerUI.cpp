@@ -1,5 +1,7 @@
 #include "DistrhoUI.hpp"
 
+#include "counterpointer_core_types.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -100,8 +102,12 @@ constexpr const char* kScaleNames[] = {
     "Chrom", "Major", "Nat Min", "Harm Min", "Pent Maj",
     "Pent Min", "Blues", "Dorian", "Mixolyd",
     "Lydian", "Mel Min", "Whole", "Altered", "H-W Dim",
-    "W-H Dim", "Bebop Dom", "Bebop Maj", "Bebop Min"
+    "W-H Dim", "Bebop Dom", "Bebop Maj", "Bebop Min",
+    "Phrygian", "Locrian", "Phryg Dom"
 };
+
+static_assert((sizeof(kScaleNames) / sizeof(kScaleNames[0])) == downspout::counterpointer::SCALE_COUNT,
+              "Counterpointer UI scale list must match the core scale enum");
 
 constexpr const char* kGranularityNames[] = {
     "Beat", "Half Bar", "Bar"
@@ -126,7 +132,7 @@ constexpr const char* kOutputChannelNames[] = {
 
 constexpr SelectorDef kSelectors[] = {
     {kParamKey, "Key", kNoteNames, 12},
-    {kParamScale, "Scale", kScaleNames, 18},
+    {kParamScale, "Scale", kScaleNames, downspout::counterpointer::SCALE_COUNT},
     {kParamCycleBars, "Bars", kCycleBarNames, 8},
     {kParamGranularity, "Grid", kGranularityNames, 3},
     {kParamRegister, "Register", kRegisterNames, 3},

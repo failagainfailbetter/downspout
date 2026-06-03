@@ -21,9 +21,10 @@ Current status:
 - portable core types, transport helpers, and engine exist;
 - deterministic core tests exist;
 - a first DPF-backed `counterpointer.vst3` wrapper and custom UI exist.
-- scale choices now include Lydian, Melodic Minor, Whole Tone, Altered,
-  diminished, and bebop colors, appended after the original scale IDs so
-  saved-state scale values remain stable.
+- scale choices now include Lydian, Phrygian, Locrian, Melodic Minor,
+  Phrygian Dominant, Whole Tone, Altered, diminished, and bebop colors,
+  appended after the original scale IDs so saved-state scale values remain
+  stable.
 - the `Color` control makes the generated counterline less strictly consonant
   and more chromatic/adventurous, especially on Jazz-capable scales.
 - strict, Bach-like answering is available through existing controls: high
